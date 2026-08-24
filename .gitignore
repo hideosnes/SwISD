@@ -1,0 +1,64 @@
+### Node.js ###
+# Dependency directories
+node_modules/
+
+# Runtime data
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# dotenv environment variables file
+.env
+
+# Logs
+logs
+*.log
+
+# Runtime directories
+dist/
+build/
+coverage/
+.nyc_output/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Next.js / Nuxt.js (if added later)
+.next/
+.nuxt/
+output/
+netlify/
+
+# Temporary folders
+tmp/
+temp/
+
+# Lock files (only commit one - choose npm or yarn)
+# yarn.lock
+# pnpm-lock.yaml
+
+# Secrets and sensitive data (examples)
+config/secrets.json
+private.key
+public.key
