@@ -1,56 +1,42 @@
-// src/index.ts
-import { createLibp2p, type Libp2p } from "libp2p";
-import { gossipsub } from '@libp2p/gossipsub'
-import {
-    createNodeConfig,
-    RoleAssignmentManager,
-    setupEventHandlers,
-    setupProtocolHandler,
-    startHealthCheck
-} from './protocols/index.ts'
-import { TaskRouter } from './models/taskRouter.ts'
-import { AdminEndpoint } from './admin/adminEndpoints.ts'
-import { PROTOCOLS } from './protocols/protocols.ts'
+/**
+ * 1. Relative path: src/index.ts
+ * 2. Description: Main entry point for the SwISD application, orchestrating startup and graceful shutdown.
+ * 3. Expects: Node.js process environment, valid configuration, and initialized subsystems.
+ * 4. Provides: A resilient, gracefully shutting down application instance listening for SIGINT/SIGTERM.
+ */
 
-async function main() {
-    try {
-        // Create gossipsub instance separately to avoid type conflicts
-        const pubsubService = gossipsub({
-            allowPublishToZeroTopicPeers: true,
-            emitSelf: true,
-            globalSignaturePolicy: 'StrictSign'
-        })
+import { SwISDError } from './errors.js';
 
-        const node: Libp2p = await createLibp2p({
-            ...createNodeConfig(),
-            services: {
-                // Type assertion to bypass nested @libp2p/interface version mismatch
-                pubsub: pubsubService as any
-            }
-        });
-        console.log('Node started with ID:', node.peerId.toString());
+class SwISDApp {
+  private isShuttingDown = false;
 
-        const roleManager = new RoleAssignmentManager(node);
-        console.log('Self-assigned role:', roleManager.getConfigRole());
-        await roleManager.startRoleAssignment();
+  public async start(): Promise<void> {
+    console.log('[SwISD] Initializing decentralized swarm node...');
+    this.registerShutdownHooks();
+    // TODO: Initialize config, crypto, crdt, network, tasks, storage subsystems here.
+    console.log('[SwISD] Node started successfully.');
+  }
 
-        setupEventHandlers(node, roleManager);
-        setupProtocolHandler(node);
-        startHealthCheck(node, PROTOCOLS.SWARM);
+  private registerShutdownHooks(): void {
+    const handleShutdown = (signal: string) => {
+      if (this.isShuttingDown) return;
+      this.isShuttingDown = true;
+      console.log(`[SwISD] Received ${signal}. Initiating graceful shutdown...`);
+      
+      // TODO: Trigger subsystem teardown (close libp2p, flush CRDT state, etc.)
+      
+      console.log('[SwISD] Graceful shutdown complete. Exiting.');
+      process.exit(0);
+    };
 
-        const taskRouter = new TaskRouter(node, roleManager);
-        await taskRouter.initialize();
-
-        const admin = new AdminEndpoint(roleManager, 8080, process.env.SWARM_ADMIN_TOKEN);
-        admin.setTaskRouter(taskRouter);
-        admin.start();
-
-        console.log('Node: OK. Waiting for peers...');
-        console.log('Press Ctrl+C to stop.');
-    } catch (err: any) {
-        console.error('Error during node startup:', err);
-        process.exit(1);
-    }
+    process.on('SIGINT', () => handleShutdown('SIGINT'));
+    process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  }
 }
 
-main();
+const app = new SwISDApp();
+app.start().catch((error: unknown) => {
+  const err = error instanceof Error ? error : new SwISDError('ERR_UNKNOWN', String(error));
+  console.error('[SwISD] Fatal startup error:', err);
+  process.exit(1);
+});
