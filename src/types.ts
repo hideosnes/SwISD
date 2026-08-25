@@ -1,9 +1,7 @@
-/**
- * 1. Relative path: src/types.ts
- * 2. Description: Shared runtime types and interfaces for the SwISD decentralized swarm.
- * 3. Expects: Strict TypeScript compiler settings (noImplicitAny, strictNullChecks).
- * 4. Provides: Exhaustive, explicit type definitions for CRDTs, networking, tasks, and crypto.
- */
+// src/types.ts
+// Description: Shared runtime types and interfaces for the SwISD decentralized swarm.
+// Expects: Strict TypeScript compiler settings (noImplicitAny, strictNullChecks).
+// Provides: Exhaustive, explicit type definitions for CRDTs, networking, tasks, and crypto.
 
 export type PeerRole = 'input' | 'worker' | 'diplomat' | 'auto';
 
@@ -12,7 +10,7 @@ export interface PeerCapabilities {
   role: PeerRole;
   availableMemoryBytes: number;
   availableStorageBytes: number;
-  modelSupport: string[];
+  modelSupport: ReadonlyArray<string>;
   lastHeartbeat: number;
   signature: Uint8Array;
 }
@@ -34,7 +32,7 @@ export interface TaskHistoryEvent {
   action: 'created' | 'fragmented' | 'assigned' | 'completed' | 'preempted' | 'failed';
   peerId: string;
   timestamp: number;
-  metadata?: Record<string, string | number>; // Backlog item: refine to strict union later
+  metadata?: Readonly<Record<string, string | number | boolean | null>>;
 }
 
 export interface TaskFragment {
@@ -43,13 +41,13 @@ export interface TaskFragment {
   totalChunks: number;
   payload: Uint8Array;
   hmac: Uint8Array;
-  merkleProof: string[];
+  merkleProof: ReadonlyArray<string>;
 }
 
 export interface TaskAssignment {
   taskId: string;
   assignedPeerId: string;
-  fragments: TaskFragment[];
+  fragments: ReadonlyArray<TaskFragment>;
   deadlineMs: number;
 }
 
@@ -60,7 +58,7 @@ export interface UpdateManifest {
   assetUrl: string;
   sha256: string;
   signature: Uint8Array;
-  chunks: string[];
+  chunks: ReadonlyArray<string>;
   sizeBytes: number;
   minSupervisorVersion: string;
 }

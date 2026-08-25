@@ -1,43 +1,42 @@
-*CRDT*
+# CRDT & Merkle-DAG Mathematical Foundation
 
+## CRDT: The Join-Semilattice
 A CRDT is, at its core, a data type whose replicas are guaranteed to converge without coordination because its merge operation is *mathematically incapable of producing a conflict*. The formal bedrock is the **join-semilattice**: a partially ordered set (S, ⊑) in which every pair of elements a, b ∈ S possesses a unique **least upper bound** (LUB), written a ⊔ b and called the *join*. Three laws fall out of this definition and define everything that follows: **commutativity** (a ⊔ b = b ⊔ a), **associativity** ((a ⊔ b) ⊔ c = a ⊔ (b ⊔ c)), and **idempotence** (a ⊔ a = a). These laws mean the result of merging is independent of message order, duplication, and grouping — which is precisely the chaos of a blind, churn-prone swarm.
 
 A state-based CRDT (CvCRDT) is formally a tuple (S, s⁰, q, u, m). The state space S is a join-semilattice with a bottom element ⊥; the initial state is s⁰ = ⊥; q is a set of query functions reading the payload; u is a set of update functions that must be **inflationary** (monotonic), meaning ∀s: s ⊑ u(s); and the merge function is simply m(a, b) = a ⊔ b. The **convergence theorem** states that once every update has been applied somewhere and every merge has propagated, all replicas agree. *Proof:* because updates are inflationary, each replica's state only ascends; because merge is the LUB, absorbing a neighbor's state can only move a replica upward to include all information it carries; therefore every replica monotonically approaches the join of the entire update history. Since ⊔ is commutative, associative, and idempotent, that final join is a unique fixed point independent of delivery order. When the network eventually delivers all messages (the only assumption CRDTs make), all replicas land on it. ∎
 
-The concrete types SwISD uses each instantiate this pattern with a specific merge. The **G-Counter** holds a vector v ∈ ℕⁿ, one slot per replica; increment raises only your own slot, the query is the sum Σᵢ v[i], and merge is pointwise max: (a ⊔ b)[i] = max(a[i], b[i]). *Proof that pointwise max is the LUB* under the order a ⊑ b ⟺ ∀i: a[i] ≤ b[i]: max(a[i], b[i]) is ≥ both a[i] and b[i], so it is an upper bound; and any other upper bound c must satisfy c[i] ≥ a[i] and c[i] ≥ b[i], hence c[i] ≥ max(a[i], b[i]), so the max is the *least* such bound. ∎ The **PN-Counter** is a pair of G-Counters (P, N), with value = value(P) − value(N), merged component-wise. The **G-Set** is a set merged by union (a ⊔ b = a ∪ b), whose LUB-ness under ⊆ follows because a ∪ b contains both operands and is contained in any superset containing both. It grows monotonically and cannot remove — ideal for your immutable task history.
+### Concrete Types in SwISD
+- **G-Counter:** Holds a vector v ∈ ℕⁿ. Merge is pointwise max.
+- **G-Set:** Merged by union (a ⊔ b = a ∪ b). Grows monotonically. Ideal for immutable task history.
+- **OR-Set:** Stores pairs (e, u) where u is a fresh unique tag. Yields deterministic **add-wins** semantics. Used for peer membership.
+- **LWW-Register:** Stores (v, t). Merge returns the pair with the larger t. Correct only for **single-writer** data. Used for self-attested `CapabilityManifests`.
 
-The **OR-Set** is where removal becomes possible without breaking convergence, and it's the type your peer membership needs. Naive set-union fails here: if one replica adds an element while another concurrently removes it, union can't decide the outcome. The OR-Set solves this by storing pairs (e, u), where e is the element and u is a **fresh unique tag** minted at each add. A remove deletes only the *specific tags the remover has observed* (tombstoning them). Because every add produces a distinct tag, a concurrent add mints a tag the remover never saw, so it survives. This yields deterministic **add-wins** semantics: concurrent add + remove resolves to present, independent of order. That causal uniqueness is what restores the semilattice structure to a mutable set.
+### The Reputation Refactor (Read-Time Decay)
+Applying decay at write time (score′ = score · γ) violates the inflationary requirement and is non-idempotent. The repair is to stop mutating and start projecting. Store reputation as an **append-only G-Set of signed events** L = {(outcomeₖ, latencyₖ, tₖ)}. Define the score as a pure function evaluated at read time:
+`score(now) = [ Σₖ outcomeₖ · γ^(now − tₖ) ] / [ Σₖ γ^(now − tₖ) ]`
+The log only grows, the merge is union, and decay becomes a deterministic function of (log, now). Convergence is preserved.
 
-The **LWW-Register** stores (v, t), a value with a timestamp; merge returns the pair with the larger t, tie-broken deterministically by replica ID. Since timestamps impose a total order, the LUB is well-defined. The caveat is honest one: LWW discards concurrent writes and relies on monotonically-increasing timestamps per replica, so it is correct only for **single-writer** data. That's exactly your capability model — each peer self-attests its own capabilities and is the sole writer of that register, so no real conflict can arise.
+---
 
-Now the part that actually matters for your code, because your current reputation logic is **not CRDT-safe**. You apply decay at write time: score′ = score · γ with γ = 0.99. This violates the inflationary requirement outright, since score · γ < score — the state moves *down*, breaking monotonicity. Worse, decay is non-idempotent: applying it twice yields score · γ², so the final value depends on how many times a replica observed a decay event, which depends on message ordering and duplication. Two replicas will diverge. The repair is to stop mutating and start projecting. Store reputation as an **append-only G-Set of signed events** L = {(outcomeₖ, latencyₖ, tₖ)}, merged by union — monotonic and conflict-free by construction. Then define the score as a pure function evaluated at read time, an exponentially-weighted projection over the log:
+## Merkle-DAG: The Content-Addressed Skeleton
+A Merkle-DAG lets SwISD peers prove, sync, and reassemble data without trusting each other. The primitive is a **cryptographic hash function** H with preimage resistance, second-preimage resistance, and collision resistance. 
 
-score(now) = [ Σₖ outcomeₖ · γ^(now − tₖ) ] / [ Σₖ γ^(now − tₖ) ]
+### Integrity Amplification & Inclusion Proofs
+Modifying any single bit changes the root. Same root ⟹ same content. 
+The **Merkle inclusion proof** lets you prove a single chunk belongs to a root by transmitting only the O(log n) audit path of siblings, not the dataset. This is the mechanism behind torrent-style fragment validation.
 
-The log only grows, the merge is union, and decay becomes a deterministic function of (log, now) rather than a state mutation. Convergence is preserved because it was never about *when* you decay — only about the immutable events you've accumulated. That single refactor is the difference between a ledger that converges and one that quietly disagrees with itself.
+### Anti-Entropy Sync
+When peers reconnect, they exchange **root hashes**. If they differ, they **recursively descend** and transfer *only* missing or modified branches. Bandwidth drops from O(n) to O(d · log n).
 
-*MERKLE DAG*
+### Crucial Crypto Distinction (Integrity vs. Authenticity)
+- **Merkle Integrity (Control-Plane):** Requires a plain collision-resistant hash (SHA-256 or BLAKE3). Proves the content hasn't been altered. Uses domain separation: `H(0x00 ∥ block)` for leaves, `H(0x01 ∥ left ∥ right)` for internal nodes.
+- **HMAC Authenticity (Data-Plane):** Requires a keyed MAC (HMAC-SHA256). Proves the chunk came from someone holding the shared noise-handshake key. 
+*Do not conflate them.* Hash the chunk into the DAG for integrity; HMAC it for source authentication on the wire.
 
-A Merkle-DAG is the content-addressed skeleton that lets SwISD peers prove, sync, and reassemble data without trusting each other or any coordinator. The primitive underneath everything is a **cryptographic hash function** H: {0,1}* → {0,1}^n with three security properties you must take on faith from the construction: **preimage resistance** (given y, it's infeasible to find x with H(x) = y), **second-preimage resistance** (given x, infeasible to find x′ ≠ x with H(x′) = H(x)), and **collision resistance** (infeasible to find *any* x ≠ x′ with H(x) = H(x′)). These are what make a hash a trustworthy fingerprint: the address *is* the identity of the content.
+### Pitfalls to Avoid
+1. **Domain Separation:** Always prefix leaves and internal nodes differently to prevent second-preimage attacks.
+2. **Real Hashes:** SHA-256 or BLAKE3 only. Never MD5/SHA-1.
+3. **Acyclic Construction:** Content-addressing enforces this naturally.
+4. **Garbage Collection:** Unreachable nodes accumulate. Implement a pruning policy to prevent edge-device storage exhaustion.
 
-Start with a Merkle **tree** and the DAG generalizes it. You hash your data into blocks and place their hashes at the leaves: leafᵢ = H(blockᵢ). Each internal node is the hash of its children's concatenation: node = H(left ∥ right). The **root** is the single hash at the top, and it is a pure function of every leaf below it. A Merkle-**DAG** relaxes one constraint: in a tree every node has exactly one parent, but in a DAG a node may have **multiple parents**. This is what enables structural sharing — two different structures can reference the exact same subtree by its hash, because referencing is by content, not by position. Git and IPFS are both Merkle-DAGs for precisely this reason.
-
-The central theorem is **integrity amplification**: modifying any single bit anywhere in the structure changes the root. *Proof:* suppose a leaf blockᵢ is altered, so H(blockᵢ) changes. Its parent is H(left ∥ right), so the parent hash changes. By induction this change propagates level by level to the root. Conversely, if two datasets yield the same root, then no leaf and no internal node along any path could differ — because any difference would cascade upward — meaning a collision would be required somewhere in H. By collision resistance, that is computationally infeasible. Therefore: same root ⟹ same content, with overwhelming probability. ∎ This is why a reconnecting peer can trust a root hash as a complete summary of an arbitrarily large dataset.
-
-The practical consequence is the **Merkle inclusion proof**, which lets you prove a single chunk belongs to a root without transmitting the whole structure. Given a leaf L and the **audit path** of siblings [s₁, …, s_k] along the route to the root, a verifier recomputes upward and checks equality:
-
-h₀ = H(L),  h_{i+1} = H(hᵢ ∥ s_{i+1})  (or H(s_{i+1} ∥ hᵢ) depending on sibling position),  accept iff h_k = R.
-
-Because the tree is balanced, the proof is **O(log n)** — you transmit only the path, not the dataset. This is the mechanism behind torrent-style fragment validation: each peer holds chunks, each chunk is provable against the task's root hash, and reassembly is just re-deriving the root from the collected pieces.
-
-The property that makes SwISD's state recovery cheap is **structural sharing with path copying**. Because nodes are content-addressed, updating one piece of data doesn't rewrite the structure — it creates new nodes *only along the path from the changed leaf to the root*, while every untouched subtree is shared by reference. That's **O(log n) new nodes per update**, and it makes the structure effectively immutable and append-friendly, which pairs beautifully with your CRDT logs. You never mutate history; you extend the DAG.
-
-Now the piece GUIDE actually points at — **anti-entropy sync via Merkle roots**. When two peers reconnect, they don't blindly flood each other with state. They exchange the **root hashes** of their local CRDT / Vector-DB segments. If the roots match, they're already consistent and do nothing. If they differ, they **recursively descend**: compare child hashes at each level, identify which subtrees diverge, and transfer *only those missing or modified branches*. Bandwidth drops from O(n) full-replication to roughly O(d · log n), where d is the number of differing segments. That's the Git-fetch / IPFS-bitswap pattern applied to your ledger — and it's why your CRDTs should be structured as hash-addressable segments rather than opaque blobs.
-
-One precise correction before you build on it, because GUIDE's wording can mislead. GUIDE lists **HMAC-SHA256 for per-chunk validation** on high-throughput streams, but Merkle *integrity* and HMAC *authenticity* are different jobs. Merkle integrity needs a plain **collision-resistant hash** (SHA-256, or better **BLAKE3** for Raspi throughput). HMAC is a **keyed** MAC — it proves a chunk came from someone holding the shared key. They're complementary: hash the chunk into the DAG for integrity, HMAC it for source authentication on the wire. Don't conflate them or you'll either fail to verify membership or accidentally require a key where none is needed.
-
-The pitfalls, because this is where implementations rot. **First**, use domain separation: hash leaves as H(0x00 ∥ block) and internal nodes as H(0x01 ∥ left ∥ right), otherwise an attacker can present an internal node as a leaf (the classic Merkle second-preimage attack on naive trees). **Second**, pick a real hash — SHA-256 or BLAKE3, never MD5/SHA-1. **Third**, a DAG must stay acyclic by construction, which content-addressing enforces naturally since a hash can only reference already-existing content. **Fourth**, plan garbage collection: unreachable nodes accumulate, so you need a policy to prune them or the store grows without bound on your edge devices.
-
-The one-line takeaway:
-
-> **A Merkle-DAG turns content into self-verifying, shareable, diffable fingerprints — so blind peers can prove membership, sync only differences, and reassemble tasks without ever trusting a coordinator.**
+> **Takeaway:** A Merkle-DAG turns content into self-verifying, shareable, diffable fingerprints — so blind peers can prove membership, sync only differences, and reassemble tasks without ever trusting a coordinator.
