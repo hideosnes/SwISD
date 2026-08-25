@@ -12,7 +12,8 @@ export type SwISDErrorCode =
   | 'ERR_TASK_PREEMPTED'
   | 'ERR_UPDATE_REVERT_REQUIRED'
   | 'ERR_INVALID_PROVISION_SCHEMA'
-  | 'ERR_PEER_ID_RESOLUTION_FAILED';
+  | 'ERR_PEER_ID_RESOLUTION_FAILED'
+  | 'ERR_UNKNOWN'; // Explicitly typed catch-all for truly unclassifiable fatal errors
 
 export class SwISDError extends Error {
   public readonly code: SwISDErrorCode;

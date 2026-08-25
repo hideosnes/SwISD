@@ -1,3 +1,4 @@
+### `BACKLOG.md`
 # SwISD BACKLOG
 The "don't you dare forget" ledger. Split by where the work lives.
 Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery machine.
@@ -17,39 +18,33 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 # SECTION 1 — THE APP (GitHub: `swisd`)
 
 ## P0 — Foundation (do first, zero behavioral risk)
-- [ ] **File restructure — barrel-enforced.** One `index.ts` per module; import only via barrels.
-- [ ] **Max one-step import depth.** Kill every `../../a/b/c`.
-- [ ] **Centralized files:** `src/utils.ts`, `src/types.ts`, `src/types.d.ts`, `src/errors.ts`.
-- [ ] **Type safety purge.** Remove all `as any`. Align `@libp2p/*` versions. Enforce
-      `strictNullChecks`, `noImplicitAny`, `eslint-plugin-no-any` (build-failing).
-- [ ] **De-centralize the architecture.** Remove the elected Gate/coordinator; refactor to
-      the blind model (peers self-select, no global routing tables).
-- [ ] **Critical bug fixes:** `peerIdFromString` mock → real `@libp2p/peer-id` import;
-      `require('os')` → ESM `import { cpus }`; add graceful shutdown (SIGINT/SIGTERM).
+- [x] **File restructure — barrel-enforced.** One `index.ts` per module; import only via barrels.
+- [x] **Max one-step import depth.** Kill every `../../a/b/c`.
+- [x] **Centralized files:** `src/utils.ts`, `src/types.ts`, `src/types.d.ts`, `src/errors.ts`.
+- [ ] **Type safety purge.** Remove all `as any`. Align `@libp2p/*` versions. Enforce `strictNullChecks`, `noImplicitAny`, `eslint-plugin-no-any` (build-failing).
+- [ ] **De-centralize the architecture.** Remove the elected Gate/coordinator; refactor to the blind model (peers self-select, no global routing tables).
+- [ ] **Critical bug fixes:** `peerIdFromString` mock → real `@libp2p/peer-id` import; `require('os')` → ESM `import { cpus }`; add graceful shutdown (SIGINT/SIGTERM).
 - [ ] **KokoroManager singleton.** Inject one instance; stop re-instantiating per task.
 
 ## P1 — Core decentralized substrate
 - [ ] **Custom CRDTs (Merkle-DAG structured):**
-      - Peer membership → **OR-Set**
-      - Device capabilities → **LWW-Register** (self-attested)
-      - Reputation → **append-only event G-Set** + read-time decay
-      - Task history → **G-Set** of immutable events
-      - Vector DB metadata index → **OR-Map**
-- [ ] **Reputation correctness.** Move decay from write-time to read-time (write-time decay
-      is not CRDT-safe). Store signed `(success, latency, timestamp)` events.
+  - Peer membership → **OR-Set**
+  - Device capabilities → **LWW-Register** (self-attested)
+  - Reputation → **append-only event G-Set** + read-time decay
+  - Task history → **G-Set** of immutable events
+  - Vector DB metadata index → **OR-Map**
+- [ ] **Reputation correctness.** Move decay from write-time to read-time (write-time decay is not CRDT-safe). Store signed `(success, latency, timestamp)` events.
 - [ ] **Blind propagation + Probabilistic TTL via Bloom Filters** (loop prevention).
 - [ ] **Role emergence.** INPUT / WORKER / DIPLOMAT emerge from capabilities — no assignment.
 - [ ] **Cryptographic signing:**
-      - Ed25519 control-plane: capability reg, reputation events, task results, diplomat msgs.
-      - HMAC-SHA256 data-plane: task chunks, model fragments, streams.
+  - Ed25519 control-plane: capability reg, reputation events, task results, diplomat msgs.
+  - HMAC-SHA256 data-plane: task chunks, model fragments, streams.
 - [ ] **Torrent-style task fragmentation** + reassembly.
 - [ ] **Immediate preemption** on peer drop.
 - [ ] **Error routing** via gossip + neighbor knowledge (no fixed paths).
 
 ## P2 — Performance & data
-- [ ] **Edge backpressure.** Token bucket + load shedding + load score (0–1). If load > 0.8:
-      reject new tasks + reduce gossip. Combine `stream.send() === false` with app-level
-      queue drop (shed low-priority first).
+- [ ] **Edge backpressure.** Token bucket + load shedding + load score (0–1). If load > 0.8: reject new tasks + reduce gossip. Combine `stream.send() === false` with app-level queue drop (shed low-priority first).
 - [ ] **Health via `@libp2p/ping` + load score.** Replace the custom "MEOW" healthcheck.
 - [ ] **Merkle-DAG anti-entropy sync.** Root-hash exchange; fetch only missing/modified branches.
 - [ ] **Vector DB — small-swarm mode.** Fully replicated for max recovery.
@@ -59,11 +54,11 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 ## P3 — Advanced
 - [ ] **Diplomat election + inter-swarm routing** (sole cross-swarm bridge).
 - [ ] **Update Gossip Protocol (app-level coordination):**
-      - Messages: `update_probe_result`, `update_manifest`, `update_schedule`, `update_status`.
-      - Deterministic stagger: `delay = FNV1a(peerId || version) % STAGGER_WINDOW`.
-      - Downgrade/replay protection via semver comparison.
-      - Manifest signed (Ed25519); peers verify against embedded pubkey.
-      - P2P bundle seeding coordination (GitHub as fallback seed).
+  - Messages: `update_probe_result`, `update_manifest`, `update_schedule`, `update_status`.
+  - Deterministic stagger: `delay = FNV1a(peerId || version) % STAGGER_WINDOW`.
+  - Downgrade/replay protection via semver comparison.
+  - Manifest signed (Ed25519); peers verify against embedded pubkey.
+  - P2P bundle seeding coordination (GitHub as fallback seed).
 - [ ] **Admin / observability endpoint** (local HTTP, token-guarded).
 
 ## Deferred (App)
@@ -72,6 +67,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [ ] **Cooperative update scheduling** (negotiated spacing vs. hash-stagger). *Trigger: reboot clustering.*
 - [ ] **Multi-channel releases** (beta/stable canary). *Trigger: fleet growth / risky velocity.*
 - [ ] **Chaos testing harness.** *Trigger: pre-1.0 hardening.* (GUIDE: deferred to production.)
+- [ ] **Refine `TaskHistoryEvent.metadata`** to a strict union of known metadata keys.
 
 ---
 
@@ -80,13 +76,12 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 ## P0 — The Image (clone-safe)
 - [ ] **Base:** Raspberry Pi OS Bookworm (NetworkManager, not legacy wpa_supplicant).
 - [ ] **Identity birth (first-boot only):**
-      - regenerate `/etc/machine-id`
-      - regenerate SSH host keys
-      - expand rootfs
-      - unique hostname (from CPU serial)
-      - **generate fresh libp2p Ed25519 peer identity** → persist to state partition
-- [ ] **Filesystem layout:** `/opt/swisd/{releases, current, previous, state, supervisor}`.
-      Keep `state/` **outside** `releases/` so updates never wipe CRDT ledger / identity.
+  - regenerate `/etc/machine-id`
+  - regenerate SSH host keys
+  - expand rootfs
+  - unique hostname (from CPU serial)
+  - **generate fresh libp2p Ed25519 peer identity** → persist to state partition
+- [ ] **Filesystem layout:** `/opt/swisd/{releases, current, previous, state, supervisor}`. Keep `state/` **outside** `releases/` so updates never wipe CRDT ledger / identity.
 - [ ] **Embed Ed25519 PUBLIC key** for release verification.
 
 ## P0 — systemd services
@@ -111,14 +106,14 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [ ] Versioned schema, idempotent, persist locally; ignore stick once applied.
 - [ ] **Re-provisioning** on stick insertion (not just first boot).
 - [ ] Proposed schema:
-      ```json
-      {
-        "wifi": { "ssid": "…", "psk": "…", "country": "DE" },
-        "role": "auto | input | worker",
-        "modelSource": { "type": "hf", "url": "https://huggingface.co/…" },
-        "version": 1
-      }
-      ```
+  ```json
+  {
+    "wifi": { "ssid": "…", "psk": "…", "country": "DE" },
+    "role": "auto | input | worker",
+    "modelSource": { "type": "hf", "url": "https://huggingface.co/…" },
+    "version": 1
+  }
+  ```
 
 ## P2 — Release & Signing Pipeline (GitHub Actions)
 - [ ] On tag push: build tarball → SHA-256 → **Ed25519 sign** (private key in CI secrets ONLY).

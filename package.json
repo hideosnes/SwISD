@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
-    "@libp2p/gossipsub": "^15.0.16",
+    "@libp2p/gossipsub": "^17.0.1",
     "@libp2p/mdns": "^12.0.11",
     "@libp2p/noise": "^1.0.1",
     "@libp2p/tcp": "^11.0.10",
@@ -30,7 +30,7 @@
     "open": "^11.0.1"
   },
   "devDependencies": {
-    "@types/node": "^25.2.2",
+    "@types/node": "^25.9.5",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

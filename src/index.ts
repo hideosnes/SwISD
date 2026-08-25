@@ -36,7 +36,10 @@ class SwISDApp {
 
 const app = new SwISDApp();
 app.start().catch((error: unknown) => {
-  const err = error instanceof Error ? error : new SwISDError('ERR_UNKNOWN', String(error));
+  const err = error instanceof Error 
+    ? error 
+    : new SwISDError('ERR_UNKNOWN', `Fatal startup error: ${String(error)}`);
+  
   console.error('[SwISD] Fatal startup error:', err);
   process.exit(1);
 });
