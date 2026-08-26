@@ -1,3 +1,9 @@
+<!--
+1. Relative path: BACKLOG.md
+2. Description: The "don't you dare forget" ledger for SwISD, tracking completed and pending architectural milestones.
+3. Expects: Continuous updates as phases are conquered and new domains are defined.
+4. Provides: A single source of truth for the project's current state, locked decisions, and strategic roadmap.
+-->
 # SwISD BACKLOG
 The "don't you dare forget" ledger. Split by where the work lives.
 Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery machine.
@@ -55,6 +61,18 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **Admin / observability endpoint.** Local HTTP/SSE token-guarded endpoint + "Conductor's Podium" Vanilla JS GUI.
 - [x] **Dual-Audience API Boundary.** `SwISDClient` exposed as the public `npm` API, wrapping the headless engine and optional GUI.
 
+## P4 — Model Distribution & Heavy Payloads (The New Frontier)
+- [ ] **Model Manifest CRDT:** Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger.
+- [ ] **Local Model Manager:** Build `src/models/manager.ts` for downloading, chunking, Merkle verification, and LRU cache eviction in `/opt/swisd/models/`.
+- [ ] **P2P Chunk Seeding:** Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
+- [ ] **Storage Watermarks & Eviction:** Implement LRU eviction policy when `/opt/swisd/models/` exceeds configured disk watermark.
+
+## P5 — User Experience & The Conductor Cockpit
+- [ ] **Out-of-Box Setup Portal:** Build fallback AP mode and captive portal wizard in `src/provision/` for monitor-less, USB-less initial WiFi provisioning.
+- [ ] **Modern Dashboard UI:** Replace vanilla JS `dashboardHtml.ts` with compiled, auto-discovering SPA (e.g., Preact/Svelte) visualizing swarm topology and model distribution.
+- [ ] **Drag-and-Drop Ingestion:** Build Conductor-side CLI/UI wrapper to ingest local `.gguf` files, chunk them, and seed them to the swarm without browser memory limits.
+- [ ] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
+
 ## Deferred (App)
 - [ ] **Vector DB sharding** (large swarms). *Trigger: storage pressure / large swarm.*
 - [ ] **Elastic Capacity Allocation** (watermark gossip consensus). *Trigger: replication imbalance.* (Foundation built in `src/storage/capacity.ts`).
@@ -71,7 +89,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 ## P0 — The Image (clone-safe)
 - [ ] **Base:** Raspberry Pi OS Bookworm (NetworkManager, not legacy wpa_supplicant).
 - [x] **Identity birth contract:** `IdentityManager` implemented to generate and persist fresh Ed25519 peer identity to state partition, surviving all updates. *(OS-level machine-id/SSH deferred to actual image build).*
-- [x] **Filesystem layout contract:** `/opt/swisd/{releases, current, previous, state, supervisor}` defined and strictly enforced in local MVP. `state/` strictly isolated from `releases/`.
+- [x] **Filesystem layout contract:** `/opt/swisd/{releases, current, previous, state, supervisor, models}` defined and strictly enforced in local MVP. `state/` and `models/` strictly isolated from `releases/`.
 - [x] **Embed Ed25519 PUBLIC key** for release verification *(Implemented in local supervisor key management)*.
 
 ## P0 — systemd services
@@ -86,14 +104,15 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [ ] semver compare vs local `VERSION`.
 
 ## P1 — USB Provisioning (zero-touch, re-provisionable)
-- [x] **Provisioning Contract:** Strict `ProvisionConfig` schema validated. Idempotent application logic defined.
-- [ ] Scan FAT32/exFAT sticks for `/swisd-provision.json`. *(Pi-specific implementation)*.
-- [ ] Apply: wifi (via `nmcli`), role, model source, other config. *(Pi-specific implementation)*.
+- [x] **Provisioning Contract:** Strict `ProvisionConfig` schema validated. Idempotent application logic defined (`src/provision/apply.ts`).
+- [x] **Idempotent Application:** Checksum-verified application of `/swisd-provision.json` via `nmcli`.
+- [ ] Scan FAT32/exFAT sticks for `/swisd-provision.json`. *(Pi-specific `udev` implementation)*.
 - [ ] **Re-provisioning** on stick insertion.
 
 ## P2 — Release & Signing Pipeline (GitHub Actions)
-- [x] On tag push: build tarball → SHA-256 → Ed25519 sign (private key in CI secrets ONLY).
-- [x] Publish `swisd-<ver>.tar.gz` + `.sha256` + `.sig`.
+- [x] **CI/CD Workflow:** `.github/workflows/release.yml` triggers on `v*` tags or manual dispatch.
+- [x] **Cryptographic Signing:** `scripts/sign-release.ts` signs the tarball using `SWISD_SIGNING_KEY_DER_BASE64` from GitHub Secrets.
+- [x] **Artifact Publishing:** Automatically attaches `.tar.gz`, `.sha256`, and `.sig` to the GitHub Release.
 
 ## P2 — Swarm-managed update delivery
 - [ ] Soft single-checker, manifest gossip via Bloom-filter TTL, P2P bundle seeding, deterministic stagger scheduling.

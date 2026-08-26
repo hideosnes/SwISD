@@ -1,3 +1,9 @@
+<!--
+1. Relative path: GUIDE.md
+2. Description: The core architectural philosophy, network topology, and strict development standards for the SwISD swarm.
+3. Expects: Adherence from all contributors; serves as the north star for design decisions.
+4. Provides: Exhaustive documentation of the polymorphic render swarm, crypto tiers, and UX philosophy.
+-->
 # SwISD Decentralized AI Swarm Network
 
 ## 1. Core Philosophy & Vision
@@ -53,3 +59,17 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
 - **Stateless Releases, Persistent State:** The application binary lives in disposable `<deliveryRoot>/releases/<version>`, while identity, CRDTs, and configuration live strictly in `<deliveryRoot>/state`, surviving all updates and rollbacks.
 - **Cryptographic Verification:** Every release artifact is verified via SHA-256 (integrity) and Ed25519 (authenticity) before installation.
 - **Atomic Swaps & Watchdog:** Updates are applied via atomic symlink swaps (`current` / `previous`). A decoupled, non-HTTP watchdog monitors a filesystem heartbeat; if the app stalls, it automatically reverts to `previous` and restarts.
+
+## 8. AI Model Distribution (The Heavy Payloads)
+- **Filesystem Separation:** The application binary lives in `<deliveryRoot>/releases/`, while heavy AI model weights live strictly in `<deliveryRoot>/models/<model-id>/`. Models are cacheable data, not disposable code.
+- **Capability-Driven Pull (The Lazy Swarm):** Models are pulled *only* when a node's `ExecutorRegistry` advertises the required capability and the swarm has tasks demanding it. Nodes do not blindly download every model.
+- **Two-Tier Distribution:** 
+  - *Tier 1 (Ingress):* The Conductor or a designated "Seed" Pi downloads the model from HuggingFace, chunks it into 256KB blocks, computes the Merkle root, and signs the `ModelManifest`.
+  - *Tier 2 (Swarm):* Worker Pis request chunks via the `ChunkLocationLedger`, opening parallel libp2p streams to pull directly from neighbors (micro-torrent style).
+- **Storage Watermarks & Eviction:** When the models directory exceeds a configured disk watermark, the `ModelManager` triggers an LRU (Least Recently Used) eviction, deleting chunks of the least recently executed models.
+
+## 9. User Experience & The Conductor Cockpit
+- **Complexity Hidden, Not Removed:** The user never sees a Merkle root or Bloom filter, but every UI action is cryptographically verified and atomically swapped under the hood.
+- **Out-of-Box Setup Portal:** If a Pi boots without a network or USB provision, it falls back to broadcasting a temporary `SwISD-Setup-XXXX` Access Point. A captive portal allows users to inject WiFi credentials via smartphone.
+- **Drag-and-Drop Ingestion:** The Conductor UI allows users to drag local `.gguf` model files directly into the browser. The Polymorphic Ingestion Engine chunks and seeds them to the swarm without choking browser memory.
+- **Visual Swarm Topology:** The dashboard renders an interactive node-graph of the swarm, color-coded by `CapabilityManifest`, showing real-time model distribution progress and node health.
