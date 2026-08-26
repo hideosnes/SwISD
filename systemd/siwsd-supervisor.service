@@ -1,0 +1,27 @@
+# 1. Relative path: systemd/swisd-supervisor.service
+# 2. Description: Systemd service template for the SwISD update supervisor and watchdog.
+# 3. Expects: Root privileges to manage symlinks and restart the app service. Runs from a pinned, non-updating directory.
+# 4. Provides: A resilient watchdog that monitors app heartbeats and handles atomic rollbacks without self-updating.
+
+[Unit]
+Description=SwISD Update Supervisor and Watchdog
+After=network-online.target swisd-app.service
+Requires=swisd-app.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+# Supervisor runs from a pinned location, NOT from /opt/swisd/current, to prevent self-sabotage during rollbacks
+WorkingDirectory=/opt/swisd/supervisor
+Environment=NODE_ENV=production
+Environment=SWISD_DELIVERY_ROOT=/opt/swisd
+Environment=SWISD_GRACE_PERIOD_MS=60000
+ExecStart=/usr/bin/node --experimental-specifier-resolution=node dist/delivery/localSupervisor.js --no-dry-run
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

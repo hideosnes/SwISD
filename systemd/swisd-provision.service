@@ -1,0 +1,23 @@
+# 1. Relative path: systemd/swisd-provision.service
+# 2. Description: Systemd service template for one-time or re-triggered USB provisioning.
+# 3. Expects: A USB stick mounted with `/swisd-provision.json`. Runs as root to apply network/identity configs.
+# 4. Provides: Idempotent application of provisioning data, designed to be triggered on stick insertion or first boot.
+
+[Unit]
+Description=SwISD USB Provisioning Agent
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/swisd/supervisor
+Environment=NODE_ENV=production
+Environment=SWISD_DELIVERY_ROOT=/opt/swisd
+# This script will be generated in Phase 3 to read /swisd-provision.json and apply configs idempotently
+ExecStart=/usr/bin/node --experimental-specifier-resolution=node dist/provision/apply.js
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

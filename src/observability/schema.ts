@@ -1,7 +1,7 @@
-// src/observability/schema.ts
-// Description: Strict schema types for the SwISD observability plane.
-// Expects: Runtime state providers and typed event payloads.
-// Provides: Exhaustive observability contracts for snapshots, events, and source adapters.
+// 1. Relative path: src/observability/schema.ts
+// 2. Description: Strict schema types for the SwISD observability plane.
+// 3. Expects: Runtime state providers and typed event payloads.
+// 4. Provides: Exhaustive observability contracts for snapshots, events, and source adapters.
 
 import type { LoadScore, PeerRole, UpdateStatus } from '../types.js';
 
@@ -89,11 +89,13 @@ export interface ObservabilityTaskInfo {
 
 export interface ObservabilityDeliveryInfo {
   readonly supervisorPresent: boolean;
-  readonly currentAppVersion: string;
+  readonly currentAppVersion: string | null;
   readonly previousAppVersion: string | null;
   readonly heartbeatOk: boolean;
   readonly updateChannel: 'single';
   readonly updateStatus: UpdateStatus;
+  readonly lastError: string | null;
+  readonly rollbackReason: string | null;
 }
 
 export interface ObservabilitySnapshot {

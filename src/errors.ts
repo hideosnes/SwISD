@@ -1,7 +1,7 @@
-// src/errors.ts
-// Description: Centralized error texts and custom error classes for SwISD.
-// Expects: String error codes and optional underlying cause typed as unknown.
-// Provides: Type-safe, identifiable error classes for graceful degradation and logging.
+// 1. Relative path: src/errors.ts
+// 2. Description: Centralized error texts and custom error classes for SwISD.
+// 3. Expects: String error codes and optional underlying cause typed as unknown.
+// 4. Provides: Type-safe, identifiable error classes for graceful degradation and logging.
 
 export type SwISDErrorCode =
   | 'ERR_CRYPTO_VERIFICATION_FAILED'
@@ -15,6 +15,9 @@ export type SwISDErrorCode =
   | 'ERR_ADMIN_SERVER_FAILED'
   | 'ERR_OBSERVABILITY_INVALID_CURSOR'
   | 'ERR_OBSERVABILITY_EVENT_CAPACITY_INVALID'
+  | 'ERR_DELIVERY_INVALID_ARTIFACT'
+  | 'ERR_DELIVERY_WATCHDOG_TIMEOUT'
+  | 'ERR_DELIVERY_FILESYSTEM'
   | 'ERR_UNKNOWN';
 
 export class SwISDError extends Error {
@@ -92,5 +95,29 @@ export class AdminServerFailedError extends SwISDError {
     super('ERR_ADMIN_SERVER_FAILED', message, cause);
     this.name = 'AdminServerFailedError';
     Object.setPrototypeOf(this, AdminServerFailedError.prototype);
+  }
+}
+
+export class DeliveryArtifactError extends SwISDError {
+  constructor(message: string, cause?: unknown) {
+    super('ERR_DELIVERY_INVALID_ARTIFACT', message, cause);
+    this.name = 'DeliveryArtifactError';
+    Object.setPrototypeOf(this, DeliveryArtifactError.prototype);
+  }
+}
+
+export class DeliveryWatchdogError extends SwISDError {
+  constructor(message: string, cause?: unknown) {
+    super('ERR_DELIVERY_WATCHDOG_TIMEOUT', message, cause);
+    this.name = 'DeliveryWatchdogError';
+    Object.setPrototypeOf(this, DeliveryWatchdogError.prototype);
+  }
+}
+
+export class DeliveryFilesystemError extends SwISDError {
+  constructor(message: string, cause?: unknown) {
+    super('ERR_DELIVERY_FILESYSTEM', message, cause);
+    this.name = 'DeliveryFilesystemError';
+    Object.setPrototypeOf(this, DeliveryFilesystemError.prototype);
   }
 }

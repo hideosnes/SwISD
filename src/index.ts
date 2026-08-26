@@ -1,13 +1,14 @@
-// src/index.ts
-// Description: Main entry point for the SwISD application, starting the observation plane and graceful shutdown.
-// Expects: Node.js process environment and local development configuration.
-// Provides: A resilient application instance with token-guarded local observability dashboard.
+// 1. Relative path: src/index.ts
+// 2. Description: Main entry point for the SwISD application, starting the observation plane, persistent identity, and graceful shutdown.
+// 3. Expects: Node.js process environment and local development configuration.
+// 4. Provides: A resilient application instance with token-guarded local observability dashboard, persistent peer identity, and delivery heartbeat.
 
 import { SwISDError } from './errors.js';
 import { createAdminServer } from './admin/index.js';
 import type { AdminServerHandle } from './admin/index.js';
 import { ObservabilityEventBus, createDevObservabilitySource } from './observability/index.js';
 import type { DevObservabilitySource } from './observability/index.js';
+import { HeartbeatWriter, IdentityManager } from './delivery/index.js';
 import {
   createAdminToken,
   parseBoolean,
@@ -18,8 +19,9 @@ import {
 class SwISDApp {
   private isShuttingDown = false;
   private adminServer: AdminServerHandle | undefined;
-  private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   private source: DevObservabilitySource | undefined;
+  private heartbeatWriter: HeartbeatWriter | undefined;
+  private identityManager: IdentityManager | undefined;
 
   public async start(): Promise<void> {
     console.log('[SwISD] Initializing decentralized swarm node...');
@@ -27,9 +29,23 @@ class SwISDApp {
     const eventBus = new ObservabilityEventBus(500);
 
     const role = parsePeerRole(process.env.SWISD_ROLE);
-    const peerId = process.env.SWISD_DEV_PEER_ID ?? `dev-${process.pid}-${Date.now().toString(36)}`;
     const version = process.env.SWISD_VERSION ?? '0.0.1';
+    const deliveryRoot = process.env.SWISD_DELIVERY_ROOT ?? '.swisd/delivery';
 
+    // 1. Bootstrap Persistent Identity
+    this.identityManager = new IdentityManager(deliveryRoot);
+    await this.identityManager.ensureStateDir();
+    const identity = await this.identityManager.getOrCreateIdentity();
+    
+    // Allow env override for pure local dev testing, but default to the persistent cryptographic identity
+    const peerId = process.env.SWISD_DEV_PEER_ID ?? identity.peerId;
+    if (process.env.SWISD_DEV_PEER_ID) {
+      console.warn(`[SwISD] WARNING: Overriding persistent peer identity with SWISD_DEV_PEER_ID: ${peerId}`);
+    } else {
+      console.log(`[SwISD] Loaded persistent peer identity: ${peerId}`);
+    }
+
+    // 2. Initialize Observability Source
     const source = createDevObservabilitySource(
       {
         peerId,
@@ -37,6 +53,7 @@ class SwISDApp {
         version,
         configSource: 'env',
         startedAt: Date.now(),
+        deliveryRoot,
       },
       eventBus
     );
@@ -44,12 +61,22 @@ class SwISDApp {
     this.source = source;
     source.tick();
 
-    this.heartbeatTimer = setInterval(() => {
+    const obsTimer = setInterval(() => {
       source.tick();
     }, 5000);
+    obsTimer.unref();
 
-    this.heartbeatTimer.unref();
+    // 3. Initialize Delivery Heartbeat
+    this.heartbeatWriter = new HeartbeatWriter({
+      deliveryRoot,
+      peerId,
+      version,
+      intervalMs: 5000,
+    });
+    await this.heartbeatWriter.ensureStateDir();
+    this.heartbeatWriter.start();
 
+    // 4. Start Admin Server
     const token = process.env.SWISD_ADMIN_TOKEN ?? createAdminToken();
     const host = process.env.SWISD_ADMIN_HOST ?? '127.0.0.1';
     const allowLan = parseBoolean(process.env.SWISD_ALLOW_LAN_ADMIN, false);
@@ -76,7 +103,6 @@ class SwISDApp {
     }
 
     this.registerShutdownHooks();
-
     console.log('[SwISD] Node started successfully.');
   }
 
@@ -105,9 +131,9 @@ class SwISDApp {
   private async shutdown(signal: string): Promise<void> {
     console.log(`[SwISD] Shutting down due to ${signal}.`);
 
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = undefined;
+    if (this.heartbeatWriter) {
+      this.heartbeatWriter.stop();
+      this.heartbeatWriter = undefined;
     }
 
     if (this.adminServer) {
@@ -116,6 +142,7 @@ class SwISDApp {
     }
 
     this.source = undefined;
+    this.identityManager = undefined;
   }
 }
 

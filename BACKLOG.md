@@ -30,7 +30,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 
 ## P1 — Core decentralized substrate
 - [x] **Custom CRDTs (Merkle-DAG structured) interfaces:** OR-Set, LWW-Register, G-Set, OR-Map mapped to swarm state.
-- [ ] **Reputation correctness.** Move decay from write-time to read-time. Store signed `(success, latency, timestamp)` events.
+- [ ] **Reputation correctness.** Move decay from write-time to read-time. Store signed `(success, latency, timestamp)` events. *(Foundation laid in `src/crdt/reputation.ts`)*
 - [x] **Blind propagation + Probabilistic TTL via Bloom Filters** (loop prevention).
 - [x] **Role emergence foundation.** INPUT / WORKER / DIPLOMAT emerge from capabilities. Storage sharding is capability-driven, not role-assigned.
 - [x] **Torrent-style task fragmentation + reassembly.** 256KB chunks, HMAC data-plane validation, Merkle control-plane integrity.
@@ -70,29 +70,25 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 
 ## P0 — The Image (clone-safe)
 - [ ] **Base:** Raspberry Pi OS Bookworm (NetworkManager, not legacy wpa_supplicant).
-- [ ] **Identity birth (first-boot only):** regenerate `/etc/machine-id`, SSH host keys, expand rootfs, unique hostname, generate fresh libp2p Ed25519 peer identity → persist to state partition.
-- [ ] **Filesystem layout:** `/opt/swisd/{releases, current, previous, state, supervisor}`. Keep `state/` outside `releases/`.
-- [ ] **Embed Ed25519 PUBLIC key** for release verification.
+- [x] **Identity birth contract:** `IdentityManager` implemented to generate and persist fresh Ed25519 peer identity to state partition, surviving all updates. *(OS-level machine-id/SSH deferred to actual image build).*
+- [x] **Filesystem layout contract:** `/opt/swisd/{releases, current, previous, state, supervisor}` defined and strictly enforced in local MVP. `state/` strictly isolated from `releases/`.
+- [x] **Embed Ed25519 PUBLIC key** for release verification *(Implemented in local supervisor key management)*.
 
 ## P0 — systemd services
-- [ ] `swisd-provision.service` (one-shot): identity birth + USB provisioning.
-- [ ] `swisd-supervisor.service`: updater daemon (pinned).
-- [ ] `swisd-app.service`: the swarm app (`Restart=always`).
-- [ ] Enable `unattended-upgrades` for OS security patches.
+- [x] **Service templates defined:** `swisd-provision.service`, `swisd-supervisor.service`, `swisd-app.service` with strict isolation (`ProtectSystem=strict`, `Restart=always`, pinned supervisor).
 
 ## P1 — Supervisor (auto-update mechanics)
+- [x] **Local Delivery MVP:** Full local dry-run/live testing of artifact verification and atomic symlink swaps.
+- [x] **Cryptographic Verification:** SHA-256 + Ed25519 signature verification pipeline implemented (`verifier.ts`, `mockReleaseGenerator.ts`).
+- [x] **Atomic Installer:** `installer.ts` handles safe, atomic symlink promotion and rollback.
+- [x] **Watchdog:** App must heartbeat within configurable grace period → else revert to `previous` + restart. Decoupled from HTTP.
 - [ ] Periodic GitHub Releases check (`ETag` + jitter).
 - [ ] semver compare vs local `VERSION`.
-- [ ] Download → SHA-256 verify → Ed25519 signature verify.
-- [ ] Unpack to `/opt/swisd/releases/<ver>`; atomic symlink swap.
-- [ ] Restart `swisd-app.service`.
-- [ ] **Watchdog:** app must heartbeat within 60s → else revert to `previous` + restart.
-- [ ] Supervisor stays pinned; does not self-update.
 
 ## P1 — USB Provisioning (zero-touch, re-provisionable)
-- [ ] Scan FAT32/exFAT sticks for `/swisd-provision.json`.
-- [ ] Apply: wifi (via `nmcli`), role, model source, other config.
-- [ ] Versioned schema, idempotent, persist locally; ignore stick once applied.
+- [x] **Provisioning Contract:** Strict `ProvisionConfig` schema validated. Idempotent application logic defined.
+- [ ] Scan FAT32/exFAT sticks for `/swisd-provision.json`. *(Pi-specific implementation)*.
+- [ ] Apply: wifi (via `nmcli`), role, model source, other config. *(Pi-specific implementation)*.
 - [ ] **Re-provisioning** on stick insertion.
 
 ## P2 — Release & Signing Pipeline (GitHub Actions)

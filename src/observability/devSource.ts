@@ -1,10 +1,13 @@
-// src/observability/devSource.ts
-// Description: Development observability source for local testing before Raspberry Pi integration.
-// Expects: Basic node identity metadata and an observability event bus.
-// Provides: A typed ObservabilitySource with honest local dev placeholders.
+// 1. Relative path: src/observability/devSource.ts
+// 2. Description: Development observability source that integrates with the real supervisor status file.
+// 3. Expects: Basic node identity metadata, an observability event bus, and the delivery root path.
+// 4. Provides: A typed ObservabilitySource that reads actual supervisor status synchronously when present, falling back to honest local dev placeholders.
 
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { clampLoadScore } from '../utils.js';
-import type { PeerRole } from '../types.js';
+import type { PeerRole, UpdateStatus } from '../types.js';
+import { isSupervisorStatus } from '../delivery/index.js';
 import type { ObservabilityEventBus } from './eventBus.js';
 import type {
   ObservabilityCrdtInfo,
@@ -22,6 +25,7 @@ export interface DevObservabilitySourceConfig {
   readonly version: string;
   readonly configSource: 'env' | 'usb' | 'stub';
   readonly startedAt: number;
+  readonly deliveryRoot: string;
 }
 
 export interface DevObservabilitySource extends ObservabilitySource {
@@ -33,27 +37,63 @@ export function createDevObservabilitySource(
   eventBus: ObservabilityEventBus
 ): DevObservabilitySource {
   let loadScore = 0;
+  const statusPath = join(config.deliveryRoot, 'state', 'supervisor-status.json');
 
   const updateLoad = (): void => {
     const mem = process.memoryUsage();
     const heapTotal = Math.max(1, mem.heapTotal);
     const heapRatio = mem.heapUsed / heapTotal;
     const rssRatio = mem.rss / (heapTotal * 2);
-
     loadScore = clampLoadScore(Math.max(heapRatio, rssRatio));
+  };
+
+  const readSupervisorStatusSync = (): ObservabilityDeliveryInfo => {
+    try {
+      if (existsSync(statusPath)) {
+        const raw = readFileSync(statusPath, { encoding: 'utf-8' });
+        const parsed = JSON.parse(raw) as unknown;
+        
+        if (isSupervisorStatus(parsed)) {
+          const heartbeatAge = parsed.lastHeartbeatCheck 
+            ? Date.now() - parsed.lastHeartbeatCheck 
+            : Infinity;
+            
+          return {
+            supervisorPresent: true,
+            currentAppVersion: parsed.currentAppVersion,
+            previousAppVersion: parsed.previousAppVersion,
+            heartbeatOk: heartbeatAge < 20000,
+            updateChannel: 'single',
+            updateStatus: parsed.updateStatus,
+            lastError: parsed.lastError,
+            rollbackReason: parsed.rollbackReason,
+          };
+        }
+      }
+    } catch {
+      // File missing or invalid, fall through to default
+    }
+
+    return {
+      supervisorPresent: false,
+      currentAppVersion: config.version,
+      previousAppVersion: null,
+      heartbeatOk: true,
+      updateChannel: 'single',
+      updateStatus: 'idle' as UpdateStatus,
+      lastError: null,
+      rollbackReason: null,
+    };
   };
 
   return {
     tick(): void {
       updateLoad();
-
       eventBus.publish({
         topic: 'observability',
         level: 'info',
         message: 'Observability heartbeat',
-        details: {
-          loadScore,
-        },
+        details: { loadScore },
       });
     },
 
@@ -71,7 +111,6 @@ export function createDevObservabilitySource(
     getNetworkInfo(): ObservabilityNetworkInfo {
       const host = process.env.SWISD_ADMIN_HOST ?? 'localhost';
       const port = process.env.SWISD_ADMIN_PORT ?? '4101';
-
       return {
         listenAddresses: [`http://${host}:${port}`],
         neighborCount: 0,
@@ -83,7 +122,6 @@ export function createDevObservabilitySource(
 
     getLoadInfo(): ObservabilityLoadInfo {
       updateLoad();
-
       return {
         loadScore,
         activeTaskCount: 0,
@@ -120,14 +158,7 @@ export function createDevObservabilitySource(
     },
 
     getDeliveryInfo(): ObservabilityDeliveryInfo {
-      return {
-        supervisorPresent: false,
-        currentAppVersion: config.version,
-        previousAppVersion: null,
-        heartbeatOk: true,
-        updateChannel: 'single',
-        updateStatus: 'idle',
-      };
+      return readSupervisorStatusSync();
     },
   };
 }

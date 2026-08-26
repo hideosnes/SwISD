@@ -1,0 +1,32 @@
+# 1. Relative path: systemd/swisd-app.service
+# 2. Description: Systemd service template for the main SwISD application on Raspberry Pi.
+# 3. Expects: Execution from the atomic 'current' symlink, with read/write access strictly limited to the 'state' directory.
+# 4. Provides: A resilient, always-restarting service with explicit environment isolation and security hardening.
+
+[Unit]
+Description=SwISD Decentralized AI Swarm Node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=swisd
+Group=swisd
+WorkingDirectory=/opt/swisd/current
+Environment=NODE_ENV=production
+Environment=SWISD_STATE_DIR=/opt/swisd/state
+Environment=SWISD_DELIVERY_ROOT=/opt/swisd
+ExecStart=/usr/bin/node --experimental-specifier-resolution=node dist/index.js
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening: Prevent the app from mutating the system or the releases directory
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/swisd/state
+
+[Install]
+WantedBy=multi-user.target

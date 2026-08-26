@@ -48,3 +48,8 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
 - **Resilience Mindset:**
   - Assume peers will disconnect at any moment. Code must handle immediate preemption and reassignment gracefully.
   - Chaos testing is deferred to production, but the architecture must be inherently fault-tolerant by design.
+
+## 7. Delivery & Update Mechanism (Boring, Atomic, Observable)
+- **Stateless Releases, Persistent State:** The application binary lives in disposable `<deliveryRoot>/releases/<version>`, while identity, CRDTs, and configuration live strictly in `<deliveryRoot>/state`, surviving all updates and rollbacks.
+- **Cryptographic Verification:** Every release artifact is verified via SHA-256 (integrity) and Ed25519 (authenticity) before installation.
+- **Atomic Swaps & Watchdog:** Updates are applied via atomic symlink swaps (`current` / `previous`). A decoupled, non-HTTP watchdog monitors a filesystem heartbeat; if the app stalls, it automatically reverts to `previous` and restarts.
