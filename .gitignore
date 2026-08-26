@@ -56,6 +56,7 @@ temp/
 .swisd/
 .swisd/delivery/
 .swisd/delivery/state/app-heartbeat.json
+swisd-provision.json
 
 # Lock files (only commit one - choose npm or yarn)
 # yarn.lock
