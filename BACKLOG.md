@@ -92,8 +92,8 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [ ] **Re-provisioning** on stick insertion.
 
 ## P2 — Release & Signing Pipeline (GitHub Actions)
-- [ ] On tag push: build tarball → SHA-256 → Ed25519 sign (private key in CI secrets ONLY).
-- [ ] Publish `swisd-<ver>.tar.gz` + `.sha256` + `.sig`.
+- [x] On tag push: build tarball → SHA-256 → Ed25519 sign (private key in CI secrets ONLY).
+- [x] Publish `swisd-<ver>.tar.gz` + `.sha256` + `.sig`.
 
 ## P2 — Swarm-managed update delivery
 - [ ] Soft single-checker, manifest gossip via Bloom-filter TTL, P2P bundle seeding, deterministic stagger scheduling.
