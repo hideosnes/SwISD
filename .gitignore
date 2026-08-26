@@ -62,3 +62,4 @@ temp/
 config/secrets.json
 private.key
 public.key
+.env
