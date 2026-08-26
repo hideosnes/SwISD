@@ -54,6 +54,8 @@ netlify/
 tmp/
 temp/
 .swisd/
+.swisd/delivery/
+
 
 # Lock files (only commit one - choose npm or yarn)
 # yarn.lock
