@@ -53,6 +53,7 @@ netlify/
 # Temporary folders
 tmp/
 temp/
+.swisd/
 
 # Lock files (only commit one - choose npm or yarn)
 # yarn.lock
