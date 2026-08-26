@@ -9,7 +9,8 @@ on:
   push:
     tags:
       - 'v*'
-
+  workflow_dispatch: # <-- ADD THIS LINE. It allows manual triggering from the UI.
+  
 jobs:
   release:
     runs-on: ubuntu-latest
