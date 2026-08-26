@@ -8,7 +8,8 @@
     "start:env": "node --env-file=.env --loader ts-node/esm src/index.ts",
     "dev": "nodemon --exec ts-node --esm src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc",
+    "release:sign": "tsx scripts/sign-release.ts"
   },
   "repository": {
     "type": "git",
