@@ -8,8 +8,8 @@
 import { createLibp2p } from 'libp2p';
 import { tcp } from '@libp2p/tcp';
 import { mdns } from '@libp2p/mdns';
-import { noise } from '@libp2p/noise';
-import { yamux } from '@libp2p/yamux';
+import { noise } from '@chainsafe/libp2p-noise'
+import { yamux } from '@chainsafe/libp2p-yamux'
 import { gossipsub } from '@libp2p/gossipsub';
 import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
 import type { PrivateKey, Libp2p } from '@libp2p/interface';

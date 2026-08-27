@@ -2,7 +2,7 @@
 1. Relative path: GUIDE.md
 2. Description: The core architectural philosophy, network topology, and strict development standards for the SwISD swarm.
 3. Expects: Adherence from all contributors; serves as the north star for design decisions.
-4. Provides: Exhaustive documentation of the polymorphic render swarm, crypto tiers, and UX philosophy.
+4. Provides: Exhaustive documentation of the polymorphic render swarm, crypto tiers, Conductor Cockpit bridge, and UX philosophy.
 -->
 # SwISD Decentralized AI Swarm Network
 
@@ -10,6 +10,8 @@
 SwISD is a decentralized, agentoid P2P network for distributed AI inference. It operates without central coordinators, relying on neighborhood propagation, dynamic swarm specialization, and torrent-like workload sharing. Resilience and reliability are the absolute highest priorities.
 
 **The Polymorphic Render Swarm:** SwISD is a Capability-Aware, Polymorphic Render Swarm. The ingress is blind, the egress is a targeted tunnel, the agents are beautifully dumb (stateless), and the ingestion is so polite it reads the 'room' (adapting polymorphically to Node.js and Browser inputs).
+
+**Domain C — The Conductor Cockpit:** The operator-facing control surface is a separate architectural domain. It does not become the coordinator. It observes, provisions, and directs through the same strict capability contracts used by the swarm. The cockpit hides complexity without removing cryptographic correctness.
 
 ## 2. Network Topology & Swarm Dynamics
 - **Swarm Formation:** Peers form swarms via local network proximity (WiFi) or agentoid single-worker bootstrapping. Swarms organically "specialize" based on the aggregated capabilities and knowledge topics of their constituent peers.
@@ -48,6 +50,10 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
   - *Import Depth:* Maximum one step deep for imports. Deep imports (e.g., `../../a/b/c`) are strictly forbidden.
   - *Centralized Files:* Maintain strict centralization for shared resources (`src/utils.ts`, `src/types.ts`, `src/types.d.ts`, `src/errors.ts`).
   - **File Header Requirement:** Every single file must begin with a 4-point comment block on line 1: (1) relative path, (2) description, (3) expected data, (4) provided data.
+- **Domain C Frontend Stack:**
+  - Svelte 5 (Runes/Snippets) + SvelteKit 2 Node adapter + TailwindCSS.
+  - The SvelteKit server is the BFF and the only process allowed to touch the headless SwISD core.
+  - Browser code must consume typed HTTP APIs and DTOs only. Server-only core modules must never be imported into client components.
 - **Dual-Audience API Design:**
   - SwISD exposes a headless, strictly typed `SwISDClient` for developers (the `npm` interface).
   - It bundles an optional local Observability GUI (The Conductor's Podium) for non-technical operators. Both compile down to the exact same `ExecutionPayload`.
@@ -68,8 +74,24 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
   - *Tier 2 (Swarm):* Worker Pis request chunks via the `ChunkLocationLedger`, opening parallel libp2p streams to pull directly from neighbors (micro-torrent style).
 - **Storage Watermarks & Eviction:** When the models directory exceeds a configured disk watermark, the `ModelManager` triggers an LRU (Least Recently Used) eviction, deleting chunks of the least recently executed models.
 
-## 9. User Experience & The Conductor Cockpit
+## 9. User Experience & The Conductor Cockpit (Domain C)
 - **Complexity Hidden, Not Removed:** The user never sees a Merkle root or Bloom filter, but every UI action is cryptographically verified and atomically swapped under the hood.
+- **Domain C Boundary:** The Conductor Cockpit is a SvelteKit 2 BFF. The server process hosts the headless SwISD core; the browser is a strictly typed reactive client. This keeps the swarm core isolated from UI churn and prevents accidental leakage of server-only state.
+- **Server-Side Core Bridge:**
+  - The SwISD core is initialized exactly once as a Node-side singleton.
+  - `src/hooks.server.ts` injects the core into SvelteKit `event.locals`.
+  - API routes access the core only through the typed `locals.swisd` boundary.
+  - Core responses are mapped to explicit DTOs before being serialized to the client.
+- **Client Contract:**
+  - The frontend uses Svelte 5 runes (`$state`, `$derived`, `$effect`, `$props`) for local reactive state.
+  - The frontend fetches typed endpoints such as `GET /api/snapshot`.
+  - The client never imports server modules, core engines, Node builtins, or libp2p internals.
+  - All unknown network failures are narrowed from `unknown`, never typed as `any`.
+- **Phase 1 Reference Implementation:**
+  - `src/routes/api/snapshot/+server.ts` serves a strict swarm snapshot DTO.
+  - `src/routes/+layout.svelte` provides the cockpit shell.
+  - `src/routes/+page.svelte` renders live snapshot state using Svelte 5 runes.
 - **Out-of-Box Setup Portal:** If a Pi boots without a network or USB provision, it falls back to broadcasting a temporary `SwISD-Setup-XXXX` Access Point. A captive portal allows users to inject WiFi credentials via smartphone.
 - **Drag-and-Drop Ingestion:** The Conductor UI allows users to drag local `.gguf` model files directly into the browser. The Polymorphic Ingestion Engine chunks and seeds them to the swarm without choking browser memory.
 - **Visual Swarm Topology:** The dashboard renders an interactive node-graph of the swarm, color-coded by `CapabilityManifest`, showing real-time model distribution progress and node health.
+- **mDNS Auto-Discovery:** The cockpit should discover local nodes via `_swisd._tcp.local`, enabling zero-config pairing between Conductor and nearby swarm peers. Discovery is advisory; trust still requires the swarm's cryptographic and capability contracts.

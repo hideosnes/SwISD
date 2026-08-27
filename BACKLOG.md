@@ -18,6 +18,8 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - **Crypto:** Ed25519 control-plane (reuse libp2p peer keys) + HMAC-SHA256 data-plane (noise-handshake keys) + SHA-256/BLAKE3 for Merkle integrity.
 - **CRDTs:** Custom, Merkle-DAG structured. Reputation decay computed strictly at **read time**.
 - **Architecture:** Capability-Aware, Polymorphic Render Swarm. Blind ingress, targeted egress, stateless agents, polite ingestion.
+- **Domain C Stack:** Svelte 5 (Runes/Snippets) + SvelteKit 2 Node adapter + TailwindCSS. The SvelteKit server is the BFF and the only process allowed to touch the headless SwISD core.
+- **Conductor Cockpit Bridge:** The headless core is initialized once as a server-side singleton, injected into `event.locals`, and exposed to the browser only through strict DTO-typed API routes. No core internals leak to the client. No `any`.
 
 ---
 
@@ -58,7 +60,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 ## P3 — Advanced
 - [ ] **Diplomat election + inter-swarm routing** (sole cross-swarm bridge).
 - [ ] **Update Gossip Protocol (app-level coordination):** Messages, deterministic stagger, downgrade protection, P2P bundle seeding.
-- [x] **Admin / observability endpoint.** Local HTTP/SSE token-guarded endpoint + "Conductor's Podium" Vanilla JS GUI.
+- [x] **Admin / observability endpoint.** Local HTTP/SSE token-guarded endpoint + "Conductor's Podium" Vanilla JS GUI. *(Legacy baseline; Domain C Svelte cockpit is the target.)*
 - [x] **Dual-Audience API Boundary.** `SwISDClient` exposed as the public `npm` API, wrapping the headless engine and optional GUI.
 
 ## P4 — Model Distribution & Heavy Payloads (The New Frontier)
@@ -67,11 +69,28 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [ ] **P2P Chunk Seeding:** Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
 - [ ] **Storage Watermarks & Eviction:** Implement LRU eviction policy when `/opt/swisd/models/` exceeds configured disk watermark.
 
-## P5 — User Experience & The Conductor Cockpit
+## P5 — User Experience & The Conductor Cockpit (Domain C)
+- [x] **Domain C Phase 1 — Conductor bridge:** Svelte 5 + SvelteKit 2 Node adapter BFF scaffold, strict TypeScript ESM, TailwindCSS, barrel imports, max one-step import depth, and 4-point file headers.
+- [x] **Domain C Phase 1 — Core injection:** Headless SwISD core singleton is initialized server-side and injected into `event.locals` via `src/hooks.server.ts`.
+- [x] **Domain C Phase 1 — Snapshot API:** `GET /api/snapshot` returns a strictly typed `SwarmSnapshot` DTO from the core.
+- [x] **Domain C Phase 1 — Rune dashboard shell:** `src/routes/+layout.svelte` and `src/routes/+page.svelte` consume the snapshot using Svelte 5 `$state` and `$derived`.
+- [ ] **Modern Dashboard UI:** Replace vanilla JS `dashboardHtml.ts` with compiled, auto-discovering SPA visualizing swarm topology and model distribution.
+  - [ ] Interactive node-graph color-coded by `CapabilityManifest`.
+  - [ ] Real-time model distribution progress and node health.
+  - [ ] Live peer churn, load score, and executor capability panels.
+  - [ ] Cryptographic verification indicators hidden behind operator-friendly status states.
 - [ ] **Out-of-Box Setup Portal:** Build fallback AP mode and captive portal wizard in `src/provision/` for monitor-less, USB-less initial WiFi provisioning.
-- [ ] **Modern Dashboard UI:** Replace vanilla JS `dashboardHtml.ts` with compiled, auto-discovering SPA (e.g., Preact/Svelte) visualizing swarm topology and model distribution.
+  - [ ] Temporary `SwISD-Setup-XXXX` access point fallback.
+  - [ ] Smartphone-friendly captive portal for WiFi credential injection.
+  - [ ] Idempotent handoff from setup portal to normal swarm operation.
 - [ ] **Drag-and-Drop Ingestion:** Build Conductor-side CLI/UI wrapper to ingest local `.gguf` files, chunk them, and seed them to the swarm without browser memory limits.
+  - [ ] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
+  - [ ] Streaming chunking into the Polymorphic Ingestion Engine.
+  - [ ] Manifest generation and swarm seeding progress visualization.
 - [ ] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
+  - [ ] Conductor discovery of local swarm nodes.
+  - [ ] Pairing state machine for trusted local links.
+  - [ ] UI surface for discovered nodes and setup status.
 
 ## Deferred (App)
 - [ ] **Vector DB sharding** (large swarms). *Trigger: storage pressure / large swarm.*
@@ -81,6 +100,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [ ] **Multi-channel releases** (beta/stable canary). *Trigger: fleet growth / risky velocity.*
 - [ ] **Chaos testing harness.** *Trigger: pre-1.0 hardening.*
 - [ ] **Refine `TaskHistoryEvent.metadata`** to a strict union of known metadata keys.
+- [ ] **Conductor live telemetry transport.** SSE/WebSocket bridge from core events to the cockpit. *Trigger: after Phase 1 snapshot bridge proves stable.*
 
 ---
 
