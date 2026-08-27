@@ -5,7 +5,7 @@
 
 import type { Handle } from '@sveltejs/kit';
 // FIX: Using explicit relative paths to bypass SvelteKit alias resolution friction
-import { ObservabilityEventBus, createDevObservabilitySource } from '../../src/observability/index.js';
+import { ObservabilityEventBus, createDevObservabilitySource } from '$core/observability/index.js';
 import { parsePeerRole } from '../../src/utils.js';
 
 const eventBus = new ObservabilityEventBus(500);

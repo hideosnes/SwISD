@@ -5,7 +5,7 @@
 4. Provides: A real-time, auto-updating display of the swarm's process, load, and delivery status.
 -->
 <script lang="ts">
-  import type { ObservabilitySnapshot } from '../../../src/observability/index.js';
+  import type { ObservabilitySnapshot } from '$core/observability/index.js';
 
   let snapshot = $state<ObservabilitySnapshot | null>(null);
   let error = $state<string | null>(null);

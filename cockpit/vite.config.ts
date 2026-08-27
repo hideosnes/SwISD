@@ -7,7 +7,6 @@ import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import path from 'node:path';
 
 export default defineConfig({
 	plugins: [
@@ -18,13 +17,10 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			alias: {
+        		$core: '../src/'
+		    }
 		})
-	],
-	resolve: {
-		alias: {
-			// Map $core to the parent directory's src folder for seamless core DTO imports
-			$core: path.resolve(import.meta.dirname, '../src')
-		}
-	}
+	]
 });

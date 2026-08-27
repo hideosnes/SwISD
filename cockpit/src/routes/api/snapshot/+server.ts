@@ -5,7 +5,7 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { buildObservabilitySnapshot } from '../../../../../src/observability/index.js';
+import { buildObservabilitySnapshot } from '$core/observability/index.js';
 
 export const GET: RequestHandler = async ({ locals }) => {
   const { coreSource, eventBus } = locals;
