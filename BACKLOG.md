@@ -48,8 +48,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **Capability-Aware Gossip Router.** Filter Bloom filters and route `ExecutionPayload` based on `supportedExecutors`. (Option A implemented: App-layer explicit publish with mutated Bloom filter; libp2p native forwarding tolerated but redundant messages dropped locally).
 - [ ] **Capability-Aware Gossip Router (Option B - Deferred).** Implement custom Gossipsub message validator/router to strictly control the forwarding pipeline at the libp2p layer, eliminating redundant native forwarding bandwidth waste.
 - [x] **Direct Egress Tunnel.** Implement libp2p stream protocol (`/swisd/egress/1.0.0`) for peers to push results directly to the Conductor.
-- [ ] **Immediate preemption** on peer drop.
-- [ ] **Error routing** via gossip + neighbor knowledge (no fixed paths).
+- [x] **Immediate preemption & Error routing.** Dual-mechanism implementation: (1) Hive Mind: `TaskHistoryEvent` (`preempted`/`failed`) gossiped to swarm for organic reassignment. (2) Ruthless Stopwatch: `TaskLifecycleManager` enforces `deadlineMs` fallback, guaranteeing no orphaned tasks violate reliability directives.
 
 ## P2 — Performance & data
 - [ ] **Edge backpressure.** Token bucket + load shedding + load score (0–1). If load > 0.8: reject new tasks + reduce gossip.

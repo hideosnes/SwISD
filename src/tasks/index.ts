@@ -1,8 +1,13 @@
-// src/tasks/index.ts
-// Description: Barrel file for the tasks module, enforcing single-step import depth.
-// Expects: Internal module files (`capabilities.ts`, `ingestion.ts`, `locator.ts`) within the tasks directory.
-// Provides: Centralized export of capability manifests, adaptive ingestion, and chunk location routing.
+// 1. Relative path: src/tasks/index.ts
+// 2. Description: Barrel export for the tasks module.
+// 3. Expects: N/A
+// 4. Provides: Centralized, one-step import access to task lifecycle and ingestion logic.
 
-export * from './capabilities.js';
-export * from './ingestion.js';
-export * from './locator.js';
+export { TaskLifecycleManager } from './lifecycle.js';
+export type { ActiveTaskRecord, TaskLifecycleDependencies } from './lifecycle.js';
+export { ingestAndChunkStream, nodeFileToStream, httpReqToStream } from './ingestion.js';
+export type { DataStream } from './ingestion.js';
+export { buildChunkRoutingTable, findOrphanedChunks } from './locator.js';
+export type { ChunkLocationLedger, ChunkRoutingTable, ChunkLocation } from './locator.js';
+export { peerSupportsExecutor } from './capabilities.js';
+export type { ExecutorSignature, CapabilityManifest } from './capabilities.js';

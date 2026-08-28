@@ -26,13 +26,19 @@ export interface ReputationEvent {
   readonly signature: Uint8Array;
 }
 
+export type TaskAction = 'created' | 'fragmented' | 'assigned' | 'completed' | 'preempted' | 'failed';
+
 export interface TaskHistoryEvent {
   readonly eventId: string;
   readonly taskId: string;
-  readonly action: 'created' | 'fragmented' | 'assigned' | 'completed' | 'preempted' | 'failed';
+  readonly action: TaskAction;
   readonly peerId: string;
   readonly timestamp: number;
-  readonly metadata?: Readonly<Record<string, string | number | boolean | null>>;
+  readonly metadata?: Readonly<{
+    readonly reason?: string;
+    readonly originalAssignee?: string;
+    readonly deadlineMs?: number;
+  }>;
 }
 
 export interface TaskFragment {
@@ -125,6 +131,33 @@ export function isTaskResultPayload(payload: unknown): payload is TaskResultPayl
     typeof p?.returnAddress === 'string' &&
     typeof p?.success === 'boolean' &&
     (p.errorMessage === undefined || typeof p.errorMessage === 'string')
+  );
+}
+
+export function isTaskHistoryEvent(payload: unknown): payload is TaskHistoryEvent {
+  const p = payload as Record<string, unknown>;
+  const validActions: TaskAction[] = ['created', 'fragmented', 'assigned', 'completed', 'preempted', 'failed'];
+  
+  return (
+    typeof p?.eventId === 'string' &&
+    typeof p?.taskId === 'string' &&
+    typeof p?.action === 'string' &&
+    validActions.includes(p.action as TaskAction) &&
+    typeof p?.peerId === 'string' &&
+    typeof p?.timestamp === 'number' &&
+    (p.metadata === undefined || typeof p.metadata === 'object')
+  );
+}
+
+export function isReputationEvent(payload: unknown): payload is ReputationEvent {
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p?.eventId === 'string' &&
+    typeof p?.targetPeerId === 'string' &&
+    (p.outcome === 'success' || p.outcome === 'failure') &&
+    typeof p?.latencyMs === 'number' &&
+    typeof p?.timestamp === 'number' &&
+    p.signature instanceof Uint8Array
   );
 }
 

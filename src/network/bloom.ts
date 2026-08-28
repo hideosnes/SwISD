@@ -1,22 +1,16 @@
-/**
- * 1. Relative path: src/network/bloom.ts
- * 2. Description: Probabilistic TTL implementation using Bloom Filters for loop prevention in blind propagation.
- * 3. Expects: Peer IDs (strings) and a configured filter size/hash count.
- * 4. Provides: Strict, side-effect-free Bloom filter creation, insertion, and membership testing without unsafe assertions.
- */
+// 1. Relative path: src/network/bloom.ts
+// 2. Description: Probabilistic TTL implementation using Bloom Filters for loop prevention in blind propagation.
+// 3. Expects: Peer IDs (strings) and a configured filter size/hash count.
+// 4. Provides: Strict, side-effect-free Bloom filter creation, insertion, and membership testing without unsafe assertions.
 
+import type { BloomFilterState } from '../types.js';
 import { fnv1aHash } from '../utils.js';
 
-export interface BloomFilter {
-  readonly bits: Uint8Array;
-  readonly hashCount: number;
-}
-
-export function createBloomFilter(sizeBytes: number, hashCount: number): BloomFilter {
+export function createBloomFilter(sizeBytes: number, hashCount: number): BloomFilterState {
   if (sizeBytes <= 0 || hashCount <= 0) {
     throw new Error('Bloom filter dimensions must be strictly positive');
   }
-  return { bits: new Uint8Array(sizeBytes), hashCount };
+  return { filter: new Uint8Array(sizeBytes), hashFunctionsCount: hashCount };
 }
 
 function getBitIndices(value: string, hashCount: number, maxBitIndex: number): number[] {
@@ -30,33 +24,31 @@ function getBitIndices(value: string, hashCount: number, maxBitIndex: number): n
   return indices;
 }
 
-export function addToBloomFilter(filter: BloomFilter, value: string): BloomFilter {
-  const maxBitIndex = filter.bits.length * 8;
-  const indices = getBitIndices(value, filter.hashCount, maxBitIndex);
+export function addToBloomFilter(filter: BloomFilterState, value: string): BloomFilterState {
+  const maxBitIndex = filter.filter.length * 8;
+  const indices = getBitIndices(value, filter.hashFunctionsCount, maxBitIndex);
   
-  const newBits = new Uint8Array(filter.bits);
+  const newBits = new Uint8Array(filter.filter);
   for (const idx of indices) {
     const byteIndex = idx >>> 3;
     const bitIndex = idx & 7;
     
-    // Strictly safe indexing: fallback to 0 if undefined (satisfies noUncheckedIndexedAccess)
     const currentByte = newBits[byteIndex] ?? 0;
     newBits[byteIndex] = currentByte | (1 << bitIndex);
   }
   
-  return { bits: newBits, hashCount: filter.hashCount };
+  return { filter: newBits, hashFunctionsCount: filter.hashFunctionsCount };
 }
 
-export function mightContain(filter: BloomFilter, value: string): boolean {
-  const maxBitIndex = filter.bits.length * 8;
-  const indices = getBitIndices(value, filter.hashCount, maxBitIndex);
+export function mightContain(filter: BloomFilterState, value: string): boolean {
+  const maxBitIndex = filter.filter.length * 8;
+  const indices = getBitIndices(value, filter.hashFunctionsCount, maxBitIndex);
   
   for (const idx of indices) {
     const byteIndex = idx >>> 3;
     const bitIndex = idx & 7;
     
-    // Strictly safe indexing
-    const byte = filter.bits[byteIndex] ?? 0;
+    const byte = filter.filter[byteIndex] ?? 0;
     if ((byte & (1 << bitIndex)) === 0) {
       return false;
     }

@@ -13,7 +13,7 @@ import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
 import type { PrivateKey, Libp2p } from '@libp2p/interface';
 import { createHash } from 'node:crypto';
 
-import type { GossipMessage, GossipPayload, TaskResultPayload } from '../types.js';
+import type { GossipMessage, GossipPayload, TaskResultPayload, TaskHistoryEvent } from '../types.js';
 import { initEgressTunnel } from './router/egressTunnel.js';
 import { handleIncomingGossipMessage } from './router/gossipRouter.js';
 import type { GossipRouterDependencies } from './router/index.js';
@@ -30,9 +30,16 @@ export interface SwISDNodeDependencies {
   readonly trustRegistry: TrustRegistry;
   readonly executorRegistry: ExecutorRegistry;
   readonly onTaskResultReceived: (result: TaskResultPayload, senderPeerId: string) => Promise<void>;
+  readonly onTaskPreempted: (taskId: string, event: TaskHistoryEvent) => void;
 }
 
-export type SwISDNode = Libp2p<{ pubsub: GossipSub }>;
+// Satisfies the ServiceMap index signature constraint without using 'any'
+export interface SwISDServiceMap {
+  pubsub: GossipSub;
+  [key: string]: unknown;
+}
+
+export type SwISDNode = Libp2p<SwISDServiceMap>;
 
 export async function createSwISDNode(
   config: SwISDLibp2pConfig,
@@ -44,7 +51,7 @@ export async function createSwISDNode(
     privateKey = await privateKeyFromProtobuf(config.privateKeyBytes);
   }
 
-  const node = await createLibp2p<{ pubsub: GossipSub }>({
+  const node = await createLibp2p<SwISDServiceMap>({
     privateKey,
     addresses: {
       listen: [`/ip4/0.0.0.0/tcp/${config.listenPort}`],
@@ -77,12 +84,11 @@ export async function createSwISDNode(
     executorRegistry: deps.executorRegistry,
     node,
     signPayload,
+    onTaskPreempted: deps.onTaskPreempted,
   };
 
-  // 1. Initialize Direct Egress Tunnel
   await initEgressTunnel(node, deps.onTaskResultReceived);
 
-  // 2. Subscribe to Gossip Topic and Intercept Messages
   const topic = 'swisd-gossip-v1';
   await node.services.pubsub.subscribe(topic);
 
