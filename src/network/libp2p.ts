@@ -1,6 +1,6 @@
 // 1. Relative path: src/network/libp2p.ts
-// 2. Description: Factory function to initialize and configure the libp2p node for the SwISD swarm, including gossip routing.
-// 3. Expects: Network configuration, optional protobuf-encoded private key, and router dependencies.
+// 2. Description: Factory function to initialize and configure the libp2p node for the SwISD swarm, including gossip routing and backpressure.
+// 3. Expects: Network configuration, optional protobuf-encoded private key, and router dependencies including a load score evaluator.
 // 4. Provides: A fully typed, strictly configured libp2p node instance with TCP, mDNS, Noise, Yamux, Gossipsub, and active routing.
 
 import { createLibp2p } from 'libp2p';
@@ -19,7 +19,7 @@ import { handleIncomingGossipMessage } from './router/gossipRouter.js';
 import type { GossipRouterDependencies } from './router/index.js';
 import type { TrustRegistry } from '../peer/trust.js';
 import type { ExecutorRegistry } from '../executor/registry.js';
-import { SwISDError } from '../errors.js';
+import { SwISDError, BackpressureError } from '../errors.js';
 
 export interface SwISDLibp2pConfig {
   readonly listenPort: number;
@@ -31,6 +31,7 @@ export interface SwISDNodeDependencies {
   readonly executorRegistry: ExecutorRegistry;
   readonly onTaskResultReceived: (result: TaskResultPayload, senderPeerId: string) => Promise<void>;
   readonly onTaskPreempted: (taskId: string, event: TaskHistoryEvent) => void;
+  readonly getLoadScore: () => number; // <-- Added for Edge Backpressure
 }
 
 // Satisfies the ServiceMap index signature constraint without using 'any'
@@ -85,6 +86,7 @@ export async function createSwISDNode(
     node,
     signPayload,
     onTaskPreempted: deps.onTaskPreempted,
+    getLoadScore: deps.getLoadScore, // <-- Injected
   };
 
   await initEgressTunnel(node, deps.onTaskResultReceived);
@@ -106,7 +108,12 @@ export async function createSwISDNode(
       }
 
       handleIncomingGossipMessage(parsed, routerDeps).catch((error) => {
-        console.error(`[Libp2p] Critical error in GossipRouter for message ${parsed.messageId}:`, error);
+        // Gracefully handle backpressure rejections without crashing the event loop
+        if (error instanceof BackpressureError) {
+          console.debug(`[Libp2p] Backpressure applied: ${error.message}`);
+        } else {
+          console.error(`[Libp2p] Critical error in GossipRouter for message ${parsed.messageId}:`, error);
+        }
       });
     } catch (error) {
       console.error('[Libp2p] Failed to parse incoming gossip message:', error);

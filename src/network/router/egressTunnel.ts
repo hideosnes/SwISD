@@ -6,8 +6,7 @@
 import type { SwISDNode } from '../libp2p.js';
 import type { Stream, Connection } from '@libp2p/interface';
 import { peerIdFromString } from '@libp2p/peer-id';
-import type { TaskResultPayload } from '../../types.js';
-import { isTaskResultPayload } from '../../types.js';
+import { isTaskResultPayload, type TaskResultPayload } from '../../types.js';
 import { SwISDError } from '../../errors.js';
 
 const EGRESS_PROTOCOL = '/swisd/egress/1.0.0';

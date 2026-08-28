@@ -7,9 +7,8 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { isProvisionConfig } from '../config/index.js';
-import { IdentityManager } from '../delivery/index.js';
-import type { ProvisionConfig } from '../config/index.js';
+import { isProvisionConfig, type ProvisionConfig } from '../config';
+import { IdentityManager } from '../delivery';
 
 // Configurable paths for local testing without sudo, defaulting to Pi production paths
 const PROVISION_SOURCE_PATH = process.env.SWISD_PROVISION_PATH ?? '/swisd-provision.json';

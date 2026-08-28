@@ -4,7 +4,7 @@
 // 4. Provides: Safe, atomic filesystem operations to promote a release to 'current' or revert to 'previous'.
 
 import { symlink, readlink, unlink, rename, mkdir, access } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { constants } from 'node:fs';
 import { DeliveryFilesystemError } from '../errors.js';
 

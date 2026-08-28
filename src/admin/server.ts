@@ -1,8 +1,7 @@
-// src/admin/server.ts
-// Description: Local token-guarded HTTP admin and observability endpoint.
-// Expects: Admin server configuration, an observability source, and an event bus.
-// Provides: Read-only JSON endpoints and an embedded dashboard for local fleet observation.
-
+// 1. Relative path: src/admin/server.ts
+// 2. Description: Local token-guarded HTTP JSON API for observability and headless fleet management.
+// 3. Expects: Admin server configuration, an observability source, and an event bus.
+// 4. Provides: Read-only JSON endpoints for the SvelteKit Conductor Cockpit and local integrations.
 import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { SwISDError } from '../errors.js';
@@ -10,8 +9,7 @@ import {
   buildObservabilitySnapshot,
   ObservabilityEventBus,
   ObservabilitySource,
-} from '../observability/index.js';
-import { DASHBOARD_HTML } from './dashboardHtml.js';
+} from '../observability';
 
 export interface AdminServerConfig {
   readonly host: string;
@@ -36,37 +34,31 @@ function isLoopbackHost(host: string): boolean {
 }
 
 function safeTokenEqual(provided: string, expected: string): boolean {
-  const left = Buffer.from(provided, 'utf8');
-  const right = Buffer.from(expected, 'utf8');
-
+  const left = new TextEncoder().encode(provided);
+  const right = new TextEncoder().encode(expected);
   if (left.length !== right.length) {
     return false;
   }
-
   return timingSafeEqual(left, right);
 }
 
 function getBearerToken(req: IncomingMessage): string | null {
   const rawAuth = req.headers.authorization;
   const authHeader = Array.isArray(rawAuth) ? rawAuth[0] ?? '' : rawAuth ?? '';
-
   if (!authHeader.startsWith('Bearer ')) {
     return null;
   }
-
   const token = authHeader.slice('Bearer '.length).trim();
   return token.length > 0 ? token : null;
 }
 
 function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {
   const payload = JSON.stringify(body);
-
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
   });
-
   res.end(payload);
 }
 
@@ -74,7 +66,6 @@ function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
   const rawOrigin = req.headers.origin;
   const origin = Array.isArray(rawOrigin) ? rawOrigin[0] ?? '' : rawOrigin ?? '';
   const allowedOrigin = origin.length > 0 ? origin : '*';
-
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
@@ -86,11 +77,9 @@ function validateAdminServerConfig(config: AdminServerConfig): void {
   if (!Number.isInteger(config.port) || config.port <= 0 || config.port > 65535) {
     throw new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Admin server port must be a valid TCP port.');
   }
-
   if (config.token.trim().length < 16) {
     throw new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Admin token must be at least 16 characters.');
   }
-
   if (!config.allowLan && !isLoopbackHost(config.host)) {
     throw new SwISDError(
       'ERR_ADMIN_SERVER_FAILED',
@@ -117,16 +106,6 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
       if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
-        return;
-      }
-
-      if (url.pathname === '/' || url.pathname === '/index.html') {
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-store',
-          'X-Content-Type-Options': 'nosniff',
-        });
-        res.end(DASHBOARD_HTML);
         return;
       }
 
@@ -195,7 +174,6 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
       const message = error instanceof SwISDError
         ? error.message
         : 'Internal observability server error';
-
       sendJson(res, 500, { error: message });
     }
   };
@@ -203,16 +181,12 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
   return {
     async start(): Promise<void> {
       validateAdminServerConfig(config);
-
       await new Promise<void>((resolve, reject) => {
         const srv = createServer(handleRequest);
-
         const onError = (err: Error): void => {
           reject(new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Failed to start admin server.', err));
         };
-
         srv.once('error', onError);
-
         srv.listen(config.port, config.host, () => {
           srv.removeListener('error', onError);
           server = srv;
@@ -220,30 +194,24 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
         });
       });
     },
-
     async stop(): Promise<void> {
       await new Promise<void>((resolve, reject) => {
         if (!server) {
           resolve();
           return;
         }
-
         const activeServer = server as Server & { closeAllConnections?: () => void };
         activeServer.closeAllConnections?.();
-
         activeServer.close((err?: Error) => {
           if (err) {
             reject(new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Failed to close admin server.', err));
             return;
           }
-
           resolve();
         });
       });
-
       server = undefined;
     },
-
     url(): string {
       return `http://${config.host}:${config.port}`;
     },

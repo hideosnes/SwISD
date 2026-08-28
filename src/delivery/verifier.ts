@@ -5,7 +5,7 @@
 
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { verifyEd25519 } from '../crypto/index.js';
+import { verifyEd25519 } from '../crypto';
 import { DeliveryArtifactError } from '../errors.js';
 
 export interface VerificationResult {

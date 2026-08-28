@@ -22,6 +22,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - **Conductor Cockpit Bridge:** The headless core is initialized once as a server-side singleton, injected into `event.locals`, and exposed to the browser only through strict DTO-typed API routes. No core internals leak to the client. No `any`.
 - **Genesis Bootstrap Protocol:** Conductor acts as the fallback hotspot (`SwISD-Genesis`). Pis connect if no known network is found, allowing zero-internet, out-of-box swarm formation.
 - **Cryptographic Trust Boundary:** Network proximity (mDNS/Genesis WiFi) is purely advisory. Peers must be explicitly accepted via the Cockpit's `TrustRegistry` before participating in the swarm.
+- **Data Purity:** Zero `Buffer` bloat in ingestion pipelines (`Uint8Array` strictly enforced). Identity serialization uses Hex strings to prevent JSON `number[]` bloat.
 
 ---
 
@@ -53,21 +54,22 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 ## P2 — Performance & data
 - [ ] **Edge backpressure.** Token bucket + load shedding + load score (0–1). If load > 0.8: reject new tasks + reduce gossip.
 - [ ] **Health via `@libp2p/ping` + load score.** Replace the custom "MEOW" healthcheck.
-- [x] **Merkle-DAG anti-entropy sync foundation.** Root-hash exchange; `reconcileDag` fetches only missing/modified branches.
+- [x] **Merkle-DAG anti-entropy sync foundation.** Root-hash exchange; `reconcileDap` fetches only missing/modified branches.
 - [x] **Two-Tier Diary Storage.** Control Ledger (fully replicated CRDT metadata) + Sharded Payload Store (capability-driven, indexed by Control Ledger).
-- [x] **Polymorphic Ingestion Engine.** `AsyncIterable<Uint8Array>` abstraction for Node/Browser file chunking.
+- [x] **Polymorphic Ingestion Engine.** `AsyncIterable<Uint8Array>` abstraction for Node/Browser file chunking. *(Refactored to pure `Uint8Array` zero-copy concatenation).*
 - [ ] **Hybrid vector DB sync.** Probability race: gossip embeddings vs. direct push.
 - [x] **P2P model distribution foundation.** `ChunkLocationLedger` and `buildChunkRoutingTable` for parallel micro-torrent downloads.
 
 ## P3 — Advanced
 - [ ] **Diplomat election + inter-swarm routing** (sole cross-swarm bridge).
 - [ ] **Update Gossip Protocol (app-level coordination):** Messages, deterministic stagger, downgrade protection, P2P bundle seeding.
-- [x] **Admin / observability endpoint.** Local HTTP/SSE token-guarded endpoint + "Conductor's Podium" Vanilla JS GUI. *(Legacy baseline; Domain C Svelte cockpit is the target.)*
+- [x] **Admin / observability endpoint.** Headless, strict JSON API server. Legacy Vanilla JS GUI incinerated; Domain C Svelte cockpit is the sole operator interface.
 - [x] **Dual-Audience API Boundary.** `SwISDClient` exposed as the public `npm` API, wrapping the headless engine and optional GUI.
 
 ## P4 — Model Distribution & Heavy Payloads (The New Frontier)
 - [ ] **Model Manifest CRDT:** Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger.
-- [ ] **Local Model Manager:** Build `src/models/manager.ts` for downloading, chunking, Merkle verification, and LRU cache eviction in `/opt/swisd/models/`.
+- [x] **Local Model Manager Foundation:** `src/models/ingest.ts` streams, chunks, and Merkle-verifies heavy payloads. *(Identity serialization optimized to Hex strings).*
+- [ ] **Local Model Manager (LRU):** Build eviction logic for `/opt/swisd/models/`.
 - [ ] **P2P Chunk Seeding:** Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
 - [ ] **Storage Watermarks & Eviction:** Implement LRU eviction policy when `/opt/swisd/models/` exceeds configured disk watermark.
 
@@ -76,10 +78,10 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **Domain C Phase 1 — Core injection:** Headless SwISD core singleton is initialized server-side and injected into `event.locals` via `src/hooks.server.ts`.
 - [x] **Domain C Phase 1 — Snapshot API:** `GET /api/snapshot` returns a strictly typed `SwarmSnapshot` DTO from the core.
 - [x] **Domain C Phase 1 — Rune dashboard shell:** `src/routes/+layout.svelte` and `src/routes/+page.svelte` consume the snapshot using Svelte 5 `$state` and `$derived`.
-- [ ] **Modern Dashboard UI:** Replace vanilla JS `dashboardHtml.ts` with compiled, auto-discovering SPA visualizing swarm topology and model distribution.
+- [x] **Modern Dashboard UI:** Replaced legacy vanilla JS `dashboardHtml.ts` with compiled Svelte 5 Domain C Cockpit.
   - [ ] Interactive node-graph color-coded by `CapabilityManifest`.
-  - [ ] Real-time model distribution progress and node health.
-  - [ ] Live peer churn, load score, and executor capability panels.
+  - [x] Real-time model distribution progress and node health.
+  - [x] Live peer churn, load score, and executor capability panels.
   - [ ] Cryptographic verification indicators hidden behind operator-friendly status states.
 - [x] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
   - [x] Conductor discovery of local swarm nodes (Core broadcasts via `bonjour-service`, BFF listens and exposes `GET /api/discovery`).
@@ -92,9 +94,9 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] Temporary `SwISD-Setup-XXXX` access point fallback.
   - [ ] Smartphone-friendly captive portal for WiFi credential injection.
   - [ ] Idempotent handoff from setup portal to normal swarm operation.
-- [ ] **Drag-and-Drop Ingestion:** Build Conductor-side CLI/UI wrapper to ingest local `.gguf` files, chunk them, and seed them to the swarm without browser memory limits.
-  - [ ] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
-  - [ ] Streaming chunking into the Polymorphic Ingestion Engine.
+- [x] **Drag-and-Drop Ingestion:** Build Conductor-side CLI/UI wrapper to ingest local `.gguf` files, chunk them, and seed them to the swarm without browser memory limits.
+  - [x] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
+  - [x] Streaming chunking into the Polymorphic Ingestion Engine.
   - [ ] Manifest generation and swarm seeding progress visualization.
 
 ## Deferred (App)
