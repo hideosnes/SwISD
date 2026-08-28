@@ -74,7 +74,27 @@ export interface BloomFilterState {
   readonly hashFunctionsCount: number;
 }
 
-export interface GossipMessage<T> {
+// --- Execution & Routing Types ---
+
+export interface ExecutionPayload {
+  readonly taskId: string;
+  readonly requiredExecutorType: string;
+  readonly chunkCids: ReadonlyArray<string>;
+  readonly deadlineMs: number;
+  readonly returnAddress: string; // Peer ID of the Conductor/Requester
+}
+
+export interface TaskResultPayload {
+  readonly taskId: string;
+  readonly resultCid: string;
+  readonly returnAddress: string;
+  readonly success: boolean;
+  readonly errorMessage?: string;
+}
+
+export type GossipPayload = ExecutionPayload | TaskResultPayload | ReputationEvent | TaskHistoryEvent;
+
+export interface GossipMessage<T extends GossipPayload = GossipPayload> {
   readonly messageId: string;
   readonly senderPeerId: string;
   readonly timestamp: number;
@@ -82,6 +102,33 @@ export interface GossipMessage<T> {
   readonly payload: T;
   readonly signature: Uint8Array;
 }
+
+// --- Strict Type Guards ---
+
+export function isExecutionPayload(payload: unknown): payload is ExecutionPayload {
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p?.taskId === 'string' &&
+    typeof p?.requiredExecutorType === 'string' &&
+    Array.isArray(p?.chunkCids) &&
+    p.chunkCids.every((cid) => typeof cid === 'string') &&
+    typeof p?.deadlineMs === 'number' &&
+    typeof p?.returnAddress === 'string'
+  );
+}
+
+export function isTaskResultPayload(payload: unknown): payload is TaskResultPayload {
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p?.taskId === 'string' &&
+    typeof p?.resultCid === 'string' &&
+    typeof p?.returnAddress === 'string' &&
+    typeof p?.success === 'boolean' &&
+    (p.errorMessage === undefined || typeof p.errorMessage === 'string')
+  );
+}
+
+// --- Heartbeat & Supervisor Types ---
 
 export interface AppHeartbeat {
   readonly timestamp: number;

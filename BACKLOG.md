@@ -45,8 +45,9 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **Role emergence foundation.** INPUT / WORKER / DIPLOMAT emerge from capabilities. Storage sharding is capability-driven, not role-assigned.
 - [x] **Torrent-style task fragmentation + reassembly.** 256KB chunks, HMAC data-plane validation, Merkle control-plane integrity.
 - [x] **Agnostic Execution Framework.** `ExecutorRegistry` and `CapabilityManifest` for software-aware routing.
-- [ ] **Capability-Aware Gossip Router.** Filter Bloom filters and route `ExecutionPayload` based on `supportedExecutors`.
-- [ ] **Direct Egress Tunnel.** Implement libp2p stream protocol (`/swisd/egress/1.0.0`) for peers to push results directly to the Conductor.
+- [x] **Capability-Aware Gossip Router.** Filter Bloom filters and route `ExecutionPayload` based on `supportedExecutors`. (Option A implemented: App-layer explicit publish with mutated Bloom filter; libp2p native forwarding tolerated but redundant messages dropped locally).
+- [ ] **Capability-Aware Gossip Router (Option B - Deferred).** Implement custom Gossipsub message validator/router to strictly control the forwarding pipeline at the libp2p layer, eliminating redundant native forwarding bandwidth waste.
+- [x] **Direct Egress Tunnel.** Implement libp2p stream protocol (`/swisd/egress/1.0.0`) for peers to push results directly to the Conductor.
 - [ ] **Immediate preemption** on peer drop.
 - [ ] **Error routing** via gossip + neighbor knowledge (no fixed paths).
 
@@ -83,13 +84,11 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] Cryptographic verification indicators hidden behind operator-friendly status states.
 - [x] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
   - [x] Conductor discovery of local swarm nodes (Core broadcasts via `bonjour-service`, BFF listens and exposes `GET /api/discovery`).
-  - [x] UI surface for discovered nodes (`DiscoveryPanel.svelte`).
+  - [x] UI surface for discovered nodes and setup status (`DiscoveryPanel.svelte` with Svelte 5 runes).
 - [x] **Genesis Bootstrap Protocol & Trust Registry:**
   - [x] Core `TrustRegistry` (`src/peer/trust.ts`) to manage `pending`, `trusted`, `rejected` states.
   - [x] BFF injects `TrustRegistry` into `event.locals` and registers mDNS discoveries as `PENDING`.
   - [x] API route `GET/POST /api/peers` to query and update trust states.
-  - [x] `PendingTrustPanel.svelte` UI component for operator acceptance.
-  - [ ] Pi-side fallback NetworkManager profile for `SwISD-Genesis`.
 - [ ] **Out-of-Box Setup Portal:** Build fallback AP mode and captive portal wizard in `src/provision/` for monitor-less, USB-less initial WiFi provisioning.
   - [ ] Temporary `SwISD-Setup-XXXX` access point fallback.
   - [ ] Smartphone-friendly captive portal for WiFi credential injection.
