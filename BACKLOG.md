@@ -20,6 +20,8 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - **Architecture:** Capability-Aware, Polymorphic Render Swarm. Blind ingress, targeted egress, stateless agents, polite ingestion.
 - **Domain C Stack:** Svelte 5 (Runes/Snippets) + SvelteKit 2 Node adapter + TailwindCSS. The SvelteKit server is the BFF and the only process allowed to touch the headless SwISD core.
 - **Conductor Cockpit Bridge:** The headless core is initialized once as a server-side singleton, injected into `event.locals`, and exposed to the browser only through strict DTO-typed API routes. No core internals leak to the client. No `any`.
+- **Genesis Bootstrap Protocol:** Conductor acts as the fallback hotspot (`SwISD-Genesis`). Pis connect if no known network is found, allowing zero-internet, out-of-box swarm formation.
+- **Cryptographic Trust Boundary:** Network proximity (mDNS/Genesis WiFi) is purely advisory. Peers must be explicitly accepted via the Cockpit's `TrustRegistry` before participating in the swarm.
 
 ---
 
@@ -79,6 +81,15 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] Real-time model distribution progress and node health.
   - [ ] Live peer churn, load score, and executor capability panels.
   - [ ] Cryptographic verification indicators hidden behind operator-friendly status states.
+- [x] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
+  - [x] Conductor discovery of local swarm nodes (Core broadcasts via `bonjour-service`, BFF listens and exposes `GET /api/discovery`).
+  - [x] UI surface for discovered nodes (`DiscoveryPanel.svelte`).
+- [x] **Genesis Bootstrap Protocol & Trust Registry:**
+  - [x] Core `TrustRegistry` (`src/peer/trust.ts`) to manage `pending`, `trusted`, `rejected` states.
+  - [x] BFF injects `TrustRegistry` into `event.locals` and registers mDNS discoveries as `PENDING`.
+  - [x] API route `GET/POST /api/peers` to query and update trust states.
+  - [x] `PendingTrustPanel.svelte` UI component for operator acceptance.
+  - [ ] Pi-side fallback NetworkManager profile for `SwISD-Genesis`.
 - [ ] **Out-of-Box Setup Portal:** Build fallback AP mode and captive portal wizard in `src/provision/` for monitor-less, USB-less initial WiFi provisioning.
   - [ ] Temporary `SwISD-Setup-XXXX` access point fallback.
   - [ ] Smartphone-friendly captive portal for WiFi credential injection.
@@ -87,10 +98,6 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
   - [ ] Streaming chunking into the Polymorphic Ingestion Engine.
   - [ ] Manifest generation and swarm seeding progress visualization.
-- [x] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
-  - [x] Conductor discovery of local swarm nodes (Core broadcasts via `bonjour-service`, BFF listens and exposes `GET /api/discovery`).
-  - [ ] Pairing state machine for trusted local links. *(Deferred: requires cryptographic handshake layer)*
-  - [x] UI surface for discovered nodes and setup status (`DiscoveryPanel.svelte` with Svelte 5 runes).
 
 ## Deferred (App)
 - [ ] **Vector DB sharding** (large swarms). *Trigger: storage pressure / large swarm.*
