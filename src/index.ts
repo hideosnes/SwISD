@@ -1,5 +1,5 @@
 // 1. Relative path: src/index.ts
-// 2. Description: Main entry point for the SwISD application, starting the observation plane, persistent identity, and graceful shutdown.
+// 2. Description: Main entry point for the SwISD application, starting the observation plane, persistent identity, trust registry, and graceful shutdown.
 // 3. Expects: Node.js process environment and local development configuration.
 // 4. Provides: A resilient application instance with token-guarded local observability dashboard, persistent peer identity, and delivery heartbeat.
 
@@ -9,6 +9,7 @@ import type { AdminServerHandle } from './admin/index.js';
 import { ObservabilityEventBus, createDevObservabilitySource } from './observability/index.js';
 import type { DevObservabilitySource } from './observability/index.js';
 import { HeartbeatWriter, IdentityManager } from './delivery/index.js';
+import { TrustRegistry } from './peer/index.js';
 import { startAdminDiscovery, type DiscoveryHandle } from './network/index.js';
 import {
   createAdminToken,
@@ -23,6 +24,7 @@ class SwISDApp {
   private source: DevObservabilitySource | undefined;
   private heartbeatWriter: HeartbeatWriter | undefined;
   private identityManager: IdentityManager | undefined;
+  private trustRegistry: TrustRegistry | undefined;
   private discoveryHandle: DiscoveryHandle | undefined;
 
   public async start(): Promise<void> {
@@ -39,7 +41,6 @@ class SwISDApp {
     await this.identityManager.ensureStateDir();
     const identity = await this.identityManager.getOrCreateIdentity();
     
-    // Allow env override for pure local dev testing, but default to the persistent cryptographic identity
     const peerId = process.env.SWISD_DEV_PEER_ID ?? identity.peerId;
     if (process.env.SWISD_DEV_PEER_ID) {
       console.warn(`[SwISD] WARNING: Overriding persistent peer identity with SWISD_DEV_PEER_ID: ${peerId}`);
@@ -47,7 +48,10 @@ class SwISDApp {
       console.log(`[SwISD] Loaded persistent peer identity: ${peerId}`);
     }
 
-    // 2. Initialize Observability Source
+    // 2. Initialize Trust Registry
+    this.trustRegistry = new TrustRegistry();
+
+    // 3. Initialize Observability Source
     const source = createDevObservabilitySource(
       {
         peerId,
@@ -56,6 +60,7 @@ class SwISDApp {
         configSource: 'env',
         startedAt: Date.now(),
         deliveryRoot,
+        trustRegistry: this.trustRegistry,
       },
       eventBus
     );
@@ -68,7 +73,7 @@ class SwISDApp {
     }, 5000);
     obsTimer.unref();
 
-    // 3. Initialize Delivery Heartbeat
+    // 4. Initialize Delivery Heartbeat
     this.heartbeatWriter = new HeartbeatWriter({
       deliveryRoot,
       peerId,
@@ -78,7 +83,7 @@ class SwISDApp {
     await this.heartbeatWriter.ensureStateDir();
     this.heartbeatWriter.start();
 
-    // 4. Start Admin Server
+    // 5. Start Admin Server
     const token = process.env.SWISD_ADMIN_TOKEN ?? createAdminToken();
     const host = process.env.SWISD_ADMIN_HOST ?? '127.0.0.1';
     const allowLan = parseBoolean(process.env.SWISD_ALLOW_LAN_ADMIN, false);
@@ -96,6 +101,9 @@ class SwISDApp {
     });
 
     await adminServer.start();
+    this.adminServer = adminServer;
+
+    // 6. Start mDNS Discovery
     this.discoveryHandle = startAdminDiscovery({
       peerId,
       role,
@@ -103,7 +111,6 @@ class SwISDApp {
       host,
       port,
     });
-    this.adminServer = adminServer;
 
     console.log(`[SwISD] Observation dashboard available at ${adminServer.url()}`);
 
@@ -140,6 +147,11 @@ class SwISDApp {
   private async shutdown(signal: string): Promise<void> {
     console.log(`[SwISD] Shutting down due to ${signal}.`);
 
+    if (this.discoveryHandle) {
+      this.discoveryHandle.stop();
+      this.discoveryHandle = undefined;
+    }
+
     if (this.heartbeatWriter) {
       this.heartbeatWriter.stop();
       this.heartbeatWriter = undefined;
@@ -150,13 +162,9 @@ class SwISDApp {
       this.adminServer = undefined;
     }
 
-    if (this.discoveryHandle) {
-      this.discoveryHandle.stop();
-      this.discoveryHandle = undefined;
-    }
-
     this.source = undefined;
     this.identityManager = undefined;
+    this.trustRegistry = undefined;
   }
 }
 

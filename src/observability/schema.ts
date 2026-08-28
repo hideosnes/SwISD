@@ -3,7 +3,7 @@
 // 3. Expects: Runtime state providers and typed event payloads.
 // 4. Provides: Exhaustive observability contracts for snapshots, events, and source adapters.
 
-import type { LoadScore, PeerRole, UpdateStatus } from '../types.js';
+import type { LoadScore, PeerRole, PeerTrustState, UpdateStatus } from '../types.js';
 
 export type ObservabilityEventLevel = 'info' | 'warn' | 'error';
 
@@ -98,6 +98,14 @@ export interface ObservabilityDeliveryInfo {
   readonly rollbackReason: string | null;
 }
 
+export interface ObservabilityPeerInfo {
+  readonly peerId: string;
+  readonly trustState: PeerTrustState;
+  readonly discoveredAt: number;
+  readonly trustedAt: number | null;
+  readonly source: string;
+}
+
 export interface ObservabilitySnapshot {
   readonly generatedAt: number;
   readonly process: ObservabilityProcessInfo;
@@ -106,6 +114,7 @@ export interface ObservabilitySnapshot {
   readonly crdt: ObservabilityCrdtInfo;
   readonly tasks: ObservabilityTaskInfo;
   readonly delivery: ObservabilityDeliveryInfo;
+  readonly peers: ReadonlyArray<ObservabilityPeerInfo>;
   readonly recentEvents: ReadonlyArray<ObservabilityEvent>;
 }
 
@@ -116,4 +125,5 @@ export interface ObservabilitySource {
   getCrdtInfo(): ObservabilityCrdtInfo;
   getTaskInfo(): ObservabilityTaskInfo;
   getDeliveryInfo(): ObservabilityDeliveryInfo;
+  getPeerInfo(): ReadonlyArray<ObservabilityPeerInfo>;
 }

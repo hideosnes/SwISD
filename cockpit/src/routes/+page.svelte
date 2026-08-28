@@ -1,12 +1,13 @@
 <!--
 1. Relative path: cockpit/src/routes/+page.svelte
-2. Description: The main dashboard view, polling the BFF for live swarm metrics.
+2. Description: The main dashboard view, polling the BFF for live swarm metrics and pending trust requests.
 3. Expects: Svelte 5 runes for reactive state management.
-4. Provides: A real-time, auto-updating display of the swarm's process, load, and delivery status.
+4. Provides: A real-time, auto-updating display of the swarm's process, load, delivery status, and trust panel.
 -->
 <script lang="ts">
   import type { ObservabilitySnapshot } from '$core/observability/index.js';
   import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
+  import PendingTrustPanel from '$lib/components/PendingTrustPanel.svelte';
 
   let snapshot = $state<ObservabilitySnapshot | null>(null);
   let error = $state<string | null>(null);
@@ -22,7 +23,6 @@
     }
   }
 
-  // Poll every 2 seconds
   $effect(() => {
     fetchSnapshot();
     const interval = setInterval(fetchSnapshot, 2000);
@@ -75,6 +75,11 @@
       <!-- Discovery Panel -->
       <div class="lg:col-span-1">
         <DiscoveryPanel />
+      </div>
+
+      <!-- Pending Trust Panel -->
+      <div class="lg:col-span-2">
+        <PendingTrustPanel />
       </div>
     </div>
   {:else if !error}

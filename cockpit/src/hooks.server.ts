@@ -1,14 +1,17 @@
 // 1. Relative path: cockpit/src/hooks.server.ts
-// 2. Description: The BFF bridge. Initializes the headless SwISD core on SvelteKit server startup and injects it into the request lifecycle.
+// 2. Description: The BFF bridge. Initializes the headless SwISD core and TrustRegistry on SvelteKit server startup, and injects them into the request lifecycle.
 // 3. Expects: SvelteKit's Handle hook invocation.
-// 4. Provides: A globally available, initialized ObservabilitySource and EventBus via `event.locals` for all API routes.
+// 4. Provides: A globally available, initialized ObservabilitySource, EventBus, and TrustRegistry via `event.locals` for all API routes.
 
 import type { Handle } from '@sveltejs/kit';
-// FIX: Using explicit relative paths to bypass SvelteKit alias resolution friction
 import { ObservabilityEventBus, createDevObservabilitySource } from '$core/observability/index.js';
-import { parsePeerRole } from '../../src/utils.js';
+import { TrustRegistry } from '$core/peer/index.js';
+import { parsePeerRole } from '$core/utils.js';
+import { startCockpitDiscovery } from '$lib/server/discovery.js';
 
+// Initialize the core state ONCE at server startup
 const eventBus = new ObservabilityEventBus(500);
+const trustRegistry = new TrustRegistry();
 const role = parsePeerRole(process.env.SWISD_ROLE);
 const peerId = process.env.SWISD_DEV_PEER_ID ?? `cockpit-dev-${process.pid}`;
 const version = process.env.SWISD_VERSION ?? '0.0.1';
@@ -22,19 +25,26 @@ const coreSource = createDevObservabilitySource(
     configSource: 'env',
     startedAt: Date.now(),
     deliveryRoot,
+    trustRegistry,
   },
   eventBus
 );
 
+// Start the heartbeat tick
 const obsTimer = setInterval(() => {
   coreSource.tick();
 }, 5000);
 obsTimer.unref();
 
+// Start the mDNS discovery listener, injecting the trust registry
+startCockpitDiscovery(trustRegistry);
+
 export const handle: Handle = async ({ event, resolve }) => {
+  // Inject the core instances into the request locals
   event.locals = {
     coreSource,
     eventBus,
+    trustRegistry,
   };
 
   const response = await resolve(event);

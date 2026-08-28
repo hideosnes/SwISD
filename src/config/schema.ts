@@ -1,7 +1,7 @@
-// src/config/schema.ts
-// Description: Strict type definitions and runtime validation guards for the USB provisioning schema.
-// Expects: Raw, untrusted JSON data from the USB stick or environment.
-// Provides: Exhaustively typed `ProvisionConfig` and strict type guards to ensure zero unsafe leakage.
+// 1. Relative path: src/config/schema.ts
+// 2. Description: Strict type definitions and runtime validation guards for the USB provisioning schema and Genesis fallback constants.
+// 3. Expects: Raw, untrusted JSON data from the USB stick or environment.
+// 4. Provides: Exhaustively typed `ProvisionConfig`, strict type guards, and the hardcoded Genesis network contract.
 
 export type ProvisionRole = 'auto' | 'input' | 'worker';
 
@@ -22,6 +22,12 @@ export interface ProvisionConfig {
   readonly modelSource: HuggingFaceModelSource;
   readonly version: number;
 }
+
+// --- Genesis Fallback Protocol Constants ---
+// These are baked into the Pi image as a low-priority NetworkManager profile.
+// If the Pi boots with no known network, it falls back to this SSID to allow the Conductor to discover it.
+export const GENESIS_SSID = 'SwISD-Genesis';
+export const GENESIS_PSK = 'genesis-swarm-0000';
 
 // --- Strict Runtime Type Guards ---
 

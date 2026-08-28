@@ -1,19 +1,21 @@
 // 1. Relative path: src/observability/devSource.ts
-// 2. Description: Development observability source that integrates with the real supervisor status file.
-// 3. Expects: Basic node identity metadata, an observability event bus, and the delivery root path.
-// 4. Provides: A typed ObservabilitySource that reads actual supervisor status synchronously when present, falling back to honest local dev placeholders.
+// 2. Description: Development observability source that integrates with the real supervisor status file and trust registry.
+// 3. Expects: Basic node identity metadata, an observability event bus, the delivery root path, and the trust registry.
+// 4. Provides: A typed ObservabilitySource that reads actual supervisor status and peer trust states synchronously.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { clampLoadScore } from '../utils.js';
 import type { PeerRole, UpdateStatus } from '../types.js';
 import { isSupervisorStatus } from '../delivery/index.js';
+import type { TrustRegistry } from '../peer/index.js';
 import type { ObservabilityEventBus } from './eventBus.js';
 import type {
   ObservabilityCrdtInfo,
   ObservabilityDeliveryInfo,
   ObservabilityLoadInfo,
   ObservabilityNetworkInfo,
+  ObservabilityPeerInfo,
   ObservabilityProcessInfo,
   ObservabilitySource,
   ObservabilityTaskInfo,
@@ -26,6 +28,7 @@ export interface DevObservabilitySourceConfig {
   readonly configSource: 'env' | 'usb' | 'stub';
   readonly startedAt: number;
   readonly deliveryRoot: string;
+  readonly trustRegistry: TrustRegistry;
 }
 
 export interface DevObservabilitySource extends ObservabilitySource {
@@ -116,7 +119,7 @@ export function createDevObservabilitySource(
         neighborCount: 0,
         knownPeers: [],
         gossipEnabled: false,
-        mdnsActive: false,
+        mdnsActive: true,
       };
     },
 
@@ -159,6 +162,16 @@ export function createDevObservabilitySource(
 
     getDeliveryInfo(): ObservabilityDeliveryInfo {
       return readSupervisorStatusSync();
+    },
+
+    getPeerInfo(): ObservabilityPeerInfo[] {
+      return config.trustRegistry.getAllPeers().map(p => ({
+        peerId: p.peerId,
+        trustState: p.state,
+        discoveredAt: p.discoveredAt,
+        trustedAt: p.trustedAt,
+        source: p.source,
+      }));
     },
   };
 }

@@ -1,7 +1,7 @@
 // 1. Relative path: src/types.ts
 // 2. Description: Shared runtime types and interfaces for the SwISD decentralized swarm.
 // 3. Expects: Strict TypeScript compiler settings (noImplicitAny, strictNullChecks).
-// 4. Provides: Exhaustive, explicit type definitions for CRDTs, networking, tasks, crypto, and delivery.
+// 4. Provides: Exhaustive, explicit type definitions for CRDTs, networking, tasks, crypto, delivery, and peer trust.
 
 export type PeerRole = 'input' | 'worker' | 'diplomat' | 'auto';
 
@@ -100,4 +100,21 @@ export interface SupervisorStatus {
   readonly lastHeartbeatCheck: number | null;
   readonly lastError: string | null;
   readonly rollbackReason: string | null;
+}
+
+// --- Genesis & Trust Protocol Types ---
+
+export type PeerTrustState = 'pending' | 'trusted' | 'rejected';
+
+export interface PeerTrustRecord {
+  readonly peerId: string;
+  readonly state: PeerTrustState;
+  readonly discoveredAt: number;
+  readonly trustedAt: number | null;
+  readonly source: 'mdns' | 'gossip' | 'usb';
+}
+
+export interface GenesisConfig {
+  readonly ssid: string;
+  readonly psk: string;
 }

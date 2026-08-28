@@ -1,9 +1,10 @@
 // 1. Relative path: cockpit/src/lib/server/discovery.ts
-// 2. Description: Server-side mDNS listener for the SvelteKit BFF, maintaining a reactive map of discovered swarm nodes.
-// 3. Expects: Network access to the local multicast group.
-// 4. Provides: A strictly typed, singleton discovery manager that the API routes can query.
+// 2. Description: Server-side mDNS listener for the SvelteKit BFF, maintaining a reactive map of discovered swarm nodes and injecting them into the core TrustRegistry.
+// 3. Expects: Network access to the local multicast group and a TrustRegistry instance.
+// 4. Provides: A strictly typed, singleton discovery manager that automatically registers new peers as "Pending Trust".
 
 import { Bonjour, type Service } from 'bonjour-service';
+import type { TrustRegistry } from '$core/peer/index.js';
 
 export interface DiscoveredNode {
   readonly peerId: string;
@@ -18,10 +19,6 @@ export interface DiscoveredNode {
 let bonjourInstance: Bonjour | null = null;
 const discoveredNodes = new Map<string, DiscoveredNode>();
 
-/**
- * Strictly extracts a string from a third-party mDNS TXT record, 
- * preventing any `any` leakage from the bonjour-service types.
- */
 function extractTxtString(txt: unknown, key: string): string {
   if (typeof txt !== 'object' || txt === null) return 'unknown';
   const val = (txt as Record<string, unknown>)[key];
@@ -30,7 +27,7 @@ function extractTxtString(txt: unknown, key: string): string {
   return 'unknown';
 }
 
-export function startCockpitDiscovery(): void {
+export function startCockpitDiscovery(trustRegistry: TrustRegistry): void {
   if (bonjourInstance) return;
   
   bonjourInstance = new Bonjour();
@@ -40,7 +37,9 @@ export function startCockpitDiscovery(): void {
     const peerId = extractTxtString(service.txt, 'peerId');
     if (peerId === 'unknown') return;
 
-    // bonjour-service provides the IP in service.referer.address or service.host
+    // CRITICAL: Register the peer in the core's trust registry as PENDING
+    trustRegistry.discoverPeer(peerId, 'mdns');
+
     const host = service.referer?.address ?? service.host ?? '127.0.0.1';
 
     discoveredNodes.set(peerId, {
@@ -53,7 +52,6 @@ export function startCockpitDiscovery(): void {
     });
   });
 
-  // Garbage collect stale nodes every 30 seconds
   const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [id, node] of discoveredNodes) {
