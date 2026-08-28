@@ -87,10 +87,10 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
   - [ ] Streaming chunking into the Polymorphic Ingestion Engine.
   - [ ] Manifest generation and swarm seeding progress visualization.
-- [ ] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
-  - [ ] Conductor discovery of local swarm nodes.
-  - [ ] Pairing state machine for trusted local links.
-  - [ ] UI surface for discovered nodes and setup status.
+- [x] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
+  - [x] Conductor discovery of local swarm nodes (Core broadcasts via `bonjour-service`, BFF listens and exposes `GET /api/discovery`).
+  - [ ] Pairing state machine for trusted local links. *(Deferred: requires cryptographic handshake layer)*
+  - [x] UI surface for discovered nodes and setup status (`DiscoveryPanel.svelte` with Svelte 5 runes).
 
 ## Deferred (App)
 - [ ] **Vector DB sharding** (large swarms). *Trigger: storage pressure / large swarm.*

@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import type { ObservabilitySnapshot } from '$core/observability/index.js';
+  import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
 
   let snapshot = $state<ObservabilitySnapshot | null>(null);
   let error = $state<string | null>(null);
@@ -69,6 +70,11 @@
           <div class="flex justify-between"><dt class="text-slate-500">App Version</dt><dd class="font-mono">{snapshot.delivery.currentAppVersion ?? 'N/A'}</dd></div>
           <div class="flex justify-between"><dt class="text-slate-500">Heartbeat</dt><dd class="font-mono" class:text-green-400={snapshot.delivery.heartbeatOk} class:text-red-400={!snapshot.delivery.heartbeatOk}>{snapshot.delivery.heartbeatOk ? 'OK' : 'STALE'}</dd></div>
         </dl>
+      </div>
+
+      <!-- Discovery Panel -->
+      <div class="lg:col-span-1">
+        <DiscoveryPanel />
       </div>
     </div>
   {:else if !error}

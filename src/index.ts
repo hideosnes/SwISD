@@ -9,6 +9,7 @@ import type { AdminServerHandle } from './admin/index.js';
 import { ObservabilityEventBus, createDevObservabilitySource } from './observability/index.js';
 import type { DevObservabilitySource } from './observability/index.js';
 import { HeartbeatWriter, IdentityManager } from './delivery/index.js';
+import { startAdminDiscovery, type DiscoveryHandle } from './network/index.js';
 import {
   createAdminToken,
   parseBoolean,
@@ -22,6 +23,7 @@ class SwISDApp {
   private source: DevObservabilitySource | undefined;
   private heartbeatWriter: HeartbeatWriter | undefined;
   private identityManager: IdentityManager | undefined;
+  private discoveryHandle: DiscoveryHandle | undefined;
 
   public async start(): Promise<void> {
     console.log('[SwISD] Initializing decentralized swarm node...');
@@ -94,6 +96,13 @@ class SwISDApp {
     });
 
     await adminServer.start();
+    this.discoveryHandle = startAdminDiscovery({
+      peerId,
+      role,
+      version,
+      host,
+      port,
+    });
     this.adminServer = adminServer;
 
     console.log(`[SwISD] Observation dashboard available at ${adminServer.url()}`);
@@ -139,6 +148,11 @@ class SwISDApp {
     if (this.adminServer) {
       await this.adminServer.stop();
       this.adminServer = undefined;
+    }
+
+    if (this.discoveryHandle) {
+      this.discoveryHandle.stop();
+      this.discoveryHandle = undefined;
     }
 
     this.source = undefined;
