@@ -6,3 +6,4 @@
 export { handleIncomingGossipMessage, generateMessageId } from './gossipRouter.js';
 export { initEgressTunnel, sendResultViaEgress } from './egressTunnel.js';
 export type { GossipRouterDependencies } from './gossipRouter.js';
+export type { EgressTunnelDependencies } from './egressTunnel.js';

@@ -19,6 +19,7 @@ export type LoadScore = number; // Constrained 0.0 to 1.0 at runtime
 
 export interface ReputationEvent {
   readonly eventId: string;
+  readonly authorPeerId: string;
   readonly targetPeerId: string;
   readonly outcome: 'success' | 'failure';
   readonly latencyMs: number;
@@ -153,6 +154,7 @@ export function isReputationEvent(payload: unknown): payload is ReputationEvent 
   const p = payload as Record<string, unknown>;
   return (
     typeof p?.eventId === 'string' &&
+    typeof p?.authorPeerId === 'string' &&
     typeof p?.targetPeerId === 'string' &&
     (p.outcome === 'success' || p.outcome === 'failure') &&
     typeof p?.latencyMs === 'number' &&

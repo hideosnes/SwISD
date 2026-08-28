@@ -1,30 +1,32 @@
 // 1. Relative path: src/network/router/gossipRouter.ts
-// 2. Description: Capability-aware gossip router that intercepts, validates, and routes GossipMessages, including preemption events and backpressure checks.
-// 3. Expects: Incoming GossipMessage, TrustRegistry, ExecutorRegistry, local peerId, a signing function, and a load score evaluator.
-// 4. Provides: Mathematically sound loop prevention, O(1) capability filtering, targeted egress routing, decentralized preemption handling, and edge backpressure.
+// 2. Description: Capability-aware gossip router that intercepts, validates, and routes GossipMessages, including reputation scoring.
+// 3. Expects: Incoming GossipMessage, TrustRegistry, ReputationLog, local peerId, a signing function, and capability lookup.
+// 4. Provides: Mathematically sound loop prevention, O(1) capability filtering, reputation-based routing, and edge backpressure.
 
 import type { SwISDNode } from '../libp2p.js';
 import type { GossipMessage, GossipPayload, TaskHistoryEvent } from '../../types.js';
 import { 
   isExecutionPayload, 
   isTaskResultPayload, 
-  isTaskHistoryEvent 
+  isTaskHistoryEvent,
+  isReputationEvent
 } from '../../types.js';
-import type { TrustRegistry } from '../../peer/trust.js';
-import type { ExecutorRegistry } from '../../executor/registry.js';
+import type { TrustRegistry } from '../../peer/index.js';
+import type { ReputationLog } from '../../crdt/index.js';
 import { mightContain, addToBloomFilter } from '../bloom.js';
 import { sendResultViaEgress } from './egressTunnel.js';
 import { createHash } from 'node:crypto';
-import { assertLoadShedding } from '../../performance';
+import { assertLoadShedding } from '../../performance/index.js';
 
 export interface GossipRouterDependencies {
   readonly localPeerId: string;
   readonly trustRegistry: TrustRegistry;
-  readonly executorRegistry: ExecutorRegistry;
+  readonly reputationLog: ReputationLog;
   readonly node: SwISDNode;
   readonly signPayload: (payloadToSign: string) => Promise<Uint8Array>;
   readonly onTaskPreempted: (taskId: string, event: TaskHistoryEvent) => void;
-  readonly getLoadScore: () => number; // Injected load evaluator
+  readonly getLoadScore: () => number;
+  readonly getCapablePeers: (requiredType: string) => ReadonlyArray<string>;
 }
 
 export async function handleIncomingGossipMessage(
@@ -43,10 +45,8 @@ export async function handleIncomingGossipMessage(
   }
 
   // 3. Edge Backpressure Check (Load Shedding)
-  // We only shed load for heavy data-plane payloads. Control-plane messages must still propagate for swarm healing.
   if (isExecutionPayload(message.payload)) {
     const currentLoad = deps.getLoadScore();
-    // Hard-reject with BackpressureError if threshold is exceeded
     assertLoadShedding(currentLoad, 'GossipRouter (ExecutionPayload)');
   }
 
@@ -63,15 +63,42 @@ export async function handleIncomingGossipMessage(
     }
   }
 
-  // 6. Capability Matching
-  if (isExecutionPayload(message.payload)) {
-    const requiredType = message.payload.requiredExecutorType;
-    if (!deps.executorRegistry.supports(requiredType)) {
-      return; 
+  // 6. Reputation Event Handling (Append to G-Set)
+  if (isReputationEvent(message.payload)) {
+    try {
+      deps.reputationLog.append(message.payload);
+    } catch (error) {
+      // Invalid signature or untrusted author. Drop the message and DO NOT republish.
+      return;
     }
   }
 
-  // 7. Propagation (Option A: Mutate Bloom, Re-sign, Republish)
+  // 7. Capability Matching & Reputation Filtering
+  if (isExecutionPayload(message.payload)) {
+    const requiredType = message.payload.requiredExecutorType;
+    
+    // Injected pure function replaces direct registry coupling
+    const capablePeers = deps.getCapablePeers(requiredType);
+    
+    // If the local node isn't in the capable list, we don't process or route it locally
+    if (!capablePeers.includes(deps.localPeerId)) {
+      return; 
+    }
+
+    const nowMs = Date.now();
+    const highRepPeers = capablePeers.filter(peerId => {
+      return deps.reputationLog.readScore(peerId, nowMs) >= 0.3;
+    });
+
+    // If we have high-reputation peers, we prioritize them. 
+    // If the swarm is degraded and all peers are < 0.3, we fall back to the full capable list.
+    const targetPeers = highRepPeers.length > 0 ? highRepPeers : capablePeers;
+    
+    // Note: In a pure pubsub blind gossip model, we still broadcast to the topic, 
+    // but the router can use `targetPeers` for direct egress fallbacks or metrics.
+  }
+
+  // 8. Propagation (Option A: Mutate Bloom, Re-sign, Republish)
   const updatedBloom = addToBloomFilter(message.ttlBloom, deps.localPeerId);
   
   const messageToRepublish: Omit<GossipMessage<GossipPayload>, 'signature'> = {

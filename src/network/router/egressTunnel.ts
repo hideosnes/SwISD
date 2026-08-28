@@ -1,28 +1,35 @@
 // 1. Relative path: src/network/router/egressTunnel.ts
 // 2. Description: Direct egress tunnel for pushing TaskResultPayloads to a specific returnAddress via libp2p streams.
-// 3. Expects: A configured SwISDNode instance and a strictly typed TaskResultPayload.
+// 3. Expects: A configured SwISDNode instance, a strictly typed TaskResultPayload, and reputation emission hooks.
 // 4. Provides: A targeted, encrypted stream protocol (`/swisd/egress/1.0.0`) that prevents blind-gossip bandwidth choking.
 
 import type { SwISDNode } from '../libp2p.js';
 import type { Stream, Connection } from '@libp2p/interface';
 import { peerIdFromString } from '@libp2p/peer-id';
-import { isTaskResultPayload, type TaskResultPayload } from '../../types.js';
+import { isTaskResultPayload, type TaskResultPayload, type ReputationEvent } from '../../types.js';
 import { SwISDError } from '../../errors.js';
+import { createHash } from 'node:crypto';
 
 const EGRESS_PROTOCOL = '/swisd/egress/1.0.0';
 
+export interface EgressTunnelDependencies {
+  readonly localPeerId: string;
+  readonly signPayload: (payloadToSign: string) => Promise<Uint8Array>;
+  readonly onReputationEvent: (event: ReputationEvent) => void;
+  readonly getTaskLatencyMs: (taskId: string) => number;
+}
+
 export async function initEgressTunnel(
   node: SwISDNode,
-  onResultReceived: (result: TaskResultPayload, senderPeerId: string) => Promise<void>
+  onResultReceived: (result: TaskResultPayload, senderPeerId: string) => Promise<void>,
+  deps: EgressTunnelDependencies
 ): Promise<void> {
-  // libp2p v3.x StreamHandler signature is (stream: Stream, connection: Connection) => void | Promise<void>
   await node.handle(EGRESS_PROTOCOL, async (stream: Stream, connection: Connection) => {
     const senderPeerId = connection.remotePeer.toString();
     
     try {
       const chunks: Uint8Array[] = [];
       
-      // Stream is an AsyncIterable<Uint8Array | Uint8ArrayList>
       for await (const chunk of stream) {
         const bytes = chunk instanceof Uint8Array ? chunk : chunk.subarray();
         chunks.push(bytes);
@@ -45,7 +52,35 @@ export async function initEgressTunnel(
 
       await onResultReceived(parsed, senderPeerId);
       
-      // Acknowledge receipt using modern stream.send API
+      // --- REPUTATION EMISSION ---
+      const latencyMs = deps.getTaskLatencyMs(parsed.taskId);
+      const outcome: 'success' | 'failure' = parsed.success ? 'success' : 'failure';
+      const timestamp = Date.now();
+      
+      const eventPayload = {
+        authorPeerId: deps.localPeerId,
+        targetPeerId: senderPeerId,
+        outcome,
+        latencyMs,
+        timestamp,
+      };
+      
+      const eventId = createHash('sha256')
+        .update(JSON.stringify(eventPayload))
+        .digest('hex')
+        .slice(0, 16);
+
+      const payloadToSign = { ...eventPayload, eventId };
+      const signature = await deps.signPayload(JSON.stringify(payloadToSign));
+      
+      const reputationEvent: ReputationEvent = {
+        ...payloadToSign,
+        signature,
+      };
+
+      deps.onReputationEvent(reputationEvent);
+      // ---------------------------
+      
       const canSend = stream.send(new Uint8Array([1]));
       if (!canSend) {
         await stream.onDrain();
@@ -66,19 +101,16 @@ export async function sendResultViaEgress(
   result: TaskResultPayload
 ): Promise<void> {
   try {
-    // Convert string to valid DialTarget (PeerId) to satisfy type constraints
     const peerId = peerIdFromString(targetPeerId);
     const stream = await node.dialProtocol(peerId, EGRESS_PROTOCOL);
     
     const payloadBytes = new TextEncoder().encode(JSON.stringify(result));
     
-    // Send with modern send API
     const canSend = stream.send(payloadBytes);
     if (!canSend) {
       await stream.onDrain();
     }
     
-    // Wait for ACK by reading from the stream (AsyncIterable)
     const ackChunks: Uint8Array[] = [];
     for await (const chunk of stream) {
       const bytes = chunk instanceof Uint8Array ? chunk : chunk.subarray();

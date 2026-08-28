@@ -1,12 +1,13 @@
 // 1. Relative path: src/peer/trust.ts
-// 2. Description: Manages the cryptographic trust state of discovered peers, enforcing the "Pending Trust" protocol for Genesis network connections.
-// 3. Expects: Peer IDs and discovery sources.
-// 4. Provides: A strictly typed registry to accept, reject, or query peer trust states, preventing unauthorized CRDT participation.
+// 2. Description: Manages the cryptographic trust state and public keys of discovered peers.
+// 3. Expects: Peer IDs, discovery sources, and raw Ed25519 public keys.
+// 4. Provides: A strictly typed registry to accept, reject, or query peer trust states and retrieve keys for signature verification.
 
 import type { PeerTrustRecord, PeerTrustState } from '../types.js';
 
 export class TrustRegistry {
   private readonly peers = new Map<string, PeerTrustRecord>();
+  private readonly publicKeys = new Map<string, Uint8Array>();
 
   public discoverPeer(peerId: string, source: 'mdns' | 'gossip' | 'usb'): PeerTrustRecord {
     const existing = this.peers.get(peerId);
@@ -54,6 +55,14 @@ export class TrustRegistry {
     this.peers.set(peerId, updated);
     console.log(`[TrustRegistry] Peer ${peerId} is now REJECTED.`);
     return true;
+  }
+
+  public registerPublicKey(peerId: string, publicKey: Uint8Array): void {
+    this.publicKeys.set(peerId, publicKey);
+  }
+
+  public getPublicKey(peerId: string): Uint8Array | undefined {
+    return this.publicKeys.get(peerId);
   }
 
   public getPeer(peerId: string): PeerTrustRecord | undefined {
