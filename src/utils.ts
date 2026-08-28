@@ -4,7 +4,7 @@
 // Provides: Deterministic, side-effect-free utility functions for the SwISD runtime.
 
 import { randomBytes } from 'node:crypto';
-import { LoadScore, PeerRole } from './types.js';
+import type { LoadScore, PeerRole } from './types.js';
 
 /**
  * Computes FNV-1a 32-bit hash for deterministic stagger delays.

@@ -1,7 +1,7 @@
-// src/observability/snapshot.ts
-// Description: Builds a frozen observability snapshot from a source adapter and event bus.
-// Expects: A valid ObservabilitySource and ObservabilityEventBus.
-// Provides: An immutable ObservabilitySnapshot for admin consumption.
+// 1. Relative path: src/observability/snapshot.ts
+// 2. Description: Builds a frozen observability snapshot from a source adapter and event bus.
+// 3. Expects: A valid ObservabilitySource and ObservabilityEventBus.
+// 4. Provides: An immutable ObservabilitySnapshot for admin consumption.
 
 import { deepFreeze } from '../utils.js';
 import type { ObservabilityEventBus } from './eventBus.js';
@@ -19,6 +19,7 @@ export function buildObservabilitySnapshot(
     crdt: source.getCrdtInfo(),
     tasks: source.getTaskInfo(),
     delivery: source.getDeliveryInfo(),
+    peers: source.getPeerInfo(), // <-- ADDED
     recentEvents: eventBus.recent(50),
   };
 

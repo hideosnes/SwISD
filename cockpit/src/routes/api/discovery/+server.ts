@@ -5,10 +5,7 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { getDiscoveredNodes, startCockpitDiscovery } from '$lib/server/discovery.js';
-
-// Ensure the discovery listener is running when this module is loaded
-startCockpitDiscovery();
+import { getDiscoveredNodes } from '$lib/server/discovery.js';
 
 export const GET: RequestHandler = async () => {
   const nodes = getDiscoveredNodes();
