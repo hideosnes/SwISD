@@ -20,6 +20,7 @@ export type SwISDErrorCode =
   | 'ERR_DELIVERY_INVALID_ARTIFACT'
   | 'ERR_DELIVERY_WATCHDOG_TIMEOUT'
   | 'ERR_DELIVERY_FILESYSTEM'
+  | 'ERR_MODEL_METADATA_FETCH'
   | 'ERR_UNKNOWN';
 
 export class SwISDError extends Error {

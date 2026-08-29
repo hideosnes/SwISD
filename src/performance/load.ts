@@ -53,6 +53,11 @@ export interface TokenBucketConfig {
   readonly refillRatePerMs: number;
 }
 
+export const DEFAULT_GOSSIP_BUCKET_CONFIG: TokenBucketConfig = {
+  capacity: 100,
+  refillRatePerMs: 0.1, // 100 tokens per second
+};
+
 export function refillTokenBucket(
   state: TokenBucketState,
   config: TokenBucketConfig,

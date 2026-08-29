@@ -1,5 +1,5 @@
 // 1. Relative path: src/network/router/gossipRouter.ts
-// 2. Description: Capability-aware gossip router that intercepts, validates, and routes GossipMessages, including reputation scoring.
+// 2. Description: Capability-aware gossip router that intercepts, validates, and routes GossipMessages, including reputation scoring and edge backpressure.
 // 3. Expects: Incoming GossipMessage, TrustRegistry, ReputationLog, local peerId, a signing function, and capability lookup.
 // 4. Provides: Mathematically sound loop prevention, O(1) capability filtering, reputation-based routing, and edge backpressure.
 
@@ -16,7 +16,7 @@ import type { ReputationLog } from '../../crdt/index.js';
 import { mightContain, addToBloomFilter } from '../bloom.js';
 import { sendResultViaEgress } from './egressTunnel.js';
 import { createHash } from 'node:crypto';
-import { assertLoadShedding } from '../../performance/index.js';
+import { assertLoadShedding, LOAD_SHEDDING_THRESHOLD } from '../../performance/index.js';
 
 export interface GossipRouterDependencies {
   readonly localPeerId: string;
@@ -26,6 +26,7 @@ export interface GossipRouterDependencies {
   readonly signPayload: (payloadToSign: string) => Promise<Uint8Array>;
   readonly onTaskPreempted: (taskId: string, event: TaskHistoryEvent) => void;
   readonly getLoadScore: () => number;
+  readonly tryConsumeGossipToken: () => boolean;
   readonly getCapablePeers: (requiredType: string) => ReadonlyArray<string>;
 }
 
@@ -68,7 +69,6 @@ export async function handleIncomingGossipMessage(
     try {
       deps.reputationLog.append(message.payload);
     } catch (error) {
-      // Invalid signature or untrusted author. Drop the message and DO NOT republish.
       return;
     }
   }
@@ -76,11 +76,8 @@ export async function handleIncomingGossipMessage(
   // 7. Capability Matching & Reputation Filtering
   if (isExecutionPayload(message.payload)) {
     const requiredType = message.payload.requiredExecutorType;
-    
-    // Injected pure function replaces direct registry coupling
     const capablePeers = deps.getCapablePeers(requiredType);
     
-    // If the local node isn't in the capable list, we don't process or route it locally
     if (!capablePeers.includes(deps.localPeerId)) {
       return; 
     }
@@ -90,15 +87,18 @@ export async function handleIncomingGossipMessage(
       return deps.reputationLog.readScore(peerId, nowMs) >= 0.3;
     });
 
-    // If we have high-reputation peers, we prioritize them. 
-    // If the swarm is degraded and all peers are < 0.3, we fall back to the full capable list.
     const targetPeers = highRepPeers.length > 0 ? highRepPeers : capablePeers;
-    
-    // Note: In a pure pubsub blind gossip model, we still broadcast to the topic, 
-    // but the router can use `targetPeers` for direct egress fallbacks or metrics.
   }
 
-  // 8. Propagation (Option A: Mutate Bloom, Re-sign, Republish)
+  // 8. Edge Backpressure: Throttle Gossip Republish
+  // If load is high, we require a token to republish. If empty, drop silently to save bandwidth.
+  if (deps.getLoadScore() > LOAD_SHEDDING_THRESHOLD) {
+    if (!deps.tryConsumeGossipToken()) {
+      return; 
+    }
+  }
+
+  // 9. Propagation (Option A: Mutate Bloom, Re-sign, Republish)
   const updatedBloom = addToBloomFilter(message.ttlBloom, deps.localPeerId);
   
   const messageToRepublish: Omit<GossipMessage<GossipPayload>, 'signature'> = {

@@ -1,11 +1,13 @@
 // 1. Relative path: src/models/ingest.ts
 // 2. Description: The Polymorphic Ingestion Engine for AI models. Streams raw bytes, chunks them, computes domain-separated Merkle roots, and persists to disk.
-// 3. Expects: An AsyncIterable<Uint8Array> source, a filename, and the delivery root path.
-// 4. Provides: A strictly typed ModelManifest and writes chunked artifacts to <deliveryRoot>/models/<modelId>/.
+// 3. Expects: An AsyncIterable<Uint8Array> source, selected file metadata, and a signing function.
+// 4. Provides: A strictly signed ModelManifest and writes chunked artifacts to <deliveryRoot>/models/<sanitizedModelId>/.
+
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { ModelManifest } from './schema.js';
+import type { ModelManifest, ModelFile } from './schema.js';
+import { sanitizeModelId } from './huggingface.js';
 
 const CHUNK_SIZE = 256 * 1024; // 256KB
 const LEAF_PREFIX = new Uint8Array([0x00]);
@@ -23,12 +25,21 @@ function concatUint8Arrays(arrays: ReadonlyArray<Uint8Array>): Uint8Array {
   return result;
 }
 
+export interface IngestModelOptions {
+  readonly source: AsyncIterable<Uint8Array>;
+  readonly repoId: string;
+  readonly selectedFiles: ReadonlyArray<ModelFile>;
+  readonly requiredCapability: string;
+  readonly deliveryRoot: string;
+  readonly signPayload: (payload: string) => Promise<Uint8Array>;
+}
+
 export async function ingestModelStream(
-  source: AsyncIterable<Uint8Array>,
-  fileName: string,
-  deliveryRoot: string
+  options: IngestModelOptions
 ): Promise<ModelManifest> {
-  const modelId = createHash('sha256').update(fileName + Date.now().toString()).digest('hex').slice(0, 16);
+  const { source, repoId, selectedFiles, requiredCapability, deliveryRoot, signPayload } = options;
+  
+  const modelId = sanitizeModelId(repoId);
   const modelDir = join(deliveryRoot, 'models', modelId);
   await mkdir(modelDir, { recursive: true });
 
@@ -71,14 +82,24 @@ export async function ingestModelStream(
   }
 
   const merkleRoot = computeMerkleRoot(chunkHashes);
-  const manifest: ModelManifest = {
+  
+  const manifestPayload = {
     modelId,
-    fileName,
+    repoId,
+    files: selectedFiles,
     merkleRoot,
     totalChunks: chunkIndex,
     totalSizeBytes,
     chunkSizeBytes: CHUNK_SIZE,
+    requiredCapability,
     createdAt: Date.now(),
+  };
+
+  const signature = await signPayload(JSON.stringify(manifestPayload));
+
+  const manifest: ModelManifest = {
+    ...manifestPayload,
+    signature,
   };
 
   await writeFile(join(modelDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
