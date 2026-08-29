@@ -20,6 +20,7 @@ src/
 │   ├── index.ts           # Barrel export
 │   ├── merkle.ts          # Domain-separated hashing & inclusion proofs
 │   ├── reputation.ts      # Read-time decay projection math
+│   ├── reputationLog.ts   # Append-only G-Set CRDT for reputation events
 │   └── structures.ts      # OR-Set, LWW, G-Set, OR-Map interfaces
 ├── crypto/                # Two-tier cryptographic primitives
 │   ├── index.ts           # Barrel export
@@ -40,12 +41,14 @@ src/
 │   └── registry.ts        # In-memory supported executor registry
 ├── models/                # AI Model distribution & caching
 │   ├── index.ts           # Barrel export
+│   ├── huggingface.ts     # HuggingFace metadata pre-fetcher
 │   ├── ingest.ts          # Polymorphic stream chunking (Pure Uint8Array)
 │   └── schema.ts          # ModelManifest types
 ├── network/               # libp2p, mDNS, and swarm routing
 │   ├── index.ts           # Barrel export
 │   ├── bloom.ts           # Probabilistic TTL & loop prevention
 │   ├── discovery.ts       # mDNS Bonjour broadcasting
+│   ├── health.ts          # @libp2p/ping based peer health monitor
 │   ├── libp2p.ts          # libp2p node factory & service wiring
 │   └── router/            # Gossip & Egress routing
 │       ├── index.ts       # Barrel export
@@ -62,7 +65,8 @@ src/
 │   └── trust.ts           # Cryptographic TrustRegistry (Pending/Trusted/Rejected)
 ├── performance/           # Edge backpressure & load shedding
 │   ├── index.ts           # Barrel export
-│   └── load.ts            # LoadScore math & Token Bucket rate limiting
+│   ├── load.ts            # LoadScore math & Token Bucket rate limiting
+│   └── monitor.ts         # Stateful OS metric polling and gossip throttling
 ├── provision/             # Hardware provisioning
 │   └── apply.ts           # Idempotent USB config application (nmcli)
 ├── storage/               # Elastic capacity allocation
@@ -82,7 +86,7 @@ src/
 
 ## Conductor Cockpit (cockpit/)
 
-```
+```text
 cockpit/
 ├── src/
 │   ├── lib/
@@ -107,19 +111,7 @@ cockpit/
 └── vite.config.ts                       # SvelteKit 2 + Tailwind + Runes enforcement
 ```
 
-
-## OS & Delivery (systemd/)
-
-```text
-systemd/
-├── swisd-app.service          # Main swarm node (sandboxed, ProtectSystem=strict)
-├── swisd-provision.service    # USB provisioning agent (oneshot)
-└── swisd-supervisor.service   # Pinned watchdog & updater (runs as root)
-```
-
-
 ## Context & Standards (Root)
-
 ```text
 root/
 ├── BACKLOG.md             # Strategic roadmap & locked decisions

@@ -42,7 +42,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 
 ## P1 — Core decentralized substrate
 - [x] **Custom CRDTs (Merkle-DAG structured) interfaces:** OR-Set, LWW-Register, G-Set, OR-Map mapped to swarm state.
-- [ ] **Reputation correctness.** Move decay from write-time to read-time. Store signed `(success, latency, timestamp)` events. *(Foundation laid in `src/crdt/reputation.ts`)*
+- [x] **Reputation correctness.** Move decay from write-time to read-time. Store signed `(success, latency, timestamp)` events. *(Implemented `ReputationLog`, wired egress emission, gossip validation, and anti-entropy sync)*
 - [x] **Blind propagation + Probabilistic TTL via Bloom Filters** (loop prevention).
 - [x] **Role emergence foundation.** INPUT / WORKER / DIPLOMAT emerge from capabilities. Storage sharding is capability-driven, not role-assigned.
 - [x] **Torrent-style task fragmentation + reassembly.** 256KB chunks, HMAC data-plane validation, Merkle control-plane integrity.
@@ -53,8 +53,8 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **Immediate preemption & Error routing.** Dual-mechanism implementation: (1) Hive Mind: `TaskHistoryEvent` (`preempted`/`failed`) gossiped to swarm for organic reassignment. (2) Ruthless Stopwatch: `TaskLifecycleManager` enforces `deadlineMs` fallback, guaranteeing no orphaned tasks violate reliability directives.
 
 ## P2 — Performance & data
-- [ ] **Edge backpressure.** Token bucket + load shedding + load score (0–1). If load > 0.8: reject new tasks + reduce gossip.
-- [ ] **Health via `@libp2p/ping` + load score.** Replace the custom "MEOW" healthcheck.
+- [x] **Edge backpressure.** Token bucket + load shedding + load score (0–1). If load > 0.8: reject new tasks + reduce gossip. *(Implemented `LoadMonitor` and token bucket throttling in `src/performance/`)*
+- [x] **Health via `@libp2p/ping` + load score.** Replace the custom "MEOW" healthcheck. *(Implemented `PeerHealthMonitor` in `src/network/health.ts`)*
 - [x] **Merkle-DAG anti-entropy sync foundation.** Root-hash exchange; `reconcileDap` fetches only missing/modified branches.
 - [ ] **Multi-step diffing for reputation anti-entropy.** Implement full recursive Merkle-DAG diffing protocol for large reputation logs. *(See project KUPF for implementation details and cross-project integration).*
 - [x] **Two-Tier Diary Storage.** Control Ledger (fully replicated CRDT metadata) + Sharded Payload Store (capability-driven, indexed by Control Ledger).
@@ -70,12 +70,12 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 
 ## P4 — Model Distribution & Heavy Payloads (The New Frontier)
 
-- [ ] **Model Manifest CRDT:** Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger.
+- [x] **Model Manifest CRDT:** Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger. *(Added `ModelRegistryCRDT` to `src/crdt/structures.ts` and expanded `ModelManifest` schema)*
 
 - [ ] **HuggingFace Model Ingress (Tier 1):** Model-agnostic mechanism to register a HuggingFace model URL. The Conductor downloads it, chunks it into 256KB blocks, computes the Merkle root, signs the `ModelManifest`, and persists it to `<deliveryRoot>/models/<model-id>/`. **No hardcoded model IDs. No silent downloads.**
   - [ ] Surface to submit a HuggingFace model URL (Conductor API/UI or CLI).
   - [ ] **Conductor Approval Gate (MANDATORY):** No model download may begin without explicit operator approval via the Cockpit. The system MUST first query HuggingFace metadata (size, file count) WITHOUT downloading, then present a confirmation modal showing the exact download size. Only upon explicit "Approve" does the download pipeline activate.
-    - [ ] Metadata pre-fetch: Query HuggingFace API for model size/siblings *before* any download begins.
+    - [x] Metadata pre-fetch: Query HuggingFace API for model size/siblings *before* any download begins. *(Implemented in `src/models/huggingface.ts`)*
     - [ ] Approval modal in Conductor Cockpit: *"This model is **X GB** across **Y files**. Download and store locally?"* with explicit Approve / Cancel actions.
     - [ ] Hard block: The download pipeline MUST NOT initiate without explicit operator confirmation. No background downloads. No "smart" pre-fetching.
     - [ ] Offline degradation: If the HuggingFace API is unreachable, the modal MUST display *"Size unknown — metadata unavailable"* and require a second, explicit risk acknowledgment before proceeding.
@@ -90,7 +90,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] **Lazy initialization:** Load model pipelines on-demand, not at startup.
   - [ ] **`checkModelExistsLocally()`:** Validate critical model files exist and are readable before loading.
   - [ ] **`dispose()`:** Clean teardown of loaded pipelines to free edge-device memory.
-  - [ ] **Size/metadata querying:** Fetch model metadata (size, siblings) from the HuggingFace API *without* downloading the weights. *(Directly feeds the Approval Gate modal.)*
+  - [x] **Size/metadata querying:** Fetch model metadata (size, siblings) from the HuggingFace API *without* downloading the weights. *(Directly feeds the Approval Gate modal.)*
 
 - [ ] **Local Model Manager (LRU):** Build eviction logic for `/opt/swisd/models/`.
 

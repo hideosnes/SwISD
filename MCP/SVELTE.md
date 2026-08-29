@@ -30,3 +30,15 @@ If a component accepts an optional `id` prop, it must generate a unique fallback
 
 <label for={finalId}>{label}</label>
 <input id={finalId} type="text" />
+```
+
+3. Design System Composition (No UI Element Stands Alone)
+
+- Feature/route components MUST import primitives from `$lib/components/ui` (via the barrel).
+- Feature components MUST NOT contain raw hex colors, font families, or magic spacing numbers.
+  All visual values resolve to CSS custom properties defined in `layout.css`.
+- If you catch yourself writing a one-off styled element, STOP and promote it to a
+  `components/ui` primitive first. Reuse is mandatory.
+- Primitives are themed, not styled: a primitive reads tokens, it never hardcodes them.
+- Composing primitives: pass variants via typed `$props()`. Do not reach into a primitive's
+  internals to override its visuals.

@@ -6,6 +6,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { ingestModelStream } from '$core/models/index.js';
+import { createHash } from 'node:crypto';
 
 async function* readableStreamToAsyncIterable(stream: ReadableStream<Uint8Array>): AsyncIterable<Uint8Array> {
   const reader = stream.getReader();
@@ -24,14 +25,27 @@ export const POST: RequestHandler = async ({ request }) => {
   const fileName = request.headers.get('X-Model-Name') ?? 'unknown.gguf';
   const body = request.body;
   
-  if (!body) {
-    throw error(400, 'Missing request body');
-  }
+  if (!body) throw error(400, 'Missing request body');
 
   const deliveryRoot = process.env.SWISD_DELIVERY_ROOT ?? '../.swisd/delivery';
   const asyncIterable = readableStreamToAsyncIterable(body);
   
-  const manifest = await ingestModelStream(asyncIterable, fileName, deliveryRoot);
+  // For local drag-and-drop, we treat the filename as the repoId and select a single file
+  const repoId = `local/${fileName}`;
+  const selectedFiles = [{ path: fileName, sizeBytes: 0, isRequired: true }];
+  
+  const signPayload = async (payload: string): Promise<Uint8Array> => {
+    return new Uint8Array(createHash('sha256').update(payload).digest());
+  };
+
+  const manifest = await ingestModelStream({
+    source: asyncIterable,
+    repoId,
+    selectedFiles,
+    requiredCapability: 'generic',
+    deliveryRoot,
+    signPayload,
+  });
   
   return json(manifest);
 };

@@ -97,3 +97,23 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
 - **Out-of-Box Setup Portal:** If a Pi boots without a network or USB provision, it falls back to broadcasting a temporary `SwISD-Setup-XXXX` Access Point. A captive portal allows users to inject WiFi credentials via smartphone.
 - **Drag-and-Drop Ingestion:** The Conductor UI allows users to drag local `.gguf` model files directly into the browser. The Polymorphic Ingestion Engine chunks and seeds them to the swarm without choking browser memory.
 - **Visual Swarm Topology:** The dashboard renders an interactive node-graph of the swarm, color-coded by `CapabilityManifest`, showing real-time model distribution progress and node health.
+
+### Domain C Design System (The Single-Source Doctrine)
+
+The Conductor Cockpit's visual language is governed by exactly two sources of truth. Nothing else.
+
+1. **`layout.css` — the Theme Source of Truth.**
+   Every design token (color, typography, spacing, border radius, motion timing, elevation)
+   lives here as CSS custom properties. No component, route, or utility class may declare a
+   raw color, font, or spacing value. If it isn't a token in `layout.css`, it does not exist.
+   This guarantees a single-file re-theme of the entire cockpit.
+
+2. **`components/ui` — the Primitive Source of Truth.**
+   All visual atoms (buttons, cards, pills, inputs, modals, drawers, progress rings, status
+   indicators, typography blocks) are composed primitives exported from `components/ui`.
+
+**The Law: "No UI element stands alone."**
+Feature components NEVER invent new visual atoms and NEVER apply raw styles. They only
+compose primitives from `components/ui`, styled exclusively via tokens from `layout.css`.
+If a visual pattern appears more than once, it MUST be promoted to a primitive. This makes
+drift impossible and theming trivial. Violating this is a build-level sin.
