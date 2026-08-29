@@ -1,35 +1,30 @@
-<!-- 1. Relative path: cockpit/src/lib/components/ui/ProgressBar.svelte
-     2. Description: Linear progress bar for download/task progress.
-     3. Expects: Progress value (0-100).
-     4. Provides: A themed progress bar with phosphor glow. -->
-
+<!--
+1. Relative path: cockpit/src/lib/components/ui/ProgressBar.svelte
+2. Description: Linear progress indicator primitive.
+3. Expects: Progress value (0-100) and standard HTML attributes (like aria-label).
+4. Provides: A strictly typed, accessible linear progress bar.
+-->
 <script lang="ts">
-  interface Props {
+  import type { HTMLAttributes } from 'svelte/elements';
+
+  type Props = {
     value: number;
-  }
+    class?: string;
+  } & HTMLAttributes<HTMLDivElement>;
 
-  let { value }: Props = $props();
-
-  const clampedValue = $derived(Math.max(0, Math.min(100, value)));
+  let { value, class: className, ...rest }: Props = $props();
 </script>
 
-<div class="bar">
-  <div class="bar-fill" style="width: {clampedValue}%"></div>
+<div
+  class="h-2 w-full overflow-hidden rounded-[var(--r-full)] bg-[var(--surface-3)] {className ?? ''}"
+  role="progressbar"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  aria-valuenow={value}
+  {...rest}
+>
+  <div
+    class="h-full bg-[var(--accent)] transition-all duration-[var(--duration-normal)] ease-[var(--ease)]"
+    style="width: {Math.max(0, Math.min(100, value))}%;"
+  ></div>
 </div>
-
-<style>
-  .bar {
-    height: 5px;
-    border-radius: 2px;
-    background: var(--surface-3);
-    overflow: hidden;
-  }
-
-  .bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: var(--live);
-    box-shadow: 0 0 10px rgba(0,255,200,.7);
-    transition: width 200ms linear;
-  }
-</style>

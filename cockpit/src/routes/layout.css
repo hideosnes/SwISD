@@ -1,11 +1,9 @@
 /* 1. Relative path: cockpit/src/routes/layout.css
    2. Description: Central theme source of truth for the SwISD Conductor Cockpit (Cyberdeck theme).
    3. Expects: To be imported globally in +layout.svelte. Fonts are bundled locally via Vite for offline resilience.
-   4. Provides: CSS custom properties for colors, typography, spacing, radii, and motion. */
+   4. Provides: CSS custom properties, Tailwind theme projection, and global theme utilities. */
 
 @import 'tailwindcss';
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
 
 /* === LOCAL FONT EMBEDDING (Offline-safe via Vite bundling) === */
 @import '@fontsource/space-grotesk/400.css';
@@ -18,8 +16,11 @@
 
 @import '@fontsource/vt323/400.css';
 
-/* Vite resolves the variable font package to its main index.css and bundles the woff2 */
-@import '@fontsource-variable/material-symbols-rounded';
+/* Variable icon font. Verify the actual family name if this package changes. */
+@import '@fontsource-variable/material-symbols-rounded/index.css';
+
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
 
 :root {
   /* === SURFACES === */
@@ -55,31 +56,124 @@
   --r-lg: 6px;
   --r-full: 999px;
 
-  /* === TYPOGRAPHY === */
-  --font-ui: 'Space Grotesk', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', Consolas, monospace;
-  --font-fx: 'VT323', monospace;
+  /* === TYPOGRAPHY SCALE === */
+  --font-size-2xs: 10px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
 
-  /* === MOTION === */
-  --ease: cubic-bezier(.2,.7,.2,1);
-  --duration-fast: 150ms;
-  --duration-normal: 250ms;
+  /* === FONT FAMILIES === */
+  --font-family-ui: 'Space Grotesk', system-ui, sans-serif;
+  --font-family-mono: 'IBM Plex Mono', Consolas, monospace;
+  --font-family-fx: 'VT323', monospace;
 
-  /* === ELEVATION === */
-  --shadow-1: none;
-  --shadow-2: 0 0 22px rgba(255,45,149,.16);
+  /* === ICONS === */
+  --icon-size: 18px;
+  --icon-size-sm: 15px;
+  --icon-size-lg: 22px;
 
-  /* === SPACING === */
+  /* === SPACING TOKENS === */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
   --space-lg: 16px;
   --space-xl: 24px;
   --space-2xl: 32px;
+
+  /* === LAYOUT CONSTRAINTS === */
+  --max-w: 1440px;
+  --max-w-prose: 42rem;
+
+  /* === DECORATIVE GRID / SCANLINES === */
+  --grid-size: 34px;
+  --grid-line: rgba(0, 255, 200, 0.026);
+  --scanline-color: rgba(255, 255, 255, 0.02);
+  --scanline-height: 3px;
+  --line-hairline: 1px;
+
+  /* === MOTION === */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+
+  /* === ELEVATION / GLOW === */
+  --shadow-1: none;
+  --shadow-2: 0 0 22px rgba(255, 45, 149, 0.16);
+  --glow-live-sm: 0 0 8px var(--live);
+  --glow-live-md: 0 0 16px var(--live), 0 0 24px var(--live);
+
+  /* === FOCUS RING === */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* === SCROLLBAR === */
+  --scrollbar-size: 10px;
+  --scrollbar-thumb-border-width: 2px;
+}
+
+/* Lock Tailwind's numeric spacing scale to the 4px token grid. */
+@theme {
+  --spacing: 4px;
+}
+
+/* Project SwISD tokens into Tailwind utilities without duplicating visual truth. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-2: var(--accent-2);
+  --color-on-accent-2: var(--on-accent-2);
+
+  --color-live: var(--live);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-full);
+
+  --font-ui: var(--font-family-ui);
+  --font-mono: var(--font-family-mono);
+  --font-fx: var(--font-family-fx);
+
+  --text-2xs: var(--font-size-2xs);
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-md: var(--font-size-md);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-2xl: var(--font-size-2xl);
+}
+
+/* Custom token-bound utilities. */
+@utility max-w-bench {
+  max-width: var(--max-w);
+}
+
+@utility max-w-prose-bench {
+  max-width: var(--max-w-prose);
 }
 
 /* === GLOBAL RESET === */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -88,12 +182,12 @@
 body {
   background-color: var(--bg);
   background-image:
-    linear-gradient(rgba(0,255,200,.026) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,200,.026) 1px, transparent 1px);
-  background-size: 34px 34px;
+    linear-gradient(var(--grid-line) var(--line-hairline), transparent var(--line-hairline)),
+    linear-gradient(90deg, var(--grid-line) var(--line-hairline), transparent var(--line-hairline));
+  background-size: var(--grid-size) var(--grid-size);
   color: var(--text-1);
-  font-family: var(--font-ui);
-  font-size: 14px;
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-sm);
   line-height: 1.5;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -105,7 +199,11 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 999;
-  background: repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px);
+  background: repeating-linear-gradient(
+    0deg,
+    var(--scanline-color) 0 var(--line-hairline),
+    transparent var(--line-hairline) var(--scanline-height)
+  );
 }
 
 ::selection {
@@ -114,31 +212,61 @@ body::after {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: var(--focus-ring-offset);
 }
 
-/* === TYPOGRAPHY UTILITIES === */
-.mono { font-family: var(--font-mono); }
-.fx { font-family: var(--font-fx); }
+/* === LEGACY TEXT UTILITIES === */
+.mono {
+  font-family: var(--font-family-mono);
+}
 
-h1, h2, h3, h4 {
-  font-family: var(--font-ui);
+.fx {
+  font-family: var(--font-family-fx);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-family-ui);
   font-weight: 700;
   line-height: 1.2;
 }
 
-h1 { font-size: 24px; letter-spacing: -0.01em; }
-h2 { font-size: 18px; }
-h3 { font-size: 16px; }
-h4 { font-size: 14px; }
+h1 {
+  font-size: var(--font-size-xl);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--font-size-lg);
+}
+
+h3 {
+  font-size: var(--font-size-md);
+}
+
+h4 {
+  font-size: var(--font-size-sm);
+}
 
 /* === MATERIAL SYMBOLS === */
+/*
+  The variable Fontsource package usually exposes:
+  'Material Symbols Rounded Variable'
+
+  The non-variable family is kept as a fallback in case the project later
+  installs @fontsource/material-symbols-rounded instead.
+*/
 .mi {
-  font-family: 'Material Symbols Rounded';
+  font-family:
+    'Material Symbols Rounded Variable',
+    'Material Symbols Rounded',
+    sans-serif;
   font-weight: normal;
   font-style: normal;
-  font-size: 18px;
+  font-size: var(--icon-size);
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -146,35 +274,65 @@ h4 { font-size: 14px; }
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  font-feature-settings: 'liga';
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga' 1;
+  -webkit-font-feature-settings: 'liga' 1;
+  font-variant-ligatures: common-ligatures;
   -webkit-font-smoothing: antialiased;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-.mi--sm { font-size: 15px; }
-.mi--lg { font-size: 22px; }
+.mi--sm {
+  font-size: var(--icon-size-sm);
+}
+
+.mi--lg {
+  font-size: var(--icon-size-lg);
+}
 
 /* === SCROLLBAR === */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
 ::-webkit-scrollbar-thumb {
   background: var(--surface-3);
   border-radius: var(--r-md);
-  border: 2px solid var(--bg);
+  border: var(--scrollbar-thumb-border-width) solid var(--bg);
 }
 
 /* === ANIMATIONS === */
 @keyframes breathe {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px var(--live); }
-  50% { box-shadow: 0 0 16px var(--live), 0 0 24px var(--live); }
+  0%,
+  100% {
+    box-shadow: var(--glow-live-sm);
+  }
+  50% {
+    box-shadow: var(--glow-live-md);
+  }
 }

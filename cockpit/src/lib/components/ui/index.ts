@@ -15,3 +15,5 @@ export { default as TextField } from './TextField.svelte';
 export { default as Icon } from './Icon.svelte';
 export { default as Stat } from './Stat.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
+export { default as PageShell } from './PageShell.svelte';
+export { default as Panel } from './Panel.svelte';

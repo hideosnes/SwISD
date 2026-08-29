@@ -1,32 +1,46 @@
 <!--
 1. Relative path: cockpit/src/routes/+layout.svelte
-2. Description: The global UI shell for the Conductor Cockpit.
-3. Expects: Svelte 5 snippet rendering for child routes.
-4. Provides: A consistent, dark-themed layout with a sidebar and top bar for the swarm dashboard.
+2. Description: Global Conductor Cockpit layout shell and stylesheet loader.
+3. Expects: SvelteKit child route content.
+4. Provides: Global theme import, token-driven root layout structure, and navigation shell.
 -->
+
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import './layout.css'
-  
+  import './layout.css';
+  import { Icon } from '$lib/components/ui';
+
   let { children }: { children: Snippet } = $props();
 </script>
 
-<div class="min-h-screen bg-slate-950 text-slate-100 flex">
-  <aside class="w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col">
-    <h1 class="text-2xl font-bold text-fuchsia-400 mb-8">SwISD</h1>
+<div class="flex min-h-screen bg-bg text-text-1">
+  <!-- SIDEBAR -->
+  <aside class="flex w-64 flex-col border-r border-border bg-surface p-6">
+    <h1 class="mb-8 text-2xl font-bold text-accent">SwISD</h1>
     <nav class="flex flex-col gap-2">
-      <a href="/" class="px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors">Dashboard</a>
-      <a href="/models" class="px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors">Models</a>
-      <a href="/setup" class="px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors">Setup</a>
+      <a href="/" class="flex items-center gap-3 rounded-md px-4 py-2 text-text-2 transition-colors hover:bg-surface-2 hover:text-text-1">
+        <Icon name="dashboard" size="sm" aria-hidden={true} />
+        Dashboard
+      </a>
+      <a href="/models" class="flex items-center gap-3 rounded-md px-4 py-2 text-text-2 transition-colors hover:bg-surface-2 hover:text-text-1">
+        <Icon name="folder" size="sm" aria-hidden={true} />
+        Models
+      </a>
+      <a href="/design" class="flex items-center gap-3 rounded-md px-4 py-2 text-text-2 transition-colors hover:bg-surface-2 hover:text-text-1">
+        <Icon name="palette" size="sm" aria-hidden={true} />
+        Design
+      </a>
     </nav>
   </aside>
-  
-  <main class="flex-1 flex flex-col">
-    <header class="h-16 border-b border-slate-800 flex items-center px-8">
-      <h2 class="text-xl font-semibold text-slate-300">Conductor Cockpit</h2>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex flex-1 flex-col overflow-hidden">
+    <header class="flex h-16 items-center border-b border-border bg-surface px-8">
+      <h2 class="text-lg font-semibold text-text-1">Conductor Cockpit</h2>
     </header>
     
-    <div class="flex-1 p-8 overflow-auto">
+    <!-- The layout handles the viewport padding. No double-wrapping. -->
+    <div class="flex-1 overflow-auto p-8">
       {@render children()}
     </div>
   </main>
