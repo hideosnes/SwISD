@@ -4,6 +4,7 @@
 3. Expects: Adherence from all contributors; serves as the north star for design decisions.
 4. Provides: Exhaustive documentation of the polymorphic render swarm, crypto tiers, Conductor Cockpit bridge, and UX philosophy.
 -->
+
 # SwISD Decentralized AI Swarm Network
 
 ## 1. Core Philosophy & Vision
@@ -54,6 +55,7 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
   - Svelte 5 (Runes/Snippets) + SvelteKit 2 Node adapter + TailwindCSS.
   - The SvelteKit server is the BFF and the only process allowed to touch the headless SwISD core.
   - Browser code must consume typed HTTP APIs and DTOs only. Server-only core modules must never be imported into client components.
+  - **Offline Resilience:** All typography (`@fontsource/*`) is bundled locally via Vite. The cockpit must render perfectly even if the edge device has no outbound internet access.
 - **Dual-Audience API Design:**
   - SwISD exposes a headless, strictly typed `SwISDClient` for developers (the `npm` interface).
   - It bundles an optional local Observability GUI (The Conductor's Podium) for non-technical operators. Both compile down to the exact same `ExecutionPayload`.

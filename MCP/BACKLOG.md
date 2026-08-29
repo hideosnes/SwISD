@@ -24,6 +24,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - **Cryptographic Trust Boundary:** Network proximity (mDNS/Genesis WiFi) is purely advisory. Peers must be explicitly accepted via the Cockpit's `TrustRegistry` before participating in the swarm.
 - **Data Purity:** Zero `Buffer` bloat in ingestion pipelines (`Uint8Array` strictly enforced). Identity serialization uses Hex strings to prevent JSON `number[]` bloat.
 - **Model Download Approval Gate:** No model may be downloaded from an external source (HuggingFace or otherwise) without explicit Conductor operator approval. Metadata (size, file count) MUST be fetched and displayed in a confirmation modal BEFORE any download begins. Tier 2 P2P chunk seeding within the swarm is exempt (model was already approved at Tier 1 ingress).
+- **Domain C Design System (The Single-Source Doctrine):** Visual language is governed by exactly two sources of truth: `layout.css` (theme tokens) and `components/ui` (primitives). Feature components NEVER invent new visual atoms and NEVER apply raw styles. "No UI element stands alone."
 
 ---
 
@@ -72,30 +73,24 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 
 - [x] **Model Manifest CRDT:** Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger. *(Added `ModelRegistryCRDT` to `src/crdt/structures.ts` and expanded `ModelManifest` schema)*
 
-- [ ] **HuggingFace Model Ingress (Tier 1):** Model-agnostic mechanism to register a HuggingFace model URL. The Conductor downloads it, chunks it into 256KB blocks, computes the Merkle root, signs the `ModelManifest`, and persists it to `<deliveryRoot>/models/<model-id>/`. **No hardcoded model IDs. No silent downloads.**
-  - [ ] Surface to submit a HuggingFace model URL (Conductor API/UI or CLI).
-  - [ ] **Conductor Approval Gate (MANDATORY):** No model download may begin without explicit operator approval via the Cockpit. The system MUST first query HuggingFace metadata (size, file count) WITHOUT downloading, then present a confirmation modal showing the exact download size. Only upon explicit "Approve" does the download pipeline activate.
-    - [x] Metadata pre-fetch: Query HuggingFace API for model size/siblings *before* any download begins. *(Implemented in `src/models/huggingface.ts`)*
-    - [ ] Approval modal in Conductor Cockpit: *"This model is **X GB** across **Y files**. Download and store locally?"* with explicit Approve / Cancel actions.
-    - [ ] Hard block: The download pipeline MUST NOT initiate without explicit operator confirmation. No background downloads. No "smart" pre-fetching.
-    - [ ] Offline degradation: If the HuggingFace API is unreachable, the modal MUST display *"Size unknown — metadata unavailable"* and require a second, explicit risk acknowledgment before proceeding.
-  - [ ] Streaming download pipeline with progress tracking (no full-file memory loads).
-  - [ ] Chunking + Merkle root + `ModelManifest` generation via the Polymorphic Ingestion Engine.
-  - [ ] Local persistence to `<deliveryRoot>/models/<model-id>/`.
-  - **Scope clarification:** This approval gate applies ONLY to Tier 1 (initial download from HuggingFace). Tier 2 (P2P chunk seeding between swarm neighbors) does NOT require re-approval, because the model was already approved and ingested at Tier 1.
+- [x] **Persistent Model Library:** CRDT-backed `ModelRegistry` persisted to `<deliveryRoot>/state/`, growing organically without hardcoded lists.
+- [x] **Streaming Download Pipeline & SSE Bridge:** `ModelDownloader` with real-time progress telemetry streamed to the BFF.
+- [x] **Approval Gate Backend:** `ApprovalGate` with one-time nonces. Hard-blocks silent background downloads; requires explicit operator confirmation.
+
+- [ ] **HuggingFace Model Ingress (Tier 1 UI):** Model-agnostic mechanism to register a HuggingFace model URL.
+  - [x] Metadata pre-fetch: Query HuggingFace API for model size/siblings *before* any download begins. *(Implemented in `src/models/huggingface.ts`)*
+  - [ ] Approval modal in Conductor Cockpit: *"This model is **X GB** across **Y files**. Download and store locally?"* with explicit Approve / Cancel actions.
+  - [ ] Offline degradation: If the HuggingFace API is unreachable, the modal MUST display *"Size unknown — metadata unavailable"* and require a second, explicit risk acknowledgment before proceeding.
 
 - [x] **Local Model Manager Foundation:** `src/models/ingest.ts` streams, chunks, and Merkle-verifies heavy payloads. (Identity serialization optimized to Hex strings).
 
-- [ ] **Model Lifecycle Manager (QoL):** Generic, model-agnostic lifecycle manager in `src/models/manager.ts` encapsulating lazy initialization, local validation, and disposal. Salvages the proven patterns from the deprecated `KokoroManager` **without hardcoding any model**.
+- [ ] **Model Lifecycle Manager (QoL):** Generic, model-agnostic lifecycle manager in `src/models/manager.ts` encapsulating lazy initialization, local validation, and disposal.
   - [ ] **Lazy initialization:** Load model pipelines on-demand, not at startup.
   - [ ] **`checkModelExistsLocally()`:** Validate critical model files exist and are readable before loading.
   - [ ] **`dispose()`:** Clean teardown of loaded pipelines to free edge-device memory.
-  - [x] **Size/metadata querying:** Fetch model metadata (size, siblings) from the HuggingFace API *without* downloading the weights. *(Directly feeds the Approval Gate modal.)*
 
 - [ ] **Local Model Manager (LRU):** Build eviction logic for `/opt/swisd/models/`.
-
 - [ ] **P2P Chunk Seeding:** Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
-
 - [ ] **Storage Watermarks & Eviction:** Implement LRU eviction policy when `/opt/swisd/models/` exceeds configured disk watermark.
 
 ## P5 — User Experience & The Conductor Cockpit (Domain C)
@@ -123,6 +118,12 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [x] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
   - [x] Streaming chunking into the Polymorphic Ingestion Engine.
   - [ ] Manifest generation and swarm seeding progress visualization.
+- [x] **Domain C Design System (The Single-Source Doctrine):** Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
+- [x] **Local Font Embedding:** Fonts bundled locally via Vite (`@fontsource/*`) to guarantee UI resilience and offline operation on edge devices.
+- [ ] **`/design` Route (Visual Contract):** A living style guide and primitive gallery to ensure coherent visual design across the dashboard.
+- [ ] **Command Queue Drawer:** Right-edge notification drawer for pending operator actions (Trust approvals, WiFi setup).
+- [ ] **Swarm Pulse & Masonry Grid:** Global state indicator and expandable peer cards for deep telemetry visualization.
+- [ ] **Model Library UI:** Compact download states with micro-progress rings and live SSE telemetry.
 
 ## Deferred (App)
 - [ ] **Vector DB sharding** (large swarms). *Trigger: storage pressure / large swarm.*

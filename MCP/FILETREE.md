@@ -7,7 +7,7 @@
 # SwISD Architectural Filetree
 
 ## Core Application (`src/`)
-```text
+
 src/
 ├── admin/                 # Local HTTP JSON API for observability (Headless)
 │   ├── index.ts           # Barrel export
@@ -41,8 +41,12 @@ src/
 │   └── registry.ts        # In-memory supported executor registry
 ├── models/                # AI Model distribution & caching
 │   ├── index.ts           # Barrel export
+│   ├── approval.ts        # Hard-block approval gate (one-time nonces)
+│   ├── downloader.ts      # Streaming HF download + SSE progress
 │   ├── huggingface.ts     # HuggingFace metadata pre-fetcher
 │   ├── ingest.ts          # Polymorphic stream chunking (Pure Uint8Array)
+│   ├── manager.ts         # Generic model lifecycle (lazy init, dispose)
+│   ├── registry.ts        # Persistent, CRDT-backed model library
 │   └── schema.ts          # ModelManifest types
 ├── network/               # libp2p, mDNS, and swarm routing
 │   ├── index.ts           # Barrel export
@@ -82,37 +86,46 @@ src/
 ├── index.ts               # Main application entrypoint (Headless Node)
 ├── types.ts               # Global shared types & type guards
 └── utils.ts               # Pure, side-effect-free utility functions
-```
+
 
 ## Conductor Cockpit (cockpit/)
 
-```text
 cockpit/
 ├── src/
 │   ├── lib/
 │   │   ├── components/
+│   │   │   ├── ui/                # Primitive Source of Truth (Button, Card, Modal, etc.)
+│   │   │   │   └── index.ts       # Barrel export for UI primitives
 │   │   │   ├── DiscoveryPanel.svelte    # mDNS node visualization
 │   │   │   ├── ModelDropZone.svelte     # Streaming drag-and-drop ingestion
 │   │   │   └── PendingTrustPanel.svelte # Cryptographic trust management
 │   │   ├── server/
 │   │   │   └── discovery.ts             # BFF mDNS listener & TrustRegistry injector
+│   │   ├── styles/
+│   │   │   └── layout.css               # Theme Source of Truth (CSS custom properties)
 │   │   └── index.ts                     # Barrel export
 │   ├── routes/
 │   │   ├── api/
 │   │   │   ├── discovery/+server.ts     # GET /api/discovery
-│   │   │   ├── models/ingest/+server.ts # POST /api/models/ingest (Streaming)
+│   │   │   ├── models/
+│   │   │   │   ├── approve/+server.ts   # POST consume nonce & start download
+│   │   │   │   ├── ingest/+server.ts    # POST streaming local ingestion
+│   │   │   │   ├── library/+server.ts   # GET persistent model registry
+│   │   │   │   ├── request/+server.ts   # POST HF metadata fetch & nonce gen
+│   │   │   │   └── status/+server.ts    # GET SSE bridge for download progress
 │   │   │   ├── peers/+server.ts         # GET/POST /api/peers
 │   │   │   └── snapshot/+server.ts      # GET /api/snapshot
+│   │   ├── design/+page.svelte          # Living style guide & primitive gallery
 │   │   ├── models/+page.svelte          # Model distribution view
 │   │   ├── +layout.svelte               # Global UI shell
 │   │   └── +page.svelte                 # Main dashboard view
 │   ├── app.d.ts                         # SvelteKit Locals typing (Core Bridge)
 │   └── hooks.server.ts                  # BFF Bridge (Core injection & singleton init)
 └── vite.config.ts                       # SvelteKit 2 + Tailwind + Runes enforcement
-```
+
 
 ## Context & Standards (Root)
-```text
+
 root/
 ├── BACKLOG.md             # Strategic roadmap & locked decisions
 ├── CRDT.md                # Mathematical foundation (Join-semilattices)
@@ -120,4 +133,3 @@ root/
 ├── GUIDE.md               # Core philosophy & strict dev standards
 ├── SVELTE.md              # Domain C Svelte 5 & a11y standards
 └── package.json           # Dependencies (Node 22+, libp2p v3)
-```

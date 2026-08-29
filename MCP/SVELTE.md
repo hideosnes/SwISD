@@ -40,5 +40,4 @@ If a component accepts an optional `id` prop, it must generate a unique fallback
 - If you catch yourself writing a one-off styled element, STOP and promote it to a
   `components/ui` primitive first. Reuse is mandatory.
 - Primitives are themed, not styled: a primitive reads tokens, it never hardcodes them.
-- Composing primitives: pass variants via typed `$props()`. Do not reach into a primitive's
-  internals to override its visuals.
+- Composing primitives: pass variants via typed `$props()`. Do not reach into a primitive's internals to override its visuals.

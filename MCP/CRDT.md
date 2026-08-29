@@ -13,9 +13,10 @@ A state-based CRDT (CvCRDT) is formally a tuple (S, s⁰, q, u, m). The state sp
 
 ### Concrete Types in SwISD
 - **G-Counter:** Holds a vector v ∈ ℕⁿ. Merge is pointwise max.
-- **G-Set:** Merged by union (a ⊔ b = a ∪ b). Grows monotonically. Ideal for immutable task history.
+- **G-Set:** Merged by union (a ⊔ b = a ∪ b). Grows monotonically. Ideal for immutable task history and reputation logs.
 - **OR-Set:** Stores pairs (e, u) where u is a fresh unique tag. Yields deterministic **add-wins** semantics. Used for peer membership.
 - **LWW-Register:** Stores (v, t). Merge returns the pair with the larger t. Correct only for **single-writer** data. Used for self-attested `CapabilityManifests`.
+- **OR-Map:** Maps keys to OR-Sets. Used for the `ModelRegistryCRDT` (Key: `modelId`, Value: `ORSet<ModelManifest>`) to handle model updates and re-ingestions convergently across the swarm.
 
 ### The Reputation Refactor (Read-Time Decay)
 Applying decay at write time (score′ = score · γ) violates the inflationary requirement and is non-idempotent. The repair is to stop mutating and start projecting. Store reputation as an **append-only G-Set of signed events** L = {(outcomeₖ, latencyₖ, tₖ)}. Define the score as a pure function evaluated at read time:
