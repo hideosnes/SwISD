@@ -17,7 +17,14 @@
 </script>
 
 {#if open}
-  <div class="drawer-backdrop" onclick={onclose}></div>
+  <div 
+    class="drawer-backdrop" 
+    role="button"
+    tabindex="-1"
+    aria-label="Close drawer"
+    onclick={onclose}
+    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') onclose(); }}
+  ></div>
 {/if}
 
 <aside class="drawer" class:open>

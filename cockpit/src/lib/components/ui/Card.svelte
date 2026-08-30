@@ -72,7 +72,7 @@
     justify-content: space-between;
     width: 100%;
     padding: var(--space-md) var(--space-lg);
-    background: rgba(255,45,149,.05);
+    background: var(--surface-accent, var(--surface));
     border: none;
     border-bottom: 1px solid var(--border);
     cursor: pointer;

@@ -7,6 +7,9 @@
 
 # SwISD Architectural Filetree
 
+Legend: every folder is a module with an `index.ts` barrel; imports travel through barrels only, max one step deep.
+Files marked `⏳ planned` are locked backlog decisions that do not exist on disk yet.
+
 ## Core Application (`src/`)
 
 src/
@@ -22,7 +25,7 @@ src/
 │   ├── merkle.ts          # Domain-separated hashing & inclusion proofs
 │   ├── reputation.ts      # Read-time decay projection math
 │   ├── reputationLog.ts   # Append-only G-Set CRDT for reputation events
-│   └── structures.ts      # OR-Set, LWW, G-Set, OR-Map interfaces
+│   └── structures.ts      # OR-Set, LWW, G-Set, OR-Map interfaces (+ ModelRegistryCRDT)
 ├── crypto/                # Two-tier cryptographic primitives
 │   ├── index.ts           # Barrel export
 │   ├── ed25519.ts         # Control-plane asymmetric keys
@@ -35,7 +38,7 @@ src/
 │   ├── localSupervisor.ts # CLI entrypoint for supervisor
 │   ├── mockReleaseGenerator.ts # Dev tool for mock releases
 │   ├── schema.ts          # Delivery state types
-│   ├── verifier.ts        # SHA-256 + Ed25519 artifact verification
+│   ├── verifier.ts        # SHA-256 + Ed256 artifact verification
 │   └── watchdog.ts        # Heartbeat monitor & rollback trigger
 ├── executor/              # Capability-aware execution routing
 │   ├── index.ts           # Barrel export
@@ -58,11 +61,13 @@ src/
 │   └── router/            # Gossip & Egress routing
 │       ├── index.ts       # Barrel export
 │       ├── egressTunnel.ts# Direct result push to Conductor
-│       └── gossipRouter.ts# Capability-aware blind propagation
+│       ├── gossipRouter.ts# Capability-aware blind propagation
+│       └── modelSeeder.ts # ⏳ planned — /swisd/model/1.0.0 chunk seeding handler
 ├── observability/         # Telemetry & snapshot generation
 │   ├── index.ts           # Barrel export
 │   ├── devSource.ts       # Dev environment state aggregator
 │   ├── eventBus.ts        # Bounded in-memory event ring
+│   ├── scenarios.ts       # ⏳ planned — fixture-driven replay sequences (Scenario Replay Mode)
 │   ├── schema.ts          # Observability DTOs
 │   └── snapshot.ts        # Immutable snapshot builder
 ├── peer/                  # Peer trust & membership
@@ -72,8 +77,11 @@ src/
 │   ├── index.ts           # Barrel export
 │   ├── load.ts            # LoadScore math & Token Bucket rate limiting
 │   └── monitor.ts         # Stateful OS metric polling and gossip throttling
-├── provision/             # Hardware provisioning
-│   └── apply.ts           # Idempotent USB config application (nmcli)
+├── provision/             # Hardware & out-of-box provisioning
+│   ├── index.ts           # Barrel export
+│   ├── apply.ts           # Idempotent USB config application (nmcli)
+│   ├── apFallback.ts      # ⏳ planned — SwISD-Setup-XXXX access point fallback
+│   └── captivePortal.ts   # ⏳ planned — smartphone WiFi credential injection
 ├── storage/               # Elastic capacity allocation
 │   ├── index.ts           # Barrel export
 │   └── capacity.ts        # Swarm storage watermarks & replication math
@@ -82,10 +90,10 @@ src/
 │   ├── capabilities.ts    # CapabilityManifest & ExecutorSignature
 │   ├── ingestion.ts       # Polymorphic DataStream adapters
 │   ├── lifecycle.ts       # Deadline-driven preemption
-│   └── locator.ts         # Chunk routing & micro-torrent mapping
+│   └── locator.ts         # Chunk routing & micro-torrent mapping (ChunkLocationLedger)
 ├── errors.ts              # Centralized SwISDError classes
-├── index.ts               # Main application entrypoint (Headless Node)
-├── types.ts               # Global shared types & type guards
+├── index.ts               # Main application entrypoint (Headless Node) & future public npm API boundary
+├── types.ts               # Global shared types, interfaces, and type guards
 └── utils.ts               # Pure, side-effect-free utility functions
 
 ## Conductor Cockpit (`cockpit/`)
@@ -97,11 +105,16 @@ cockpit/
 │   │   │   ├── ui/                       # Primitive Source of Truth (Button, Card, StatusPill,
 │   │   │   │                             #   SwarmPulse, ProgressRing, ProgressBar, Modal, Drawer,
 │   │   │   │                             #   TextField, Icon, Stat, EmptyState, PageShell, Panel,
-│   │   │   │                             #   ThemeToggle)
+│   │   │   │                             #   ThemeToggle, Tabs)
 │   │   │   │   └── index.ts              # Barrel export for UI primitives
+│   │   │   ├── datavis/                  # Datavisualisation Source of Truth (expanded below)
+│   │   │   │   └── index.ts              # Barrel export for datavis primitives
+│   │   │   ├── CommandQueue.svelte       # ⏳ planned — operator action queue (composes ui/Drawer)
 │   │   │   ├── DiscoveryPanel.svelte     # mDNS node visualization
+│   │   │   ├── EngineRoomView.svelte     # Sysadmin-focused, task-centric telemetry view
 │   │   │   ├── ModelDropZone.svelte      # Streaming drag-and-drop ingestion
-│   │   │   └── PendingTrustPanel.svelte  # Cryptographic trust management
+│   │   │   ├── PendingTrustPanel.svelte  # Cryptographic trust management
+│   │   │   └── StageView.svelte          # Artist-focused, peer-centric masonry grid
 │   │   ├── themes/                       # Theme Folder Doctrine (N regimes, bundled at build time)
 │   │   │   ├── index.css                 # CSS barrel (single import surface for layout.css)
 │   │   │   ├── midnight.css              # Default regime (owns bare :root)
@@ -111,11 +124,14 @@ cockpit/
 │   │   ├── theme.ts                      # Typed theme registry (ThemeId, THEMES, regimeOf)
 │   │   ├── theme.svelte.ts               # Shared reactive theme store (device-local persistence)
 │   │   ├── server/
-│   │   │   └── discovery.ts              # BFF mDNS listener & TrustRegistry injector
+│   │   │   ├── index.ts                  # Barrel export for BFF server modules
+│   │   │   ├── discovery.ts              # BFF mDNS listener & TrustRegistry injector
+│   │   │   └── topology.ts               # SwarmTopologyDTO aggregator & builder
 │   │   └── index.ts                      # Barrel export
 │   ├── routes/
 │   │   ├── api/
 │   │   │   ├── discovery/+server.ts      # GET /api/discovery
+│   │   │   ├── events/+server.ts         # ⏳ planned — GET SSE bridge (task lifecycle, trust changes)
 │   │   │   ├── models/
 │   │   │   │   ├── approve/+server.ts    # POST consume nonce & start download
 │   │   │   │   ├── ingest/+server.ts     # POST streaming local ingestion
@@ -123,32 +139,52 @@ cockpit/
 │   │   │   │   ├── request/+server.ts    # POST HF metadata fetch & nonce gen
 │   │   │   │   └── status/+server.ts     # GET SSE bridge for download progress
 │   │   │   ├── peers/+server.ts          # GET/POST /api/peers
-│   │   │   └── snapshot/+server.ts       # GET /api/snapshot
+│   │   │   ├── snapshot/+server.ts       # GET /api/snapshot
+│   │   │   └── topology/+server.ts       # GET /api/topology (Aggregates SwarmTopologyDTO)
 │   │   ├── design/+page.svelte           # Living style guide & primitive gallery
 │   │   ├── models/+page.svelte           # Model distribution view
 │   │   ├── settings/+page.svelte         # Per-device theme gallery & regime controls
 │   │   ├── layout.css                    # Theme Conductor (imports themes barrel + shared tokens)
 │   │   ├── +layout.svelte                # Global UI shell (imports ./layout.css)
-│   │   └── +page.svelte                  # Main dashboard view
+│   │   └── +page.svelte                  # Main dashboard view (Pulse + Topology + tabs live here)
 │   ├── app.d.ts                          # SvelteKit Locals typing (Core Bridge)
 │   ├── app.html                          # Pre-hydration theme bootstrap (zero flash)
 │   └── hooks.server.ts                   # BFF Bridge (Core injection & singleton init)
 └── vite.config.ts                        # SvelteKit 2 + Tailwind + Runes enforcement
 
-## Datavisualisation & Maps (Conductor)
+## Datavisualisation & Maps (nested under `cockpit/src/lib/components/datavis/`)
+
+D3 serves as a headless math engine only (`d3-scale`); Svelte owns every rendered SVG atom.
+No styled graph frameworks. Strict separation from `components/ui/`.
 
 cockpit/src/lib/components/datavis/
-├── index.ts                 # Barrel export
-├── topology/
-│   ├── TopologyCanvas.svelte   # The main SVG container, handles zoom/pan, responsive sizing
-│   ├── SwarmNode.svelte        # The peer node (dominant fill + capability rings)
-│   ├── GhostNode.svelte        # The PENDING peer in the limbo orbit
-│   ├── TrustRing.svelte        # The orbital ring for trusted clusters
+├── index.ts                    # Barrel export (sole import surface for feature code)
+├── types.ts                    # Strict DTOs for datavis props (TopologyNode, TopologyEdge, ...)
+├── topology/                   # Orbital swarm map
+│   ├── index.ts                # Barrel export
+│   ├── TopologyCanvas.svelte   # Main SVG container; zoom/pan, responsive sizing
+│   ├── SwarmNode.svelte        # Peer node (dominant capability fill + ring-segment bezel)
+│   ├── GhostNode.svelte        # PENDING peer docked in the limbo orbit
+│   ├── TrustRing.svelte        # Orbital ring for trusted clusters
 │   └── layout.ts               # Pure math: deterministic orbital positioning, D3 scale mappings
-├── charts/
-│   ├── Sparkline.svelte        # For the STAGE/ENGINE ROOM drill-downs
-│   └── Gauge.svelte            # For load score visualization
-└── types.ts                 # Strict DTOs for datavis props (e.g., TopologyNode, TopologyEdge)
+└── charts/                     # Drill-down telemetry
+    ├── index.ts                # Barrel export
+    ├── Sparkline.svelte        # STAGE / ENGINE ROOM drill-downs
+    └── Gauge.svelte            # Load score visualization
+
+## Tooling, CI & Delivery Assets (Root Level)
+
+.github/
+└── workflows/
+    └── release.yml             # CI/CD: triggers on v* tags or manual dispatch
+
+scripts/
+└── sign-release.ts             # Ed25519 tarball signing (SWISD_SIGNING_KEY_DER_BASE64 secret)
+
+systemd/                        # Service templates for the Pi delivery image
+├── swisd-app.service           # Strict isolation, Restart=always
+├── swisd-provision.service     # One-shot USB provision application
+└── swisd-supervisor.service    # Pinned supervisor, decoupled watchdog
 
 ## Context & Standards (Root)
 

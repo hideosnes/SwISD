@@ -5,7 +5,7 @@
 
 export { default as Button } from './Button.svelte';
 export { default as Card } from './Card.svelte';
-export { default as StatusPill } from './StatusPill.svelte';
+export { default as StatusPill, type Status } from './StatusPill.svelte';
 export { default as SwarmPulse } from './SwarmPulse.svelte';
 export { default as ProgressRing } from './ProgressRing.svelte';
 export { default as ProgressBar } from './ProgressBar.svelte';
@@ -18,3 +18,5 @@ export { default as EmptyState } from './EmptyState.svelte';
 export { default as PageShell } from './PageShell.svelte';
 export { default as Panel } from './Panel.svelte';
 export { default as ThemeToggle } from './ThemeToggle.svelte';
+export { default as Tabs, type TabDefinition } from './Tabs.svelte';
+export { default as Badge } from './Badge.svelte';

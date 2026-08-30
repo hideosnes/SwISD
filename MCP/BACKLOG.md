@@ -26,6 +26,11 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - **Data Purity:** Zero `Buffer` bloat in ingestion pipelines (`Uint8Array` strictly enforced). Identity serialization uses Hex strings to prevent JSON `number[]` bloat.
 - **Model Download Approval Gate:** No model may be downloaded from an external source (HuggingFace or otherwise) without explicit Conductor operator approval. Metadata (size, file count) MUST be fetched and displayed in a confirmation modal BEFORE any download begins. Tier 2 P2P chunk seeding within the swarm is exempt (model was already approved at Tier 1 ingress).
 - **Domain C Design System (The Single-Source Doctrine):** Visual language is governed by `layout.css` (theme tokens + regime folder), `components/ui` (primitives), and the typed theme registry (`lib/theme.ts`). Feature components NEVER invent new visual atoms and NEVER apply raw styles. "No UI element stands alone."
+- **Topology Layout Doctrine:** Deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts). No force-directed physics/jitter for fleet ≤30.
+- **Cross-Swarm Memory:** Worker Pis remain beautifully dumb and stateless across swarms. Only the Conductor (Domain C BFF/LocalStorage) remembers historical peer assignments.
+- **Datavis Architecture:** D3 used strictly as a headless math engine (`d3-scale`). Svelte renders SVG. No styled graph frameworks (vis-network, Cytoscape). New `cockpit/src/lib/components/datavis/` folder strictly separated from `components/ui/`.
+- **Telemetry Transport:** WebSockets rejected for telemetry. SSE used for high-frequency streams alongside snapshot polling. Client-side interpolation for Pulse smoothness.
+- **StatusPill Semantic Vocabulary:** Primitives speak semantics (`'live' | 'warn' | 'accent' | 'idle'`), features speak domain. Domain states are mapped to primitive vocabulary via adapter functions. Primitives never learn swarm concepts.
 
 ---
 
@@ -71,39 +76,64 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **Dual-Audience API Boundary.** `SwISDClient` exposed as the public `npm` API, wrapping the headless engine and optional GUI.
 
 ## P4 — Model Distribution & Heavy Payloads (The New Frontier)
-
 - [x] **Model Manifest CRDT:** Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger. *(Added `ModelRegistryCRDT` to `src/crdt/structures.ts` and expanded `ModelManifest` schema)*
-
 - [x] **Persistent Model Library:** CRDT-backed `ModelRegistry` persisted to `<deliveryRoot>/state/`, growing organically without hardcoded lists.
 - [x] **Streaming Download Pipeline & SSE Bridge:** `ModelDownloader` with real-time progress telemetry streamed to the BFF.
 - [x] **Approval Gate Backend:** `ApprovalGate` with one-time nonces. Hard-blocks silent background downloads; requires explicit operator confirmation.
-
 - [ ] **HuggingFace Model Ingress (Tier 1 UI):** Model-agnostic mechanism to register a HuggingFace model URL.
   - [x] Metadata pre-fetch: Query HuggingFace API for model size/siblings *before* any download begins. *(Implemented in `src/models/huggingface.ts`)*
   - [ ] Approval modal in Conductor Cockpit: *"This model is **X GB** across **Y files**. Download and store locally?"* with explicit Approve / Cancel actions.
   - [ ] Offline degradation: If the HuggingFace API is unreachable, the modal MUST display *"Size unknown — metadata unavailable"* and require a second, explicit risk acknowledgment before proceeding.
-
 - [x] **Local Model Manager Foundation:** `src/models/ingest.ts` streams, chunks, and Merkle-verifies heavy payloads. (Identity serialization optimized to Hex strings).
-
 - [ ] **Model Lifecycle Manager (QoL):** Generic, model-agnostic lifecycle manager in `src/models/manager.ts` encapsulating lazy initialization, local validation, and disposal.
   - [ ] **Lazy initialization:** Load model pipelines on-demand, not at startup.
   - [ ] **`checkModelExistsLocally()`:** Validate critical model files exist and are readable before loading.
   - [ ] **`dispose()`:** Clean teardown of loaded pipelines to free edge-device memory.
-
 - [ ] **Local Model Manager (LRU):** Build eviction logic for `/opt/swisd/models/`.
 - [ ] **P2P Chunk Seeding:** Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
 - [ ] **Storage Watermarks & Eviction:** Implement LRU eviction policy when `/opt/swisd/models/` exceeds configured disk watermark.
 
 ## P5 — User Experience & The Conductor Cockpit (Domain C)
+
+### Architecture & Bridge
 - [x] **Domain C Phase 1 — Conductor bridge:** Svelte 5 + SvelteKit 2 Node adapter BFF scaffold, strict TypeScript ESM, TailwindCSS, barrel imports, max one-step import depth, and 4-point file headers.
 - [x] **Domain C Phase 1 — Core injection:** Headless SwISD core singleton is initialized server-side and injected into `event.locals` via `src/hooks.server.ts`.
 - [x] **Domain C Phase 1 — Snapshot API:** `GET /api/snapshot` returns a strictly typed `SwarmSnapshot` DTO from the core.
 - [x] **Domain C Phase 1 — Rune dashboard shell:** `src/routes/+layout.svelte` and `src/routes/+page.svelte` consume the snapshot using Svelte 5 `$state` and `$derived`.
+- [x] **BFF Topology DTO:** `SwarmTopologyDTO` in BFF to aggregate remote peer load scores and `CapabilityManifests`. *(Implemented `buildSwarmTopology()` in `cockpit/src/lib/server/topology.ts` with `GET /api/topology` route. Currently wires `null` for remote load/capabilities until gossiped Control Ledger is connected.)*
+- [ ] **SSE promotion:** Event streams (task lifecycle, trust changes, downloads) alongside snapshot polling; client-side interpolation for Pulse smoothness.
+
+### Design System & Datavis
+- [x] **Domain C Design System (The Single-Source Doctrine):** Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
+- [x] **CSS Architecture (Cascade Layer Doctrine):** All custom CSS lives in `@layer base` or `@layer components`; unlayered styles forbidden. Borders are theme opinions (transparent by default).
+- [x] **Multi-Theme Regimes (Theme Folder Doctrine):** N-theme system via `lib/themes/*.css` with a CSS barrel (`index.css`), a typed registry (`lib/theme.ts`), a shared reactive store (`lib/theme.svelte.ts`), zero-flash bootstrap in `app.html`, and a live-preview gallery at `/settings`. Current regimes: Midnight Violet, Lavender Daylight, Cyberdeck (legacy), Ultraviolet.
+- [x] **Per-device theme persistence:** `swisd-theme` and `swisd-theme-dark` localStorage keys; shell quick-flip restores last dark regime.
+- [x] **Local Font Embedding:** Fonts bundled locally via Vite (`@fontsource/*`) to guarantee UI resilience and offline operation on edge devices.
+- [x] **`/design` Route (Visual Contract):** A living style guide and primitive gallery to ensure coherent visual design across the dashboard.
+- [x] **`/settings` Route (Per-device configuration):** Theme gallery with token-scoped live previews and regime quick-flip.
+- [x] **`datavis/` module scaffolding:** Strict separation from `components/ui/`. D3 math modules (`layout.ts`) + Svelte SVG rendering (`TopologyCanvas`, `SwarmNode`, `GhostNode`, `TrustRing`). No styled graph frameworks. *(Full orbital layout engine with deterministic positioning, ResizeObserver-driven responsive sizing, and D3 `scaleLinear` for load-to-radius mapping.)*
+- [x] **Multi-capability encoding:** Dominant fill + ring-segment bezel on nodes implemented in `SwarmNode.svelte`. *(Striped encoding for expanded cards/modals deferred until modal deep-dive is built.)*
+- [x] **Tabs primitive:** WAI-ARIA compliant `Tabs.svelte` with `$bindable()`, `{#snippet}` content, and arrow-key navigation. Promoted to `components/ui/`.
+
+### Topology & Layout
+- [x] **Topology Canvas:** Deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts). SVG rendering fed by D3 `scaleLinear`. *(Implemented `computeOrbitalLayout()` with strict config validation, `defaultOrbitalConfig()` proportional radii, and full a11y: `role="button"`, `tabindex`, `aria-label`, keyboard handlers on all nodes.)*
+- [ ] **Zero-Peer State (Genesis Visual):** Grey overlay with endless spinner ('searching...') and greyed-out data fields. Cockpit "wakes up" and glows upon first connection.
+- [ ] **Scenario Replay Mode:** Fixture-driven snapshot sequences via `observability/devSource.ts` to test cockpit visuals (bottleneck, churn, ghost influx) without physical fleet.
+
+### Cockpit Views & Interaction
 - [x] **Modern Dashboard UI:** Replaced legacy vanilla JS `dashboardHtml.ts` with compiled Svelte 5 Domain C Cockpit.
-  - [ ] Interactive node-graph color-coded by `CapabilityManifest`.
   - [x] Real-time model distribution progress and node health.
   - [x] Live peer churn, load score, and executor capability panels.
   - [ ] Cryptographic verification indicators hidden behind operator-friendly status states.
+- [x] **STAGE Tab (Artist focus):** Peer-centric view ("which Pi does what?") with masonry grid of peer cards. *(Implemented `StageView.svelte` with `Card`, `Stat`, `StatusPill` composition and domain-to-primitive adapter. Task-centric toggle deferred.)*
+- [x] **ENGINE ROOM Tab (Sysadmin focus):** Task-centric view focusing on bottlenecks, backpressure, and technical telemetry. *(Implemented `EngineRoomView.svelte` with Conductor Telemetry, Network & CRDT cards, and Recent Events panel.)*
+- [ ] **Sidebar (Pins & Log):** Prolonged control via pinned peers, scrollable informational log at the bottom.
+- [ ] **Contextual Modals:** Deep info and decisions (e.g., Trust approval for ghosts, bottleneck investigation) triggered from Map, Sidebar, or Tabs. *(Basic peer-click modal exists in `+page.svelte`; full contextual modals deferred.)*
+- [ ] **Command Queue Drawer:** Right-edge notification drawer for pending operator actions (Trust approvals, WiFi setup).
+- [ ] **Swarm Pulse & Masonry Grid:** Global state indicator and expandable peer cards for deep telemetry visualization.
+- [ ] **Model Library UI:** Compact download states with micro-progress rings and live SSE telemetry.
+
+### Discovery & Provisioning
 - [x] **mDNS Auto-Discovery:** Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
   - [x] Conductor discovery of local swarm nodes (Core broadcasts via `bonjour-service`, BFF listens and exposes `GET /api/discovery`).
   - [x] UI surface for discovered nodes and setup status (`DiscoveryPanel.svelte` with Svelte 5 runes).
@@ -119,21 +149,9 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [x] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
   - [x] Streaming chunking into the Polymorphic Ingestion Engine.
   - [ ] Manifest generation and swarm seeding progress visualization.
-- [x] **Domain C Design System (The Single-Source Doctrine):** Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
-  - [x] **CSS Architecture (Cascade Layer Doctrine):** All custom CSS lives in `@layer base` or `@layer components`; unlayered styles forbidden. Borders are theme opinions (transparent by default).
-  - [x] **Multi-Theme Regimes (Theme Folder Doctrine):** N-theme system via `lib/themes/*.css` with a CSS barrel (`index.css`), a typed registry (`lib/theme.ts`), a shared reactive store (`lib/theme.svelte.ts`), zero-flash bootstrap in `app.html`, and a live-preview gallery at `/settings`. Current regimes: Midnight Violet, Lavender Daylight, Cyberdeck (legacy), Ultraviolet.
-  - [x] **Per-device theme persistence:** `swisd-theme` and `swisd-theme-dark` localStorage keys; shell quick-flip restores last dark regime.
-- [x] **Local Font Embedding:** Fonts bundled locally via Vite (`@fontsource/*`) to guarantee UI resilience and offline operation on edge devices.
-- [x] **`/design` Route (Visual Contract):** A living style guide and primitive gallery to ensure coherent visual design across the dashboard.
-- [x] **`/settings` Route (Per-device configuration):** Theme gallery with token-scoped live previews and regime quick-flip.
-- [ ] **Command Queue Drawer:** Right-edge notification drawer for pending operator actions (Trust approvals, WiFi setup).
-- [ ] **Swarm Pulse & Masonry Grid:** Global state indicator and expandable peer cards for deep telemetry visualization.
-- [ ] **Model Library UI:** Compact download states with micro-progress rings and live SSE telemetry.
-- [ ] Return-visit presentation logic: badge count vs. dismiss-blocking modal priority rules for operator return. Needs urgency taxonomy.
-- [ ] Scenario Replay Mode: fixture-driven snapshot sequences via `observability/devSource.ts` to test cockpit visuals (bottleneck, churn, ghost influx, stalled pipeline) without physical fleet.
-- [ ] Topology Canvas: deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts), SVG rendering fed by D3 math modules (`d3-polygon`, `d3-scale`). No styled graph frameworks.
-- [ ] SSE promotion for event streams (task lifecycle, trust changes, downloads) alongside snapshot polling; client-side interpolation for Pulse smoothness in the interim.
-- [ ] Multi-capability encoding: dominant fill + ring-segment bezel on nodes; striped encoding reserved for expanded cards/modals.
+
+### Deferred Logic
+- [ ] **Return-visit presentation logic:** Badge count vs. dismiss-blocking modal priority rules for operator return. Needs urgency taxonomy.
 
 ## Deferred (App)
 - [ ] **Vector DB sharding** (large swarms). *Trigger: storage pressure / large swarm.*
@@ -143,7 +161,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [ ] **Multi-channel releases** (beta/stable canary). *Trigger: fleet growth / risky velocity.*
 - [ ] **Chaos testing harness.** *Trigger: pre-1.0 hardening.*
 - [ ] **Refine `TaskHistoryEvent.metadata`** to a strict union of known metadata keys.
-- [ ] **Conductor live telemetry transport.** SSE/WebSocket bridge from core events to the cockpit. *Trigger: after Phase 1 snapshot bridge proves stable.*
+- [ ] **Advanced Conductor live telemetry transport.** Complex bidirectional streams. *Trigger: after Phase 1 SSE snapshot bridge proves stable.*
 
 ---
 

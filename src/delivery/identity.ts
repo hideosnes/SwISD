@@ -17,7 +17,10 @@ export interface IdentityState {
 function uint8ArrayToHex(bytes: Uint8Array): string {
   let hex = '';
   for (let i = 0; i < bytes.length; i++) {
-    hex += bytes[i].toString(16).padStart(2, '0');
+    const byte = bytes[i];
+    if (byte !== undefined) {
+      hex += byte.toString(16).padStart(2, '0');
+    }
   }
   return hex;
 }
