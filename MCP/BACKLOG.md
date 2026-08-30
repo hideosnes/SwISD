@@ -24,13 +24,14 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - **Genesis Bootstrap Protocol:** Conductor acts as the fallback hotspot (`SwISD-Genesis`). Pis connect if no known network is found, allowing zero-internet, out-of-box swarm formation.
 - **Cryptographic Trust Boundary:** Network proximity (mDNS/Genesis WiFi) is purely advisory. Peers must be explicitly accepted via the Cockpit's `TrustRegistry` before participating in the swarm.
 - **Data Purity:** Zero `Buffer` bloat in ingestion pipelines (`Uint8Array` strictly enforced). Identity serialization uses Hex strings to prevent JSON `number[]` bloat.
-- **Model Download Approval Gate:** No model may be downloaded from an external source (HuggingFace or otherwise) without explicit Conductor operator approval. Metadata (size, file count) MUST be fetched and displayed in a confirmation modal BEFORE any download begins. Tier 2 P2P chunk seeding within the swarm is exempt (model was already approved at Tier 1 ingress).
+- **Model Download Approval Gate:** No model may be downloaded from an external source (HuggingFace or otherwise) without explicit Conductor operator approval. Metadata (size, file count) MUST be fetched and displayed in a confirmation modal BEFORE download begins. Tier 2 P2P chunk seeding within the swarm is exempt (model was already approved at Tier 1 ingress).
 - **Domain C Design System (The Single-Source Doctrine):** Visual language is governed by `layout.css` (theme tokens + regime folder), `components/ui` (primitives), and the typed theme registry (`lib/theme.ts`). Feature components NEVER invent new visual atoms and NEVER apply raw styles. "No UI element stands alone."
 - **Topology Layout Doctrine:** Deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts). No force-directed physics/jitter for fleet ≤30.
 - **Cross-Swarm Memory:** Worker Pis remain beautifully dumb and stateless across swarms. Only the Conductor (Domain C BFF/LocalStorage) remembers historical peer assignments.
 - **Datavis Architecture:** D3 used strictly as a headless math engine (`d3-scale`). Svelte renders SVG. No styled graph frameworks (vis-network, Cytoscape). New `cockpit/src/lib/components/datavis/` folder strictly separated from `components/ui/`.
 - **Telemetry Transport:** WebSockets rejected for telemetry. SSE used for high-frequency streams alongside snapshot polling. Client-side interpolation for Pulse smoothness.
-- **StatusPill Semantic Vocabulary:** Primitives speak semantics (`'live' | 'warn' | 'accent' | 'idle'`), features speak domain. Domain states are mapped to primitive vocabulary via adapter functions. Primitives never learn swarm concepts.
+- **StatusPill Semantic Vocabulary & Domain Adapters:** Primitives speak semantics (`'live' | 'warn' | 'accent' | 'idle'`), features speak domain. Domain states are mapped to primitive vocabulary via pure adapter functions in `lib/adapters/` (promoted to a shared module on second use). Primitives never learn swarm concepts.
+- **Pin Store Doctrine:** Prolonged-control pins live in a shared reactive store (`lib/pins.svelte.ts`) built on module-level `$state`, persisted per-device under `swisd-pins` in localStorage. Max 8 pins with FIFO eviction. The store is the single source of truth consumed by both the map (focus/grey-out) and the sidebar. Worker Pis never learn about pins.
 
 ---
 
@@ -81,7 +82,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **Streaming Download Pipeline & SSE Bridge:** `ModelDownloader` with real-time progress telemetry streamed to the BFF.
 - [x] **Approval Gate Backend:** `ApprovalGate` with one-time nonces. Hard-blocks silent background downloads; requires explicit operator confirmation.
 - [ ] **HuggingFace Model Ingress (Tier 1 UI):** Model-agnostic mechanism to register a HuggingFace model URL.
-  - [x] Metadata pre-fetch: Query HuggingFace API for model size/siblings *before* any download begins. *(Implemented in `src/models/huggingface.ts`)*
+  - [x] Metadata pre-fetch: Query HuggingFace API for model size/siblings *before* download begins. *(Implemented in `src/models/huggingface.ts`)*
   - [ ] Approval modal in Conductor Cockpit: *"This model is **X GB** across **Y files**. Download and store locally?"* with explicit Approve / Cancel actions.
   - [ ] Offline degradation: If the HuggingFace API is unreachable, the modal MUST display *"Size unknown — metadata unavailable"* and require a second, explicit risk acknowledgment before proceeding.
 - [x] **Local Model Manager Foundation:** `src/models/ingest.ts` streams, chunks, and Merkle-verifies heavy payloads. (Identity serialization optimized to Hex strings).
@@ -114,6 +115,8 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - [x] **`datavis/` module scaffolding:** Strict separation from `components/ui/`. D3 math modules (`layout.ts`) + Svelte SVG rendering (`TopologyCanvas`, `SwarmNode`, `GhostNode`, `TrustRing`). No styled graph frameworks. *(Full orbital layout engine with deterministic positioning, ResizeObserver-driven responsive sizing, and D3 `scaleLinear` for load-to-radius mapping.)*
 - [x] **Multi-capability encoding:** Dominant fill + ring-segment bezel on nodes implemented in `SwarmNode.svelte`. *(Striped encoding for expanded cards/modals deferred until modal deep-dive is built.)*
 - [x] **Tabs primitive:** WAI-ARIA compliant `Tabs.svelte` with `$bindable()`, `{#snippet}` content, and arrow-key navigation. Promoted to `components/ui/`.
+- [x] **Badge primitive:** Compact numeric counter chip in `components/ui/Badge.svelte`. Token-themed, `aria-hidden`, renders nothing at zero, caps at `99+`. Promoted before first use per "No UI element stands alone."
+- [x] **Domain adapters module:** `lib/adapters/` with barrel + `trust.ts` (`trustToStatus`). Promoted to a shared module on second appearance (StageView + SwarmSidebar). Encodes the Domain Adapter Doctrine.
 
 ### Topology & Layout
 - [x] **Topology Canvas:** Deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts). SVG rendering fed by D3 `scaleLinear`. *(Implemented `computeOrbitalLayout()` with strict config validation, `defaultOrbitalConfig()` proportional radii, and full a11y: `role="button"`, `tabindex`, `aria-label`, keyboard handlers on all nodes.)*
@@ -127,9 +130,10 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] Cryptographic verification indicators hidden behind operator-friendly status states.
 - [x] **STAGE Tab (Artist focus):** Peer-centric view ("which Pi does what?") with masonry grid of peer cards. *(Implemented `StageView.svelte` with `Card`, `Stat`, `StatusPill` composition and domain-to-primitive adapter. Task-centric toggle deferred.)*
 - [x] **ENGINE ROOM Tab (Sysadmin focus):** Task-centric view focusing on bottlenecks, backpressure, and technical telemetry. *(Implemented `EngineRoomView.svelte` with Conductor Telemetry, Network & CRDT cards, and Recent Events panel.)*
-- [ ] **Sidebar (Pins & Log):** Prolonged control via pinned peers, scrollable informational log at the bottom.
-- [ ] **Contextual Modals:** Deep info and decisions (e.g., Trust approval for ghosts, bottleneck investigation) triggered from Map, Sidebar, or Tabs. *(Basic peer-click modal exists in `+page.svelte`; full contextual modals deferred.)*
-- [ ] **Command Queue Drawer:** Right-edge notification drawer for pending operator actions (Trust approvals, WiFi setup).
+- [x] **Sidebar (Pins & Log):** Prolonged control via pinned peers, scrollable informational log at the bottom. *(Implemented `SwarmSidebar.svelte` composing `Badge`, `StatusPill`, `EmptyState`. Pins sourced from the shared `lib/pins.svelte.ts` store; log consumes `snapshot.recentEvents` under `role="log"`. Real buttons everywhere — no clickable divs, no mouse-only sins.)*
+- [ ] **Contextual Modals:** Deep info and decisions (e.g., Trust approval for ghosts, bottleneck investigation) triggered from Map, Sidebar, or Tabs. *(Basic peer-click modal exists in `+page.svelte` with a Pin toggle; full contextual modals deferred.)*
+- [x] **Command Queue Drawer:** Right-edge notification drawer for pending operator actions. *(Implemented `CommandQueue.svelte` composing `ui/Drawer`. Derives pending ghosts from `topology.peers` — no second polling loop. Presentational: decisions bubble to the route via `onTrust`/`onReject` callbacks posting to `/api/peers`. Trust approvals live; WiFi-setup and model-approval command types deferred to their respective features.)*
+- [ ] **Consolidate trust UI:** Incinerate transitional `PendingTrustPanel.svelte` once `CommandQueue` proves itself in the field. Single trust surface.
 - [ ] **Swarm Pulse & Masonry Grid:** Global state indicator and expandable peer cards for deep telemetry visualization.
 - [ ] **Model Library UI:** Compact download states with micro-progress rings and live SSE telemetry.
 

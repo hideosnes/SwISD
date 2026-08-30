@@ -105,16 +105,20 @@ cockpit/
 │   │   │   ├── ui/                       # Primitive Source of Truth (Button, Card, StatusPill,
 │   │   │   │                             #   SwarmPulse, ProgressRing, ProgressBar, Modal, Drawer,
 │   │   │   │                             #   TextField, Icon, Stat, EmptyState, PageShell, Panel,
-│   │   │   │                             #   ThemeToggle, Tabs)
+│   │   │   │                             #   ThemeToggle, Tabs, Badge)
 │   │   │   │   └── index.ts              # Barrel export for UI primitives
-│   │   │   ├── datavis/                  # Datavisualisation Source of Truth (expanded below)
+│   │   │   ├── datavis/                  # Data visualisation Source of Truth (expanded below)
 │   │   │   │   └── index.ts              # Barrel export for datavis primitives
-│   │   │   ├── CommandQueue.svelte       # ⏳ planned — operator action queue (composes ui/Drawer)
+│   │   │   ├── CommandQueue.svelte       # Operator action queue (composes ui/Drawer, trust approvals)
 │   │   │   ├── DiscoveryPanel.svelte     # mDNS node visualization
 │   │   │   ├── EngineRoomView.svelte     # Sysadmin-focused, task-centric telemetry view
 │   │   │   ├── ModelDropZone.svelte      # Streaming drag-and-drop ingestion
-│   │   │   ├── PendingTrustPanel.svelte  # Cryptographic trust management
-│   │   │   └── StageView.svelte          # Artist-focused, peer-centric masonry grid
+│   │   │   ├── PendingTrustPanel.svelte  # ⚠ transitional — superseded by CommandQueue, pending removal
+│   │   │   ├── StageView.svelte          # Artist-focused, peer-centric masonry grid
+│   │   │   └── SwarmSidebar.svelte       # Pinned peers + scrollable event log (prolonged control)
+│   │   ├── adapters/                     # Client-side domain adapters (domain → primitive vocabulary)
+│   │   │   ├── index.ts                  # Barrel export for adapters
+│   │   │   └── trust.ts                  # trustToStatus: TopologyTrustState → StatusPill Status
 │   │   ├── themes/                       # Theme Folder Doctrine (N regimes, bundled at build time)
 │   │   │   ├── index.css                 # CSS barrel (single import surface for layout.css)
 │   │   │   ├── midnight.css              # Default regime (owns bare :root)
@@ -123,6 +127,7 @@ cockpit/
 │   │   │   └── ultraviolet.css           # Violet regime
 │   │   ├── theme.ts                      # Typed theme registry (ThemeId, THEMES, regimeOf)
 │   │   ├── theme.svelte.ts               # Shared reactive theme store (device-local persistence)
+│   │   ├── pins.svelte.ts                # Shared reactive pin store (prolonged control, localStorage)
 │   │   ├── server/
 │   │   │   ├── index.ts                  # Barrel export for BFF server modules
 │   │   │   ├── discovery.ts              # BFF mDNS listener & TrustRegistry injector
