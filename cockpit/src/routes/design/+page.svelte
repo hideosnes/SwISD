@@ -72,7 +72,7 @@
 
 <PageShell>
   <!-- HEADER -->
-  <header class="border-b border-border pb-6">
+  <header class="border-b border-border pb-6 pt-2">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-xl font-bold tracking-tight text-text-1">
         Primitive Bench

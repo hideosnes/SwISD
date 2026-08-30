@@ -17,7 +17,13 @@
   } = $props();
 </script>
 
-<div class="min-h-screen px-6 py-10 {className ?? ''}">
+<!-- 
+  CRITICAL FIX: 
+  1. Changed min-h-screen to min-h-full. min-h-screen inside an overflow-auto container 
+     causes layout collapse and scrollbar conflicts.
+  2. Added responsive padding so it doesn't look glued on smaller screens.
+-->
+<div class="min-h-full px-2 py-6 lg:px-6 lg:py-10 {className ?? ''}">
   <div class="mx-auto flex w-full max-w-360 flex-col gap-6">
     {@render children()}
   </div>

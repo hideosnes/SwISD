@@ -1,7 +1,9 @@
-/* 1. Relative path: cockpit/src/routes/layout.css
-   2. Description: Central theme source of truth for the SwISD Conductor Cockpit (Cyberdeck theme).
-   3. Expects: To be imported globally in +layout.svelte. Fonts are bundled locally via Vite for offline resilience.
-   4. Provides: CSS custom properties, Tailwind theme projection, and global theme utilities. */
+/*
+1. Relative path: cockpit/src/routes/layout.css
+2. Description: Central theme source of truth for the SwISD Conductor Cockpit. Dual-regime tokens: dark (default) and light, switched via [data-theme] on <html>.
+3. Expects: To be imported globally by ./+layout.svelte. A pre-hydration script in app.html sets data-theme before first paint. Fonts bundled locally via Vite.
+4. Provides: CSS custom properties (tokens) for both regimes, Tailwind theme projection, and layered base/component styles. CASCADE LAYER DOCTRINE: no unlayered element styles; borders are transparent in every regime.
+*/
 
 @import 'tailwindcss';
 
@@ -16,142 +18,44 @@
 
 @import '@fontsource/vt323/400.css';
 
-/* Variable icon font. Verify the actual family name if this package changes. */
-@import '@fontsource-variable/material-symbols-rounded/index.css';
+/* Vite resolves the variable font package to its main index.css and bundles the woff2 */
+@import '@fontsource-variable/material-symbols-rounded';
 
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
-
-:root {
-  /* === SURFACES === */
-  --bg: #0a0a0c;
-  --surface: #111114;
-  --surface-2: #1a1a1f;
-  --surface-3: #232329;
-
-  /* === BORDERS === */
-  --border: #2a2a30;
-  --border-strong: #3b3b45;
-
-  /* === TEXT === */
-  --text-1: #e8e8ec;
-  --text-2: #8a8a92;
-  --text-3: #55555e;
-
-  /* === ACCENTS === */
-  --accent: #ff2d95;
-  --on-accent: #1c0312;
-  --accent-2: #00ffc8;
-  --on-accent-2: #041410;
-
-  /* === SEMANTIC === */
-  --live: #00ffc8;
-  --warn: #ffb020;
-  --danger: #ff3b4e;
-  --on-danger: #ffffff;
-
-  /* === RADII === */
-  --r-sm: 2px;
-  --r-md: 4px;
-  --r-lg: 6px;
-  --r-full: 999px;
-
-  /* === TYPOGRAPHY SCALE === */
-  --font-size-2xs: 10px;
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 24px;
-  --font-size-2xl: 32px;
-
-  /* === FONT FAMILIES === */
-  --font-family-ui: 'Space Grotesk', system-ui, sans-serif;
-  --font-family-mono: 'IBM Plex Mono', Consolas, monospace;
-  --font-family-fx: 'VT323', monospace;
-
-  /* === ICONS === */
-  --icon-size: 18px;
-  --icon-size-sm: 15px;
-  --icon-size-lg: 22px;
-
-  /* === SPACING TOKENS === */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
-  --space-2xl: 32px;
-
-  /* === LAYOUT CONSTRAINTS === */
-  --max-w: 1440px;
-  --max-w-prose: 42rem;
-
-  /* === DECORATIVE GRID / SCANLINES === */
-  --grid-size: 34px;
-  --grid-line: rgba(0, 255, 200, 0.026);
-  --scanline-color: rgba(255, 255, 255, 0.02);
-  --scanline-height: 3px;
-  --line-hairline: 1px;
-
-  /* === MOTION === */
-  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --duration-fast: 150ms;
-  --duration-normal: 250ms;
-
-  /* === ELEVATION / GLOW === */
-  --shadow-1: none;
-  --shadow-2: 0 0 22px rgba(255, 45, 149, 0.16);
-  --glow-live-sm: 0 0 8px var(--live);
-  --glow-live-md: 0 0 16px var(--live), 0 0 24px var(--live);
-
-  /* === FOCUS RING === */
-  --focus-ring-width: 2px;
-  --focus-ring-offset: 2px;
-
-  /* === SCROLLBAR === */
-  --scrollbar-size: 10px;
-  --scrollbar-thumb-border-width: 2px;
-}
 
 /* Lock Tailwind's numeric spacing scale to the 4px token grid. */
 @theme {
   --spacing: 4px;
 }
 
-/* Project SwISD tokens into Tailwind utilities without duplicating visual truth. */
+/* Project SwISD tokens into Tailwind utilities. Values are var() references,
+   so every utility follows the active regime automatically. */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
-
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
-
   --color-text-1: var(--text-1);
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);
-
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
   --color-accent-2: var(--accent-2);
   --color-on-accent-2: var(--on-accent-2);
-
   --color-live: var(--live);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
   --color-on-danger: var(--on-danger);
-
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-full: var(--r-full);
-
   --font-ui: var(--font-family-ui);
   --font-mono: var(--font-family-mono);
   --font-fx: var(--font-family-fx);
-
   --text-2xs: var(--font-size-2xs);
   --text-xs: var(--font-size-xs);
   --text-sm: var(--font-size-sm);
@@ -161,178 +65,249 @@
   --text-2xl: var(--font-size-2xl);
 }
 
-/* Custom token-bound utilities. */
-@utility max-w-bench {
-  max-width: var(--max-w);
+/* ==========================================================================
+   REGIME: DARK (default) — deep violet-blue night, solid slabs, no hairlines
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+
+  /* === SURFACES === */
+  --bg: #0c0a1a;
+  --surface: #171330;
+  --surface-2: #1f193e;
+  --surface-3: #2a2350;
+
+  /* === BORDERS (truly invisible; separation is surface mass) === */
+  --border: transparent;
+  --border-strong: transparent;
+
+  /* === TEXT === */
+  --text-1: #f1eefb;
+  --text-2: #a6a0c8;
+  --text-3: #6e679a;
+
+  /* === ACCENTS (raspberry lead burning toward light orange) === */
+  --accent: #f22d63;
+  --accent-warm: #ff8a4a;
+  --accent-fill: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
+  --on-accent: #2b0512;
+  --accent-2: #46a6f0;
+  --on-accent-2: #05233a;
+
+  /* === SEMANTIC === */
+  --live: #2fc7cf;
+  --warn: #ffb020;
+  --danger: #ff4a3d;
+  --on-danger: #ffffff;
+
+  /* === ELEVATION, TINTS & GLOWS === */
+  --shadow-1: none;
+  --shadow-2: 0 0 24px rgba(242, 45, 99, 0.18);
+  --tint-accent: rgba(242, 45, 99, 0.06);
+  --tint-accent-2: rgba(70, 166, 240, 0.1);
+  --tint-live: rgba(47, 199, 207, 0.03);
+  --tint-danger: rgba(255, 74, 61, 0.12);
+  --scrim: rgba(6, 4, 16, 0.6);
+  --scrim-soft: rgba(6, 4, 16, 0.45);
+  --glow-accent: 0 0 18px rgba(242, 45, 99, 0.35), 0 0 28px rgba(255, 138, 74, 0.25);
+  --glow-accent-wide: 0 0 40px rgba(242, 45, 99, 0.2);
+  --glow-accent-2: 0 0 16px rgba(70, 166, 240, 0.35);
+  --glow-danger: 0 0 16px rgba(255, 74, 61, 0.4);
+  --glow-live-text: 0 0 14px rgba(47, 199, 207, 0.5);
+  --glow-field: 0 0 0 1px var(--accent-2), 0 0 16px rgba(70, 166, 240, 0.25);
+
+  /* === SHARED TOKENS (regime-independent) === */
+  --r-sm: 2px;
+  --r-md: 4px;
+  --r-lg: 6px;
+  --r-full: 999px;
+
+  --font-size-2xs: 10px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+
+  --font-family-ui: 'Space Grotesk', system-ui, sans-serif;
+  --font-family-mono: 'IBM Plex Mono', Consolas, monospace;
+  --font-family-fx: 'VT323', monospace;
+
+  --icon-size: 18px;
+  --icon-size-sm: 15px;
+  --icon-size-lg: 22px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  --max-w: 1440px;
+  --max-w-prose: 42rem;
+  --grid-size: 34px;
+  --grid-line: transparent;
+  --scanline-color: transparent;
+  --scanline-height: 3px;
+  --line-hairline: 1px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --scrollbar-size: 10px;
+  --scrollbar-thumb-border-width: 2px;
 }
 
-@utility max-w-prose-bench {
-  max-width: var(--max-w-prose);
+/* ==========================================================================
+   REGIME: LIGHT — cold lavender daylight, same lead, contrast-tuned
+   ========================================================================== */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* === SURFACES (white slabs on lavender void) === */
+  --bg: #f2effa;
+  --surface: #ffffff;
+  --surface-2: #ece7f9;
+  --surface-3: #ddd5f0;
+
+  /* === BORDERS (still truly invisible) === */
+  --border: transparent;
+  --border-strong: transparent;
+
+  /* === TEXT (violet ink) === */
+  --text-1: #17122b;
+  --text-2: #5a5478;
+  --text-3: #8b86a6;
+
+  /* === ACCENTS (darkened for light-ground contrast) === */
+  --accent: #d81b56;
+  --accent-warm: #e05a10;
+  --accent-fill: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
+  --on-accent: #ffffff;
+  --accent-2: #1273c4;
+  --on-accent-2: #ffffff;
+
+  /* === SEMANTIC === */
+  --live: #0f8b94;
+  --warn: #9c6400;
+  --danger: #d42a2a;
+  --on-danger: #ffffff;
+
+  /* === ELEVATION, TINTS & GLOWS (soft daylight shadows) === */
+  --shadow-1: none;
+  --shadow-2: 0 10px 30px rgba(23, 18, 43, 0.1);
+  --tint-accent: rgba(216, 27, 86, 0.06);
+  --tint-accent-2: rgba(18, 115, 196, 0.08);
+  --tint-live: rgba(15, 139, 148, 0.07);
+  --tint-danger: rgba(212, 42, 42, 0.08);
+  --scrim: rgba(23, 18, 43, 0.45);
+  --scrim-soft: rgba(23, 18, 43, 0.3);
+  --glow-accent: 0 0 14px rgba(216, 27, 86, 0.25), 0 0 22px rgba(224, 90, 16, 0.18);
+  --glow-accent-wide: 0 12px 40px rgba(216, 27, 86, 0.18);
+  --glow-accent-2: 0 0 12px rgba(18, 115, 196, 0.25);
+  --glow-danger: 0 0 12px rgba(212, 42, 42, 0.3);
+  --glow-live-text: none;
+  --glow-field: 0 0 0 1px var(--accent-2), 0 0 10px rgba(18, 115, 196, 0.18);
 }
 
-/* === GLOBAL RESET === */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* === BASE (layered so utilities always win) === */
+@layer base {
+  body {
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--grid-line) var(--line-hairline), transparent var(--line-hairline)),
+      linear-gradient(90deg, var(--grid-line) var(--line-hairline), transparent var(--line-hairline));
+    background-size: var(--grid-size) var(--grid-size);
+    color: var(--text-1);
+    font-family: var(--font-family-ui);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    background: repeating-linear-gradient(
+      0deg,
+      var(--scanline-color) 0 var(--line-hairline),
+      transparent var(--line-hairline) var(--scanline-height)
+    );
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--accent);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* === SCROLLBAR === */
+  ::-webkit-scrollbar { width: var(--scrollbar-size); height: var(--scrollbar-size); }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-3);
+    border-radius: var(--r-md);
+    border: var(--scrollbar-thumb-border-width) solid var(--bg);
+  }
 }
 
-body {
-  background-color: var(--bg);
-  background-image:
-    linear-gradient(var(--grid-line) var(--line-hairline), transparent var(--line-hairline)),
-    linear-gradient(90deg, var(--grid-line) var(--line-hairline), transparent var(--line-hairline));
-  background-size: var(--grid-size) var(--grid-size);
-  color: var(--text-1);
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+/* === COMPONENTS (lose to utilities on purpose) === */
+@layer components {
+  .mono { font-family: var(--font-family-mono); }
+  .fx { font-family: var(--font-family-fx); }
+
+  .fill-accent { background: var(--accent-fill); }
+
+  /* === MATERIAL SYMBOLS === */
+  .mi {
+    font-family: 'Material Symbols Rounded Variable', 'Material Symbols Rounded', sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    font-size: var(--icon-size);
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'liga' 1;
+    -webkit-font-feature-settings: 'liga' 1;
+    font-variant-ligatures: common-ligatures;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .mi--sm { font-size: var(--icon-size-sm); }
+  .mi--lg { font-size: var(--icon-size-lg); }
 }
 
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 999;
-  background: repeating-linear-gradient(
-    0deg,
-    var(--scanline-color) 0 var(--line-hairline),
-    transparent var(--line-hairline) var(--scanline-height)
-  );
-}
-
-::selection {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-:focus-visible {
-  outline: var(--focus-ring-width) solid var(--accent);
-  outline-offset: var(--focus-ring-offset);
-}
-
-/* === LEGACY TEXT UTILITIES === */
-.mono {
-  font-family: var(--font-family-mono);
-}
-
-.fx {
-  font-family: var(--font-family-fx);
-}
-
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-family-ui);
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-h1 {
-  font-size: var(--font-size-xl);
-  letter-spacing: -0.01em;
-}
-
-h2 {
-  font-size: var(--font-size-lg);
-}
-
-h3 {
-  font-size: var(--font-size-md);
-}
-
-h4 {
-  font-size: var(--font-size-sm);
-}
-
-/* === MATERIAL SYMBOLS === */
-/*
-  The variable Fontsource package usually exposes:
-  'Material Symbols Rounded Variable'
-
-  The non-variable family is kept as a fallback in case the project later
-  installs @fontsource/material-symbols-rounded instead.
-*/
-.mi {
-  font-family:
-    'Material Symbols Rounded Variable',
-    'Material Symbols Rounded',
-    sans-serif;
-  font-weight: normal;
-  font-style: normal;
-  font-size: var(--icon-size);
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: 'liga' 1;
-  -webkit-font-feature-settings: 'liga' 1;
-  font-variant-ligatures: common-ligatures;
-  -webkit-font-smoothing: antialiased;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-
-.mi--sm {
-  font-size: var(--icon-size-sm);
-}
-
-.mi--lg {
-  font-size: var(--icon-size-lg);
-}
-
-/* === SCROLLBAR === */
-::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--surface-3);
-  border-radius: var(--r-md);
-  border: var(--scrollbar-thumb-border-width) solid var(--bg);
-}
-
-/* === ANIMATIONS === */
+/* === ANIMATIONS (layer-agnostic) === */
 @keyframes breathe {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 @keyframes blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
 }
 
 @keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: var(--glow-live-sm);
-  }
-  50% {
-    box-shadow: var(--glow-live-md);
-  }
+  0%, 100% { box-shadow: var(--glow-live-sm, 0 0 8px var(--live)); }
+  50% { box-shadow: var(--glow-live-md, 0 0 16px var(--live), 0 0 24px var(--live)); }
 }

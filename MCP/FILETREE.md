@@ -4,6 +4,7 @@
 3. Expects: To be pasted into new context windows to instantly restore the architect's spatial awareness.
 4. Provides: A strictly enforced, barrel-governed directory tree with module responsibilities.
 -->
+
 # SwISD Architectural Filetree
 
 ## Core Application (`src/`)
@@ -94,15 +95,15 @@ cockpit/
 ├── src/
 │   ├── lib/
 │   │   ├── components/
-│   │   │   ├── ui/                # Primitive Source of Truth (Button, Card, Modal, etc.)
+│   │   │   ├── ui/                # Primitive Source of Truth (Button, Card, StatusPill, SwarmPulse,
+│   │   │   │                      #   ProgressRing, ProgressBar, Modal, Drawer, TextField, Icon, Stat,
+│   │   │   │                      #   EmptyState, PageShell, Panel)
 │   │   │   │   └── index.ts       # Barrel export for UI primitives
 │   │   │   ├── DiscoveryPanel.svelte    # mDNS node visualization
 │   │   │   ├── ModelDropZone.svelte     # Streaming drag-and-drop ingestion
 │   │   │   └── PendingTrustPanel.svelte # Cryptographic trust management
 │   │   ├── server/
 │   │   │   └── discovery.ts             # BFF mDNS listener & TrustRegistry injector
-│   │   ├── styles/
-│   │   │   └── layout.css               # Theme Source of Truth (CSS custom properties)
 │   │   └── index.ts                     # Barrel export
 │   ├── routes/
 │   │   ├── api/
@@ -117,6 +118,7 @@ cockpit/
 │   │   │   └── snapshot/+server.ts      # GET /api/snapshot
 │   │   ├── design/+page.svelte          # Living style guide & primitive gallery
 │   │   ├── models/+page.svelte          # Model distribution view
+│   │   ├── layout.css                   # Theme Source of Truth (imported as ./layout.css by +layout.svelte)
 │   │   ├── +layout.svelte               # Global UI shell
 │   │   └── +page.svelte                 # Main dashboard view
 │   ├── app.d.ts                         # SvelteKit Locals typing (Core Bridge)

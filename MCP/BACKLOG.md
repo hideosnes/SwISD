@@ -120,7 +120,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [ ] Manifest generation and swarm seeding progress visualization.
 - [x] **Domain C Design System (The Single-Source Doctrine):** Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
 - [x] **Local Font Embedding:** Fonts bundled locally via Vite (`@fontsource/*`) to guarantee UI resilience and offline operation on edge devices.
-- [ ] **`/design` Route (Visual Contract):** A living style guide and primitive gallery to ensure coherent visual design across the dashboard.
+- [x] **`/design` Route (Visual Contract):** A living style guide and primitive gallery to ensure coherent visual design across the dashboard.
 - [ ] **Command Queue Drawer:** Right-edge notification drawer for pending operator actions (Trust approvals, WiFi setup).
 - [ ] **Swarm Pulse & Masonry Grid:** Global state indicator and expandable peer cards for deep telemetry visualization.
 - [ ] **Model Library UI:** Compact download states with micro-progress rings and live SSE telemetry.
