@@ -102,20 +102,45 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
 
 ### Domain C Design System (The Single-Source Doctrine)
 
-The Conductor Cockpit's visual language is governed by exactly two sources of truth. Nothing else.
+The Conductor Cockpit's visual language is governed by exactly three coordinated sources of truth. Nothing else.
 
-1. **`layout.css` — the Theme Source of Truth.**
-   Every design token (color, typography, spacing, border radius, motion timing, elevation)
-   lives here as CSS custom properties. No component, route, or utility class may declare a
-   raw color, font, or spacing value. If it isn't a token in `layout.css`, it does not exist.
-   This guarantees a single-file re-theme of the entire cockpit.
+1. **`layout.css` — the Theme Conductor.**
+   The single CSS entry point, imported by `+layout.svelte` as `./layout.css`. It imports the themes
+   barrel, declares shared (regime-independent) tokens, projects tokens into Tailwind via `@theme inline`,
+   and owns the layered base/component styles. Every design token resolves through this file.
 
-2. **`components/ui` — the Primitive Source of Truth.**
-   All visual atoms (buttons, cards, pills, inputs, modals, drawers, progress rings, status
-   indicators, typography blocks) are composed primitives exported from `components/ui`.
+2. **`lib/themes/` — the Theme Folder Doctrine.**
+   One file per regime (`midnight.css`, `daylight.css`, `cyberdeck.css`, `ultraviolet.css`), registered
+   in the folder's CSS barrel (`index.css`), which `layout.css` imports in a single step. Theme files are
+   bundled at build time — runtime fetching of theme CSS is forbidden (offline resilience). Each theme
+   file declares ONLY custom properties and `color-scheme` on `:root` (default) or `[data-theme='<id>']`
+   selectors. Never element styles — the Cascade Layer Doctrine travels with the folder.
+   - The default regime (`midnight`) owns the bare `:root` selector so the cockpit renders correctly
+     with no JavaScript.
+   - Other regimes use bare `[data-theme='<id>']` selectors so they apply globally when set on `<html>`
+     and *locally* when set on a preview subtree (used by `/settings` for live token-scoped previews).
+   - Adding a new regime costs: one CSS file, one barrel line, one registry entry in `lib/theme.ts`,
+     one whitelist entry in `app.html`.
+
+3. **`components/ui` — the Primitive Source of Truth.**
+   All visual atoms (buttons, cards, pills, inputs, modals, drawers, progress rings, status indicators,
+   typography blocks, theme toggle) are composed primitives exported from `components/ui`.
 
 **The Law: "No UI element stands alone."**
 Feature components NEVER invent new visual atoms and NEVER apply raw styles. They only
 compose primitives from `components/ui`, styled exclusively via tokens from `layout.css`.
 If a visual pattern appears more than once, it MUST be promoted to a primitive. This makes
 drift impossible and theming trivial. Violating this is a build-level sin.
+
+**Supporting Doctrine (enforced in `SVELTE.md`):**
+- **Cascade Layer Doctrine:** All custom CSS lives in `@layer base` or `@layer components`. Unlayered styles are forbidden — they murder `@layer utilities` silently.
+- **Borders as Theme Opinions:** `--border` is `transparent` by default. Separation is surface mass, not hairlines. Regimes that prefer hairlines (e.g. Cyberdeck) turn them on via token.
+- **Primitive Ignorance:** Primitives never check the active regime. They drink tokens; the regime supplies the values.
+- **No `tailwind-merge`/`cn()`:** Variance is exposed via typed `$props()`, never raw `class` overrides.
+
+### Multi-Theme Regimes & Persistence
+
+- **Active regime** is persisted per-device in `localStorage` under `swisd-theme`.
+- **Last dark regime** is persisted under `swisd-theme-dark` so the shell's quick-flip toggle can restore the operator's preferred dark theme when flipping back from light.
+- **Zero-flash bootstrap:** A pre-hydration script in `app.html` applies the whitelisted `data-theme` attribute before first paint, migrating legacy `dark`/`light` values.
+- **Shared reactive store:** `lib/theme.svelte.ts` exports `themeStore`, the single client-side source of truth consumed by both the shell's `ThemeToggle` and the `/settings` gallery. Primitives remain regime-ignorant.

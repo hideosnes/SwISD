@@ -1,0 +1,52 @@
+/*
+1. Relative path: cockpit/src/lib/themes/cyberdeck.css
+2. Description: Legacy regime — near-black carbon, hot pink lead, mint counterpoint, visible hairlines and CRT scanlines.
+3. Expects: To be imported by ../layout.css. Applies via [data-theme='cyberdeck'].
+4. Provides: The complete theme-dependent token set for the Cyberdeck regime.
+*/
+
+:root[data-theme='cyberdeck'] {
+  color-scheme: dark;
+
+  --bg: #0a0a0c;
+  --surface: #111114;
+  --surface-2: #1a1a1f;
+  --surface-3: #232329;
+
+  /* This regime prefers visible hairlines. Borders are a theme opinion. */
+  --border: #2a2a30;
+  --border-strong: #3b3b45;
+
+  --text-1: #e8e8ec;
+  --text-2: #8a8a92;
+  --text-3: #55555e;
+
+  --accent: #ff2d95;
+  --accent-warm: #ff2d95;
+  --accent-fill: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
+  --on-accent: #1c0312;
+  --accent-2: #00ffc8;
+  --on-accent-2: #041410;
+
+  --live: #00ffc8;
+  --warn: #ffb020;
+  --danger: #ff3b4e;
+  --on-danger: #ffffff;
+
+  --shadow-2: 0 0 22px rgba(255, 45, 149, 0.16);
+  --tint-accent: rgba(255, 45, 149, 0.05);
+  --tint-accent-2: rgba(0, 255, 200, 0.1);
+  --tint-live: rgba(0, 255, 200, 0.03);
+  --tint-danger: rgba(255, 59, 78, 0.12);
+  --scrim: rgba(5, 6, 10, 0.55);
+  --scrim-soft: rgba(5, 6, 10, 0.4);
+  --glow-accent: 0 0 18px rgba(255, 45, 149, 0.5);
+  --glow-accent-wide: 0 0 40px rgba(255, 45, 149, 0.18);
+  --glow-accent-2: 0 0 16px rgba(0, 255, 200, 0.35);
+  --glow-danger: 0 0 16px rgba(255, 59, 78, 0.4);
+  --glow-live-text: 0 0 14px rgba(0, 255, 200, 0.5);
+  --glow-field: 0 0 0 1px var(--accent-2), 0 0 16px rgba(0, 255, 200, 0.25);
+
+  --grid-line: rgba(0, 255, 200, 0.026);
+  --scanline-color: rgba(255, 255, 255, 0.02);
+}

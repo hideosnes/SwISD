@@ -1,0 +1,51 @@
+/*
+1. Relative path: cockpit/src/lib/themes/ultraviolet.css
+2. Description: Violet regime — electric purple lead burning toward light lilac, cyan counterpoint.
+3. Expects: To be imported by ../layout.css. Applies via [data-theme='ultraviolet'] on <html> or any preview subtree.
+4. Provides: The complete theme-dependent token set for the Ultraviolet regime, scopeable to any subtree.
+*/
+
+[data-theme='ultraviolet'] {
+  color-scheme: dark;
+
+  --bg: #0b0812;
+  --surface: #131019;
+  --surface-2: #1b1624;
+  --surface-3: #251e30;
+
+  --border: transparent;
+  --border-strong: transparent;
+
+  --text-1: #ece8f4;
+  --text-2: #948ca2;
+  --text-3: #5d5570;
+
+  --accent: #b44dff;
+  --accent-warm: #e08cff;
+  --accent-fill: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
+  --on-accent: #170322;
+  --accent-2: #00e5ff;
+  --on-accent-2: #03161c;
+
+  --live: #00e5ff;
+  --warn: #ffb020;
+  --danger: #ff3b5c;
+  --on-danger: #ffffff;
+
+  --shadow-2: 0 0 22px rgba(180, 77, 255, 0.16);
+  --tint-accent: rgba(180, 77, 255, 0.05);
+  --tint-accent-2: rgba(0, 229, 255, 0.1);
+  --tint-live: rgba(0, 229, 255, 0.03);
+  --tint-danger: rgba(255, 59, 92, 0.12);
+  --scrim: rgba(8, 4, 16, 0.55);
+  --scrim-soft: rgba(8, 4, 16, 0.4);
+  --glow-accent: 0 0 18px rgba(180, 77, 255, 0.5);
+  --glow-accent-wide: 0 0 40px rgba(180, 77, 255, 0.18);
+  --glow-accent-2: 0 0 16px rgba(0, 229, 255, 0.35);
+  --glow-danger: 0 0 16px rgba(255, 59, 92, 0.4);
+  --glow-live-text: 0 0 14px rgba(0, 229, 255, 0.5);
+  --glow-field: 0 0 0 1px var(--accent-2), 0 0 16px rgba(0, 229, 255, 0.25);
+
+  --grid-line: transparent;
+  --scanline-color: transparent;
+}

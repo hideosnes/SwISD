@@ -4,6 +4,7 @@
 3. Expects: Continuous updates as phases are conquered and new domains are defined.
 4. Provides: A single source of truth for the project's current state, locked decisions, and strategic roadmap.
 -->
+
 # SwISD BACKLOG
 The "don't you dare forget" ledger. Split by where the work lives.
 Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery machine.
@@ -24,7 +25,7 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
 - **Cryptographic Trust Boundary:** Network proximity (mDNS/Genesis WiFi) is purely advisory. Peers must be explicitly accepted via the Cockpit's `TrustRegistry` before participating in the swarm.
 - **Data Purity:** Zero `Buffer` bloat in ingestion pipelines (`Uint8Array` strictly enforced). Identity serialization uses Hex strings to prevent JSON `number[]` bloat.
 - **Model Download Approval Gate:** No model may be downloaded from an external source (HuggingFace or otherwise) without explicit Conductor operator approval. Metadata (size, file count) MUST be fetched and displayed in a confirmation modal BEFORE any download begins. Tier 2 P2P chunk seeding within the swarm is exempt (model was already approved at Tier 1 ingress).
-- **Domain C Design System (The Single-Source Doctrine):** Visual language is governed by exactly two sources of truth: `layout.css` (theme tokens) and `components/ui` (primitives). Feature components NEVER invent new visual atoms and NEVER apply raw styles. "No UI element stands alone."
+- **Domain C Design System (The Single-Source Doctrine):** Visual language is governed by `layout.css` (theme tokens + regime folder), `components/ui` (primitives), and the typed theme registry (`lib/theme.ts`). Feature components NEVER invent new visual atoms and NEVER apply raw styles. "No UI element stands alone."
 
 ---
 
@@ -119,11 +120,20 @@ Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery mach
   - [x] Streaming chunking into the Polymorphic Ingestion Engine.
   - [ ] Manifest generation and swarm seeding progress visualization.
 - [x] **Domain C Design System (The Single-Source Doctrine):** Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
+  - [x] **CSS Architecture (Cascade Layer Doctrine):** All custom CSS lives in `@layer base` or `@layer components`; unlayered styles forbidden. Borders are theme opinions (transparent by default).
+  - [x] **Multi-Theme Regimes (Theme Folder Doctrine):** N-theme system via `lib/themes/*.css` with a CSS barrel (`index.css`), a typed registry (`lib/theme.ts`), a shared reactive store (`lib/theme.svelte.ts`), zero-flash bootstrap in `app.html`, and a live-preview gallery at `/settings`. Current regimes: Midnight Violet, Lavender Daylight, Cyberdeck (legacy), Ultraviolet.
+  - [x] **Per-device theme persistence:** `swisd-theme` and `swisd-theme-dark` localStorage keys; shell quick-flip restores last dark regime.
 - [x] **Local Font Embedding:** Fonts bundled locally via Vite (`@fontsource/*`) to guarantee UI resilience and offline operation on edge devices.
 - [x] **`/design` Route (Visual Contract):** A living style guide and primitive gallery to ensure coherent visual design across the dashboard.
+- [x] **`/settings` Route (Per-device configuration):** Theme gallery with token-scoped live previews and regime quick-flip.
 - [ ] **Command Queue Drawer:** Right-edge notification drawer for pending operator actions (Trust approvals, WiFi setup).
 - [ ] **Swarm Pulse & Masonry Grid:** Global state indicator and expandable peer cards for deep telemetry visualization.
 - [ ] **Model Library UI:** Compact download states with micro-progress rings and live SSE telemetry.
+- [ ] Return-visit presentation logic: badge count vs. dismiss-blocking modal priority rules for operator return. Needs urgency taxonomy.
+- [ ] Scenario Replay Mode: fixture-driven snapshot sequences via `observability/devSource.ts` to test cockpit visuals (bottleneck, churn, ghost influx, stalled pipeline) without physical fleet.
+- [ ] Topology Canvas: deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts), SVG rendering fed by D3 math modules (`d3-polygon`, `d3-scale`). No styled graph frameworks.
+- [ ] SSE promotion for event streams (task lifecycle, trust changes, downloads) alongside snapshot polling; client-side interpolation for Pulse smoothness in the interim.
+- [ ] Multi-capability encoding: dominant fill + ring-segment bezel on nodes; striped encoding reserved for expanded cards/modals.
 
 ## Deferred (App)
 - [ ] **Vector DB sharding** (large swarms). *Trigger: storage pressure / large swarm.*

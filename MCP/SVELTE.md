@@ -35,7 +35,7 @@ If a component accepts an optional `id` prop, it must generate a unique fallback
 ## 3. Design System Composition (No UI Element Stands Alone)
 
 - Feature/route components MUST import primitives from `$lib/components/ui` (via the barrel).
-- Feature components MUST NOT contain raw hex colors, font families, or magic spacing numbers. All visual values resolve to CSS custom properties defined in `layout.css`.
+- Feature components MUST NOT contain raw hex colors, font families, or magic spacing numbers. All visual values resolve to CSS custom properties defined in `layout.css` and the regime files in `lib/themes/`.
 - If you catch yourself writing a one-off styled element, STOP and promote it to a `components/ui` primitive first. Reuse is mandatory.
 - Primitives are themed, not styled: a primitive reads tokens, it never hardcodes them.
 - Composing primitives: pass variants via typed `$props()`. Do not reach into a primitive's internals to override its visuals.
@@ -46,16 +46,23 @@ All custom CSS in `layout.css` MUST live in `@layer base` (element styles like `
 
 - **The Cascade Layer Doctrine:** Unlayered element/selector styles are strictly forbidden. In the CSS cascade, unlayered author CSS mathematically beats `@layer utilities`, silently murdering every Tailwind utility (like `p-6`, `mx-auto`, `text-xs`) on the page. 
 - **No Redundant Resets:** The universal reset (`* { margin: 0; padding: 0 }`) is delegated entirely to Tailwind's preflight (which lives safely in `@layer base`). We never redeclare it unlayered.
-- **Borders as Theme Opinions:** Borders are `transparent` by default in `layout.css`. Visual separation is achieved via surface mass (`--bg` vs `--surface`), not hairlines. If a future theme requires borders, they are turned on by updating the `--border` token, not by editing primitives.
+- **Borders as Theme Opinions:** Borders are `transparent` by default in `layout.css`. Visual separation is achieved via surface mass (`--bg` vs `--surface`), not hairlines. If a future regime requires borders (e.g. Cyberdeck), they are turned on by updating the `--border` token in the regime file, not by editing primitives.
 
-## 5. Dual-Regime Theming (Light/Dark)
+## 5. Multi-Theme Regimes (Theme Folder Doctrine)
 
-The cockpit supports dual regimes switched via a single attribute: `[data-theme='light']` on the `<html>` element.
+The cockpit supports N theme regimes, switched via a single attribute: `[data-theme='<id>']` on the `<html>` element.
 
-- **Persistence:** The active regime is persisted in `localStorage` under the key `swisd-theme`.
-- **Zero-Flash Bootstrap:** A pre-hydration script in `app.html` applies the attribute before first paint to prevent flash-of-wrong-regime.
-- **Token Projection:** `layout.css` uses `:root` for the default (dark) regime and `:root[data-theme='light']` for the light regime. Tailwind's `@theme inline` projection maps utilities (e.g., `bg-surface`) to `var(--surface)`. 
-- **Primitive Ignorance:** Primitives never check the active regime. They only consume tokens, which automatically resolve to the active regime's values.
+- **Theme Folder:** One file per regime in `cockpit/src/lib/themes/<id>.css`, registered in the folder's CSS barrel (`index.css`), which `layout.css` imports in a single step. Runtime fetching of theme CSS is forbidden (offline resilience).
+- **File Contract:** A theme file may declare ONLY custom properties and `color-scheme` on `:root` (default regime only) or bare `[data-theme='<id>']` selectors (all other regimes). Never element styles — the Cascade Layer Doctrine travels with the folder.
+- **Scoped Previews:** Because non-default regimes use bare `[data-theme='<id>']` selectors (not anchored to `:root`), the `/settings` gallery can place the attribute on a preview card and scope tokens to that subtree — no hardcoded hex in feature code.
+- **Typed Registry:** `lib/theme.ts` (`THEMES`, `THEME_IDS`, `isThemeId`, `regimeOf`) is the UI source of truth and MUST stay in sync with the themes folder. Adding a regime means: new CSS file + new barrel line + new registry entry + new `app.html` whitelist entry.
+- **Default Regime:** `midnight` owns the bare `:root` selector as the no-JS / pre-hydration fallback.
+- **Persistence:**
+  - Active regime persisted under `swisd-theme` in `localStorage`.
+  - Last dark regime persisted under `swisd-theme-dark` so the shell's quick-flip restores it when flipping back from light.
+  - `app.html` whitelists known ids and migrates legacy `dark`/`light` values before first paint (zero flash).
+- **Shared Reactive Store:** `lib/theme.svelte.ts` exports `themeStore`, the single client-side source of truth consumed by both `ThemeToggle` (shell quick-flip) and `/settings` (gallery). Never duplicate theme state in feature components.
+- **Primitive Ignorance:** Primitives never check the active regime. They consume tokens, which resolve to the active regime's values via `@theme inline`.
 
 ## 6. The `tailwind-merge` / `cn()` Prohibition
 

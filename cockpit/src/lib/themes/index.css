@@ -1,0 +1,11 @@
+/*
+1. Relative path: cockpit/src/lib/themes/index.css
+2. Description: CSS barrel for the regime folder; the single import surface for all theme files.
+3. Expects: Sibling theme files midnight.css, daylight.css, cyberdeck.css, ultraviolet.css.
+4. Provides: One-step @import for layout.css. Registering a new regime = one line here.
+*/
+
+@import './midnight.css';
+@import './daylight.css';
+@import './cyberdeck.css';
+@import './ultraviolet.css';

@@ -1,37 +1,22 @@
 <!--
 1. Relative path: cockpit/src/routes/+layout.svelte
 2. Description: Global Conductor Cockpit layout shell, stylesheet loader, and theme regime controller.
-3. Expects: SvelteKit child route content; theme persisted as 'swisd-theme' in localStorage.
-4. Provides: Global theme import, [data-theme] propagation, responsive navigation shell, and the ThemeToggle.
+3. Expects: SvelteKit child route content; theme persisted per device in localStorage.
+4. Provides: Global theme import, [data-theme] propagation, responsive navigation shell, and the regime quick-flip.
 -->
 
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import './layout.css';
   import { Icon, ThemeToggle } from '$lib/components/ui';
-  import type { Theme } from '$lib/components/ui/ThemeToggle.svelte';
+  import { themeStore } from '$lib';
 
   let { children }: { children: Snippet } = $props();
 
-  let theme = $state<Theme>('dark');
-
   // Adopt the regime applied pre-paint by app.html (client-only, runs once).
   $effect(() => {
-    const initial = document.documentElement.dataset.theme;
-    if (initial === 'light' || initial === 'dark') {
-      theme = initial;
-    }
+    themeStore.adopt();
   });
-
-  function setTheme(next: Theme): void {
-    theme = next;
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem('swisd-theme', next);
-    } catch {
-      /* Storage unavailable (private mode) — regime stays session-only. */
-    }
-  }
 </script>
 
 <div class="flex min-h-screen bg-bg text-text-1">
@@ -52,11 +37,15 @@
         <Icon name="palette" size="sm" aria-hidden={true} />
         Design
       </a>
+      <a href="/settings" class="flex items-center gap-3 rounded-md px-4 py-2 text-text-2 transition-colors hover:bg-surface-2 hover:text-text-1">
+        <Icon name="tune" size="sm" aria-hidden={true} />
+        Settings
+      </a>
     </nav>
 
-    <!-- THEME CONTROL -->
+    <!-- REGIME QUICK-FLIP -->
     <div class="mt-auto pt-8">
-      <ThemeToggle theme={theme} ontoggle={setTheme} />
+      <ThemeToggle regime={themeStore.regime} ontoggle={(next) => themeStore.flipRegime(next)} />
     </div>
   </aside>
 

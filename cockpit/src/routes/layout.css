@@ -1,8 +1,8 @@
 /*
 1. Relative path: cockpit/src/routes/layout.css
-2. Description: Central theme source of truth for the SwISD Conductor Cockpit. Dual-regime tokens: dark (default) and light, switched via [data-theme] on <html>.
-3. Expects: To be imported globally by ./+layout.svelte. A pre-hydration script in app.html sets data-theme before first paint. Fonts bundled locally via Vite.
-4. Provides: CSS custom properties (tokens) for both regimes, Tailwind theme projection, and layered base/component styles. CASCADE LAYER DOCTRINE: no unlayered element styles; borders are transparent in every regime.
+2. Description: Theme conductor for the SwISD Conductor Cockpit. Imports regime files from ./themes/ and owns shared tokens, Tailwind projection, and layered base/component styles.
+3. Expects: To be imported globally by ./+layout.svelte. A pre-hydration script in app.html sets [data-theme] before first paint. Fonts bundled locally via Vite.
+4. Provides: Shared (regime-independent) tokens, @theme inline projection, and layered base/component styles. Regime tokens live exclusively in ./themes/*.css.
 */
 
 @import 'tailwindcss';
@@ -18,19 +18,19 @@
 
 @import '@fontsource/vt323/400.css';
 
-/* Vite resolves the variable font package to its main index.css and bundles the woff2 */
 @import '@fontsource-variable/material-symbols-rounded';
+
+/* === REGIMES (bundled at build time; switched via [data-theme] at runtime) === */
+@import '../lib/themes/index.css';
 
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
-/* Lock Tailwind's numeric spacing scale to the 4px token grid. */
 @theme {
   --spacing: 4px;
 }
 
-/* Project SwISD tokens into Tailwind utilities. Values are var() references,
-   so every utility follows the active regime automatically. */
+/* Utilities reference var(), so every utility follows the active regime. */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -65,58 +65,8 @@
   --text-2xl: var(--font-size-2xl);
 }
 
-/* ==========================================================================
-   REGIME: DARK (default) — deep violet-blue night, solid slabs, no hairlines
-   ========================================================================== */
+/* === SHARED TOKENS (regime-independent) === */
 :root {
-  color-scheme: dark;
-
-  /* === SURFACES === */
-  --bg: #0c0a1a;
-  --surface: #171330;
-  --surface-2: #1f193e;
-  --surface-3: #2a2350;
-
-  /* === BORDERS (truly invisible; separation is surface mass) === */
-  --border: transparent;
-  --border-strong: transparent;
-
-  /* === TEXT === */
-  --text-1: #f1eefb;
-  --text-2: #a6a0c8;
-  --text-3: #6e679a;
-
-  /* === ACCENTS (raspberry lead burning toward light orange) === */
-  --accent: #f22d63;
-  --accent-warm: #ff8a4a;
-  --accent-fill: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
-  --on-accent: #2b0512;
-  --accent-2: #46a6f0;
-  --on-accent-2: #05233a;
-
-  /* === SEMANTIC === */
-  --live: #2fc7cf;
-  --warn: #ffb020;
-  --danger: #ff4a3d;
-  --on-danger: #ffffff;
-
-  /* === ELEVATION, TINTS & GLOWS === */
-  --shadow-1: none;
-  --shadow-2: 0 0 24px rgba(242, 45, 99, 0.18);
-  --tint-accent: rgba(242, 45, 99, 0.06);
-  --tint-accent-2: rgba(70, 166, 240, 0.1);
-  --tint-live: rgba(47, 199, 207, 0.03);
-  --tint-danger: rgba(255, 74, 61, 0.12);
-  --scrim: rgba(6, 4, 16, 0.6);
-  --scrim-soft: rgba(6, 4, 16, 0.45);
-  --glow-accent: 0 0 18px rgba(242, 45, 99, 0.35), 0 0 28px rgba(255, 138, 74, 0.25);
-  --glow-accent-wide: 0 0 40px rgba(242, 45, 99, 0.2);
-  --glow-accent-2: 0 0 16px rgba(70, 166, 240, 0.35);
-  --glow-danger: 0 0 16px rgba(255, 74, 61, 0.4);
-  --glow-live-text: 0 0 14px rgba(47, 199, 207, 0.5);
-  --glow-field: 0 0 0 1px var(--accent-2), 0 0 16px rgba(70, 166, 240, 0.25);
-
-  /* === SHARED TOKENS (regime-independent) === */
   --r-sm: 2px;
   --r-md: 4px;
   --r-lg: 6px;
@@ -148,8 +98,6 @@
   --max-w: 1440px;
   --max-w-prose: 42rem;
   --grid-size: 34px;
-  --grid-line: transparent;
-  --scanline-color: transparent;
   --scanline-height: 3px;
   --line-hairline: 1px;
 
@@ -161,58 +109,6 @@
   --focus-ring-offset: 2px;
   --scrollbar-size: 10px;
   --scrollbar-thumb-border-width: 2px;
-}
-
-/* ==========================================================================
-   REGIME: LIGHT — cold lavender daylight, same lead, contrast-tuned
-   ========================================================================== */
-:root[data-theme='light'] {
-  color-scheme: light;
-
-  /* === SURFACES (white slabs on lavender void) === */
-  --bg: #f2effa;
-  --surface: #ffffff;
-  --surface-2: #ece7f9;
-  --surface-3: #ddd5f0;
-
-  /* === BORDERS (still truly invisible) === */
-  --border: transparent;
-  --border-strong: transparent;
-
-  /* === TEXT (violet ink) === */
-  --text-1: #17122b;
-  --text-2: #5a5478;
-  --text-3: #8b86a6;
-
-  /* === ACCENTS (darkened for light-ground contrast) === */
-  --accent: #d81b56;
-  --accent-warm: #e05a10;
-  --accent-fill: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
-  --on-accent: #ffffff;
-  --accent-2: #1273c4;
-  --on-accent-2: #ffffff;
-
-  /* === SEMANTIC === */
-  --live: #0f8b94;
-  --warn: #9c6400;
-  --danger: #d42a2a;
-  --on-danger: #ffffff;
-
-  /* === ELEVATION, TINTS & GLOWS (soft daylight shadows) === */
-  --shadow-1: none;
-  --shadow-2: 0 10px 30px rgba(23, 18, 43, 0.1);
-  --tint-accent: rgba(216, 27, 86, 0.06);
-  --tint-accent-2: rgba(18, 115, 196, 0.08);
-  --tint-live: rgba(15, 139, 148, 0.07);
-  --tint-danger: rgba(212, 42, 42, 0.08);
-  --scrim: rgba(23, 18, 43, 0.45);
-  --scrim-soft: rgba(23, 18, 43, 0.3);
-  --glow-accent: 0 0 14px rgba(216, 27, 86, 0.25), 0 0 22px rgba(224, 90, 16, 0.18);
-  --glow-accent-wide: 0 12px 40px rgba(216, 27, 86, 0.18);
-  --glow-accent-2: 0 0 12px rgba(18, 115, 196, 0.25);
-  --glow-danger: 0 0 12px rgba(212, 42, 42, 0.3);
-  --glow-live-text: none;
-  --glow-field: 0 0 0 1px var(--accent-2), 0 0 10px rgba(18, 115, 196, 0.18);
 }
 
 /* === BASE (layered so utilities always win) === */
@@ -254,7 +150,6 @@
     outline-offset: var(--focus-ring-offset);
   }
 
-  /* === SCROLLBAR === */
   ::-webkit-scrollbar { width: var(--scrollbar-size); height: var(--scrollbar-size); }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb {
@@ -268,10 +163,8 @@
 @layer components {
   .mono { font-family: var(--font-family-mono); }
   .fx { font-family: var(--font-family-fx); }
-
   .fill-accent { background: var(--accent-fill); }
 
-  /* === MATERIAL SYMBOLS === */
   .mi {
     font-family: 'Material Symbols Rounded Variable', 'Material Symbols Rounded', sans-serif;
     font-weight: normal;
@@ -296,7 +189,6 @@
   .mi--lg { font-size: var(--icon-size-lg); }
 }
 
-/* === ANIMATIONS (layer-agnostic) === */
 @keyframes breathe {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
@@ -308,6 +200,6 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: var(--glow-live-sm, 0 0 8px var(--live)); }
-  50% { box-shadow: var(--glow-live-md, 0 0 16px var(--live), 0 0 24px var(--live)); }
+  0%, 100% { box-shadow: 0 0 8px var(--live); }
+  50% { box-shadow: 0 0 16px var(--live), 0 0 24px var(--live); }
 }

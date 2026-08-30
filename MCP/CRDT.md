@@ -4,6 +4,7 @@
 3. Expects: Strict adherence to join-semilattice properties and domain-separated hashing.
 4. Provides: Formal proofs of convergence, concrete type mappings, and anti-entropy sync mechanics.
 -->
+
 # CRDT & Merkle-DAG Mathematical Foundation
 
 ## CRDT: The Join-Semilattice

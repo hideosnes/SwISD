@@ -1,23 +1,23 @@
 <!--
 1. Relative path: cockpit/src/lib/components/ui/ThemeToggle.svelte
-2. Description: Accessible light/dark regime switch primitive.
-3. Expects: The active theme ('light' | 'dark') and a typed toggle callback.
+2. Description: Accessible light/dark regime quick-flip primitive.
+3. Expects: The active regime ('light' | 'dark') and a typed toggle callback.
 4. Provides: A token-styled switch with visible state label, full keyboard and ARIA switch semantics.
 -->
 
 <script lang="ts">
-  export type Theme = 'light' | 'dark';
+  import type { Regime } from '$lib';
 
   let {
-    theme,
+    regime,
     ontoggle
   }: {
-    theme: Theme;
-    ontoggle: (next: Theme) => void;
+    regime: Regime;
+    ontoggle: (next: Regime) => void;
   } = $props();
 
   function handleToggle(): void {
-    ontoggle(theme === 'dark' ? 'light' : 'dark');
+    ontoggle(regime === 'dark' ? 'light' : 'dark');
   }
 </script>
 
@@ -25,13 +25,13 @@
   type="button"
   class="toggle"
   role="switch"
-  aria-checked={theme === 'dark'}
+  aria-checked={regime === 'dark'}
   onclick={handleToggle}
 >
   <span class="toggle-track" aria-hidden="true">
-    <span class="toggle-thumb" class:toggle-thumb--dark={theme === 'dark'}></span>
+    <span class="toggle-thumb" class:toggle-thumb--dark={regime === 'dark'}></span>
   </span>
-  <span class="toggle-label mono">{theme === 'dark' ? 'DARK' : 'LIGHT'}</span>
+  <span class="toggle-label mono">{regime === 'dark' ? 'DARK' : 'LIGHT'}</span>
 </button>
 
 <style>

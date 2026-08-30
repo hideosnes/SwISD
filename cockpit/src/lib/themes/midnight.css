@@ -1,0 +1,52 @@
+/*
+1. Relative path: cockpit/src/lib/themes/midnight.css
+2. Description: Default regime — deep violet-blue night, raspberry-to-ember lead, borderless slabs.
+3. Expects: To be imported by ../layout.css. Applies via [data-theme='midnight'] or absence of the attribute.
+4. Provides: The complete theme-dependent token set for the Midnight Violet regime, scopeable to any subtree.
+*/
+
+:root,
+[data-theme='midnight'] {
+  color-scheme: dark;
+
+  --bg: #0c0a1a;
+  --surface: #171330;
+  --surface-2: #1f193e;
+  --surface-3: #2a2350;
+
+  --border: transparent;
+  --border-strong: transparent;
+
+  --text-1: #f1eefb;
+  --text-2: #a6a0c8;
+  --text-3: #6e679a;
+
+  --accent: #f22d63;
+  --accent-warm: #ff8a4a;
+  --accent-fill: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
+  --on-accent: #2b0512;
+  --accent-2: #46a6f0;
+  --on-accent-2: #05233a;
+
+  --live: #2fc7cf;
+  --warn: #ffb020;
+  --danger: #ff4a3d;
+  --on-danger: #ffffff;
+
+  --shadow-2: 0 0 24px rgba(242, 45, 99, 0.18);
+  --tint-accent: rgba(242, 45, 99, 0.06);
+  --tint-accent-2: rgba(70, 166, 240, 0.1);
+  --tint-live: rgba(47, 199, 207, 0.03);
+  --tint-danger: rgba(255, 74, 61, 0.12);
+  --scrim: rgba(6, 4, 16, 0.6);
+  --scrim-soft: rgba(6, 4, 16, 0.45);
+  --glow-accent: 0 0 18px rgba(242, 45, 99, 0.35), 0 0 28px rgba(255, 138, 74, 0.25);
+  --glow-accent-wide: 0 0 40px rgba(242, 45, 99, 0.2);
+  --glow-accent-2: 0 0 16px rgba(70, 166, 240, 0.35);
+  --glow-danger: 0 0 16px rgba(255, 74, 61, 0.4);
+  --glow-live-text: 0 0 14px rgba(47, 199, 207, 0.5);
+  --glow-field: 0 0 0 1px var(--accent-2), 0 0 16px rgba(70, 166, 240, 0.25);
+
+  --grid-line: transparent;
+  --scanline-color: transparent;
+}
