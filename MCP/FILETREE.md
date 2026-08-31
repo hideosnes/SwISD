@@ -4,10 +4,12 @@
 3. Expects: To be pasted into new context windows to instantly restore the architect's spatial awareness.
 4. Provides: A strictly enforced, barrel-governed directory tree with module responsibilities.
 -->
-SwISD Architectural Filetree
+# SwISD Architectural Filetree
 Legend: every folder is a module with an `index.ts` barrel; imports travel through barrels only, max one step deep.
 Files marked `⏳ planned` are locked backlog decisions that do not exist on disk yet.
-Core Application (`src/`)
+
+## Core Application (`src/`)
+
 src/
 ├── admin/                 # Local HTTP JSON API for observability (Headless)
 │   ├── index.ts           # Barrel export
@@ -92,17 +94,19 @@ src/
 ├── index.ts               # Main application entrypoint (Headless Node)  & future public npm API boundary
 ├── types.ts               # Global shared types, interfaces, and type guards
 └── utils.ts               # Pure, side-effect-free utility functions
-Conductor Cockpit (`cockpit/`)
+
+## Conductor Cockpit (`cockpit/`)
+
 cockpit/
 ├── src/
 │   ├── lib/
 │   │   ├── components/
 │   │   │   ├── ui/                       # Primitive Source of Truth (Button, Card, StatusPill,
-│   │   │   │                              #   SwarmPulse, ProgressRing, ProgressBar, Modal, Drawer,
+│   │   │   │                             #   SwarmPulse, ProgressRing, ProgressBar, Modal, Drawer,
 │   │   │   │                             #   TextField, Icon, Stat, EmptyState, PageShell, Panel,
-│   │   │    │                             #   ThemeToggle, Tabs, Badge)
+│   │   │   │                             #   ThemeToggle, Tabs, Badge)
 │   │   │   │   └── index.ts              # Barrel export for UI primitives
-│   │   │   ├── datavis/                   # Data visualisation Source of Truth (expanded below)
+│   │   │   ├── datavis/                  # Data visualisation Source of Truth (expanded below)
 │   │   │   │   └── index.ts              # Barrel export for datavis primitives
 │   │   │   ├── CommandQueue.svelte       #  Operator action queue (composes ui/Drawer, trust approvals)
 │   │   │   ├── DiscoveryPanel.svelte     # mDNS node visualization
@@ -172,7 +176,9 @@ cockpit/src/lib/components/datavis/
 ├── index.ts                # Barrel export
 ├── Sparkline.svelte        # STAGE / ENGINE ROOM drill-downs
 └── Gauge.svelte            # Load score visualization
-Tooling, CI & Delivery Assets (Root Level)
+
+## Tooling, CI & Delivery Assets (Root Level)
+
 .github/
 └── workflows/
 └── release.yml             # CI/CD: triggers on v* tags or manual dispatch
@@ -182,7 +188,9 @@ systemd/                        # Service templates for the Pi delivery image
 ├── swisd-app.service           # Strict isolation, Restart=always
 ├── swisd-provision.service     # One-shot USB provision application
 └── swisd-supervisor.service    # Pinned supervisor, decoupled watchdog
-Context & Standards (Root)
+
+## Context & Standards (Root)
+
 root/
 ├── BACKLOG.md             # Strategic roadmap & locked decisions
 ├── CRDT.md                # Mathematical foundation (Join-semilattices)

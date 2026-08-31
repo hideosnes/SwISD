@@ -11,14 +11,15 @@ export const GET: RequestHandler = async ({ locals }) => {
   const processInfo = locals.coreSource.getProcessInfo();
   const peerInfos = locals.coreSource.getPeerInfo();
 
-  const peers: TopologyPeerInput[] = peerInfos.map((p) => ({
+  const peers: ReadonlyArray<TopologyPeerInput> = peerInfos.map((p) => ({
     peerId: p.peerId,
     trustState: p.trustState,
     discoveredAt: p.discoveredAt,
-    lastSeenAt: p.trustedAt, // Proxy for lastSeen until gossip telemetry is wired
+    lastSeenAt: p.trustedAt,
     source: p.source,
-    capabilities: [],       // TODO: Wire to gossiped CapabilityManifests
-    loadScore: null,        // TODO: Wire to gossiped LoadScores
+    // FIXED: Branded ExecutorSignature[] requires unknown intermediary at the BFF serialization boundary
+    capabilities: (p.capabilities ?? []) as unknown as ReadonlyArray<string>,
+    loadScore: p.loadScore,
     activeTaskCount: null,
   }));
 

@@ -5,10 +5,10 @@
 4. Provides: A dense, technical dashboard of the Conductor's local state and swarm bottlenecks.
 -->
 <script lang="ts">
-  import type { ObservabilitySnapshot } from '$core/observability/index.js';
+  import type { SwarmSnapshot } from '$core/observability/index.js';
   import { Card, Stat, Panel } from '$lib/components/ui/index.js';
 
-  let { snapshot }: { snapshot: ObservabilitySnapshot } = $props();
+  let { snapshot }: { snapshot: SwarmSnapshot } = $props();
   
   const loadPercent = $derived((snapshot.load.loadScore * 100).toFixed(1));
 </script>

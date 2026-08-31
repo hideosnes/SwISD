@@ -170,7 +170,9 @@ export function createDevObservabilitySource(
         trustState: p.state,
         discoveredAt: p.discoveredAt,
         trustedAt: p.trustedAt,
-        source: p.source,
+        source: p.source === 'usb' ? 'manual' : (p.source as 'mdns' | 'genesis'), // Map legacy dev sources
+        loadScore: null, // Dev source doesn't track remote peer load
+        capabilities: null, // Dev source doesn't track remote capabilities yet
       }));
     },
   };

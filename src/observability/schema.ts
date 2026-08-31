@@ -3,7 +3,8 @@
 // 3. Expects: Runtime state providers and typed event payloads.
 // 4. Provides: Exhaustive observability contracts for snapshots, events, and source adapters.
 
-import type { LoadScore, PeerRole, PeerTrustState, UpdateStatus } from '../types.js';
+import type { LoadScore, PeerRole, UpdateStatus } from '../types.js';
+import type { ExecutorSignature } from '../tasks/index.js';
 
 export type ObservabilityEventLevel = 'info' | 'warn' | 'error';
 
@@ -16,7 +17,10 @@ export type ObservabilityEventTopic =
   | 'gossip'
   | 'load'
   | 'delivery'
-  | 'observability';
+  | 'observability'
+  | 'system'
+  | 'performance'
+  | 'trust';
 
 export type ObservabilityEventDetails = Readonly<Record<string, string | number | boolean | null>>;
 
@@ -98,16 +102,21 @@ export interface ObservabilityDeliveryInfo {
   readonly rollbackReason: string | null;
 }
 
+export type ObservabilityPeerTrustState = 'pending' | 'trusted' | 'rejected';
+export type ObservabilityPeerSource = 'mdns' | 'genesis' | 'manual' | 'replay';
+
 export interface ObservabilityPeerInfo {
-  readonly peerId: string;
-  readonly trustState: PeerTrustState;
+  readonly peerId: string; // HexId
+  readonly trustState: ObservabilityPeerTrustState;
   readonly discoveredAt: number;
   readonly trustedAt: number | null;
-  readonly source: string;
+  readonly source: ObservabilityPeerSource;
+  readonly loadScore: number | null; 
+  readonly capabilities: ReadonlyArray<ExecutorSignature> | null; 
 }
 
-export interface ObservabilitySnapshot {
-  readonly generatedAt: number;
+export interface SwarmSnapshot {
+  readonly timestamp: number;
   readonly process: ObservabilityProcessInfo;
   readonly network: ObservabilityNetworkInfo;
   readonly load: ObservabilityLoadInfo;
@@ -116,6 +125,7 @@ export interface ObservabilitySnapshot {
   readonly delivery: ObservabilityDeliveryInfo;
   readonly peers: ReadonlyArray<ObservabilityPeerInfo>;
   readonly recentEvents: ReadonlyArray<ObservabilityEvent>;
+  readonly source: 'live' | 'replay'; // Honesty gate for the UI
 }
 
 export interface ObservabilitySource {

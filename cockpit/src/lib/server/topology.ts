@@ -73,7 +73,6 @@ export function buildSwarmTopology(input: TopologyBuildInput): SwarmTopologyDTO 
     if (peer.peerId.length === 0) {
       throw new TypeError('peerId must be a non-empty string');
     }
-    // The conductor renders as the center node and never as an orbit peer.
     if (peer.peerId === input.conductorPeerId) continue;
 
     const existing = deduped.get(peer.peerId);

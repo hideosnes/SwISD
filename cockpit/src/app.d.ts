@@ -1,26 +1,26 @@
 // 1. Relative path: cockpit/src/app.d.ts
-// 2. Description: Global type declarations for SvelteKit, extending the default locals with the SwISD core context.
-// 3. Expects: SvelteKit's default App namespace.
-// 4. Provides: Strict typing for `event.locals`.
+// 2. Description: SvelteKit Locals typing for the Core Bridge.
+// 3. Expects: SvelteKit App types.
+// 4. Provides: Strict typing for event.locals injected by hooks.server.ts.
 
-import type { ObservabilitySource, ObservabilityEventBus } from '$core/observability/index.js';
+import type { ObservabilitySource, ObservabilityEventBus, ScenarioEngine } from '$core/observability/index.js';
 import type { TrustRegistry } from '$core/peer/index.js';
 import type { ModelRegistry, ApprovalGate, ModelDownloader, ModelManager } from '$core/models/index.js';
 
 declare global {
   namespace App {
     interface Locals {
-      readonly coreSource: ObservabilitySource;
-      readonly eventBus: ObservabilityEventBus;
-      readonly trustRegistry: TrustRegistry;
-      readonly modelRegistry: ModelRegistry;
-      readonly approvalGate: ApprovalGate;
-      readonly modelDownloader: ModelDownloader;
-      readonly modelManager: ModelManager;
+      coreSource: ObservabilitySource;
+      eventBus: ObservabilityEventBus;
+      trustRegistry: TrustRegistry;
+      modelRegistry: ModelRegistry;
+      approvalGate: ApprovalGate;
+      modelDownloader: ModelDownloader;
+      modelManager: ModelManager;
+      isReplay: boolean;
+      replayEngine: ScenarioEngine | null;
     }
-    interface Error { readonly code?: string; }
-    interface PageData {}
-    interface Platform {}
   }
 }
+
 export {};

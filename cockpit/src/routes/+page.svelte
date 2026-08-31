@@ -5,10 +5,10 @@
 4. Provides: A real-time, accessible, and strictly themed view of the swarm.
 -->
 <script lang="ts">
-  import type { ObservabilitySnapshot } from '$core/observability/index.js';
+  import type { SwarmSnapshot } from '$core/observability/index.js';
   import type { SwarmTopologyDTO } from '$lib/server/index.js';
   import { TopologyCanvas } from '$lib/components/datavis/index.js';
-  import { Badge, Button, Card, EmptyState, Modal, PageShell, Stat, Tabs, type TabDefinition } from '$lib/components/ui/index.js';
+  import { Badge, Button, Card, EmptyState, Modal, PageShell, Stat, StatusPill, Tabs, type TabDefinition } from '$lib/components/ui/index.js';
   import { isPinned, togglePin } from '$lib/pins.svelte.js';
 
   import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
@@ -18,7 +18,7 @@
   import SwarmSidebar from '$lib/components/SwarmSidebar.svelte';
   import CommandQueue from '$lib/components/CommandQueue.svelte';
 
-  let snapshot = $state<ObservabilitySnapshot | null>(null);
+  let snapshot = $state<SwarmSnapshot | null>(null);
   let topology = $state<SwarmTopologyDTO | null>(null);
   let selectedPeerId = $state<string | null>(null);
   let telemetryError = $state<string | null>(null);
@@ -29,6 +29,10 @@
 
   const pendingPeers = $derived(
     topology?.peers.filter((peer) => peer.trustState === 'pending') ?? [],
+  );
+
+  const isGenesis = $derived(
+    topology !== null && topology.peers.length === 0 && !telemetryError
   );
 
   const tabDefinitions: ReadonlyArray<TabDefinition> = [
@@ -47,7 +51,7 @@
         throw new Error(`Telemetry unavailable (${snapRes.status}/${topoRes.status})`);
       }
 
-      snapshot = await snapRes.json() as ObservabilitySnapshot;
+      snapshot = await snapRes.json() as SwarmSnapshot;
       topology = await topoRes.json() as SwarmTopologyDTO;
       telemetryError = null;
     } catch (err) {
@@ -90,7 +94,12 @@
 
 <PageShell>
   <header class="mb-8 flex items-center justify-between">
-    <h1 class="text-3xl font-bold" style="color: var(--accent);">Conductor Cockpit</h1>
+    <div class="flex items-center gap-4">
+      <h1 class="text-3xl font-bold" style="color: var(--accent);">Conductor Cockpit</h1>
+      {#if snapshot?.source === 'replay'}
+        <StatusPill status="warn" label="REPLAY" />
+      {/if}
+    </div>
     <Button
       onclick={() => queueOpen = true}
       aria-label="Open command queue, {pendingPeers.length} pending actions"
@@ -104,52 +113,60 @@
     <Card title="Connection Error">
       <p style="color: var(--danger, #ef4444);">{telemetryError}</p>
     </Card>
-  {/if}
-
-  {#if snapshot && topology}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <Card title="Swarm Overview">
-        <Stat label="Swarm Size" value={topology.swarmSize.toString()} />
-        <Stat label="Pending Trust" value={topology.ghostCount.toString()} />
-      </Card>
-      <Card title="Conductor Load">
-        <Stat label="Local Load" value={`${(snapshot.load.loadScore * 100).toFixed(1)}%`} />
-        <Stat label="Backpressure" value={snapshot.load.backpressureState.toUpperCase()} />
-      </Card>
-      <Card title="Delivery Status">
-        <Stat label="Supervisor" value={snapshot.delivery.supervisorPresent ? 'ONLINE' : 'OFFLINE'} />
-        <Stat label="Heartbeat" value={snapshot.delivery.heartbeatOk ? 'OK' : 'STALE'} />
-      </Card>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-      <div class="lg:col-span-2 aspect-square min-h-[400px]">
-        <TopologyCanvas {topology} onPeerClick={(id) => selectedPeerId = id} />
+  {:else if snapshot && topology}
+    <div class="dashboard-grid" class:genesis-inactive={isGenesis}>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card title="Swarm Overview">
+          <Stat label="Swarm Size" value={topology.swarmSize.toString()} />
+          <Stat label="Pending Trust" value={topology.ghostCount.toString()} />
+        </Card>
+        <Card title="Conductor Load">
+          <Stat label="Local Load" value={`${(snapshot.load.loadScore * 100).toFixed(1)}%`} />
+          <Stat label="Backpressure" value={snapshot.load.backpressureState.toUpperCase()} />
+        </Card>
+        <Card title="Delivery Status">
+          <Stat label="Supervisor" value={snapshot.delivery.supervisorPresent ? 'ONLINE' : 'OFFLINE'} />
+          <Stat label="Heartbeat" value={snapshot.delivery.heartbeatOk ? 'OK' : 'STALE'} />
+        </Card>
       </div>
 
-      <div class="space-y-6">
-        <SwarmSidebar
-          peers={topology.peers}
-          events={snapshot.recentEvents}
-          onSelectPeer={(id) => selectedPeerId = id}
-        />
-        <DiscoveryPanel />
-        <!-- Transitional: PendingTrustPanel stays until CommandQueue proves itself in the field. -->
-        <PendingTrustPanel />
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 aspect-square min-h-[400px]">
+          <TopologyCanvas {topology} onPeerClick={(id) => selectedPeerId = id} />
+        </div>
+
+        <div class="space-y-6">
+          <SwarmSidebar
+            peers={topology.peers}
+            events={snapshot.recentEvents}
+            onSelectPeer={(id) => selectedPeerId = id}
+          />
+          <DiscoveryPanel />
+          <PendingTrustPanel />
+        </div>
       </div>
+
+      <Tabs tabs={tabDefinitions} bind:activeTab>
+        {#snippet content(tabId: string)}
+          {#if tabId === 'stage' && topology}
+            <StageView {topology} />
+          {:else if tabId === 'engine' && snapshot}
+            <EngineRoomView {snapshot} />
+          {/if}
+        {/snippet}
+      </Tabs>
     </div>
 
-    <Tabs tabs={tabDefinitions} bind:activeTab>
-      {#snippet content(tabId: string)}
-        {#if tabId === 'stage' && topology}
-          <StageView {topology} />
-        {:else if tabId === 'engine' && snapshot}
-          <EngineRoomView {snapshot} />
-        {/if}
-      {/snippet}
-    </Tabs>
-
-  {:else if !telemetryError}
+    {#if isGenesis}
+      <div class="genesis-overlay" role="alert" aria-live="polite">
+        <div class="genesis-content">
+          <div class="genesis-spinner" aria-label="Searching for swarm"></div>
+          <h2 class="text-2xl font-bold mt-6" style="color: var(--text-muted, var(--text));">Searching for swarm...</h2>
+          <p class="mt-2 text-center" style="color: var(--text-muted, var(--text));">The cockpit will wake up when the first peer connects.</p>
+        </div>
+      </div>
+    {/if}
+  {:else}
     <EmptyState title="Connecting to swarm..." icon="swarm" />
   {/if}
 
@@ -174,3 +191,42 @@
     onReject={(id) => void decideTrust(id, 'reject')}
   />
 </PageShell>
+
+<style>
+  @layer components {
+    .dashboard-grid {
+      transition: filter 0.5s ease, opacity 0.5s ease;
+    }
+    .genesis-inactive {
+      filter: grayscale(100%) blur(2px);
+      opacity: 0.3;
+      pointer-events: none;
+      user-select: none;
+    }
+    .genesis-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: auto;
+    }
+    .genesis-content {
+      text-align: center;
+      padding: 2rem;
+    }
+    .genesis-spinner {
+      width: 64px;
+      height: 64px;
+      border: 4px solid var(--border, transparent);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1.5s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  }
+</style>
