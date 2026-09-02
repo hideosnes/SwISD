@@ -32,11 +32,10 @@ let replayEngine: ScenarioEngine | null = null;
 
 if (isReplay && replayId) {
   const speed = parseFloat(process.env.SWISD_REPLAY_SPEED ?? '1');
-  replayEngine = createScenarioEngine(replayId, speed);
+  replayEngine = createScenarioEngine(replayId, speed, eventBus);
   coreSource = replayEngine;
   trustRegistry = replayEngine.trustRegistry;
   
-  // Advance the scenario clock by 250ms wall-time intervals
   const replayTimer = setInterval(() => replayEngine!.tick(250), 250);
   replayTimer.unref();
 } else {
@@ -47,7 +46,6 @@ if (isReplay && replayId) {
     eventBus
   );
   
-  // Live mode only: start mDNS discovery and dev source heartbeat
   startCockpitDiscovery(trustRegistry);
   
   const obsTimer = setInterval(() => devSource.tick(), 5000);
@@ -56,7 +54,6 @@ if (isReplay && replayId) {
   coreSource = devSource;
 }
 
-// P4 Singletons (Model machinery remains active even in replay for UI completeness)
 const modelRegistry = new ModelRegistry(deliveryRoot);
 await modelRegistry.load();
 

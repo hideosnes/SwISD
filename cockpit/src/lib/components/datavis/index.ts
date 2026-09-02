@@ -22,3 +22,4 @@ export { default as TopologyCanvas } from './topology/TopologyCanvas.svelte';
 export { default as SwarmNode } from './topology/SwarmNode.svelte';
 export { default as GhostNode } from './topology/GhostNode.svelte';
 export { default as TrustRing } from './topology/TrustRing.svelte';
+export { default as TopologyAnatomyBench } from './topology/TopologyAnatomyBench.svelte';

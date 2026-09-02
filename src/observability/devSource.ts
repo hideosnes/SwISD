@@ -19,6 +19,8 @@ import type {
   ObservabilityProcessInfo,
   ObservabilitySource,
   ObservabilityTaskInfo,
+  DeviceType,
+  ModalityCode,
 } from './schema.js';
 
 export interface DevObservabilitySourceConfig {
@@ -170,9 +172,11 @@ export function createDevObservabilitySource(
         trustState: p.state,
         discoveredAt: p.discoveredAt,
         trustedAt: p.trustedAt,
-        source: p.source === 'usb' ? 'manual' : (p.source as 'mdns' | 'genesis'), // Map legacy dev sources
-        loadScore: null, // Dev source doesn't track remote peer load
-        capabilities: null, // Dev source doesn't track remote capabilities yet
+        source: p.source === 'usb' ? 'manual' : (p.source as 'mdns' | 'genesis'),
+        loadScore: null,
+        capabilities: null,
+        deviceType: 'unknown', // Live mode: peers self-report, default to unknown
+        modalities: [], // Live mode: derived from loaded models (Phase B TODO)
       }));
     },
   };

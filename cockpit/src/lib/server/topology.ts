@@ -1,7 +1,9 @@
 // 1. Relative path: cockpit/src/lib/server/topology.ts
-// 2. Description: BFF-owned DTO contract and pure builder for the swarm topology graph consumed by the Conductor Cockpit datavis layer. Aggregates trust state, discovery metadata, and gossiped telemetry into a UI-ready shape without leaking core internals.
-// 3. Expects: Plain cockpit-owned input records, mapped by the API route from the core TrustRegistry, discovery layer, and gossiped control ledger.
-// 4. Provides: SwarmTopologyDTO contract and the deterministic buildSwarmTopology() builder.
+// 2. Description: BFF-owned DTO contract and pure builder for the swarm topology graph.
+// 3. Expects: Plain cockpit-owned input records from the core ObservabilitySource.
+// 4. Provides: SwarmTopologyDTO contract with device type and modality encoding.
+
+import type { DeviceType, ModalityCode } from '$lib/components/datavis/types.js';
 
 export type TopologyTrustState = 'pending' | 'trusted' | 'rejected';
 
@@ -14,6 +16,8 @@ export interface TopologyPeerInput {
   readonly capabilities: ReadonlyArray<string>;
   readonly loadScore: number | null;
   readonly activeTaskCount: number | null;
+  readonly deviceType: DeviceType;
+  readonly modalities: ReadonlyArray<ModalityCode>;
 }
 
 export interface TopologyBuildInput {
@@ -31,6 +35,8 @@ export interface TopologyPeerDTO {
   readonly capabilities: ReadonlyArray<string>;
   readonly loadScore: number | null;
   readonly activeTaskCount: number | null;
+  readonly deviceType: DeviceType;
+  readonly modalities: ReadonlyArray<ModalityCode>;
 }
 
 export interface SwarmTopologyDTO {
@@ -91,6 +97,8 @@ export function buildSwarmTopology(input: TopologyBuildInput): SwarmTopologyDTO 
       capabilities: [...peer.capabilities],
       loadScore: sanitizeLoadScore(peer.loadScore),
       activeTaskCount: sanitizeCount(peer.activeTaskCount),
+      deviceType: peer.deviceType,
+      modalities: [...peer.modalities],
     }))
     .sort(comparePeerId);
 

@@ -20,3 +20,4 @@ export { default as Panel } from './Panel.svelte';
 export { default as ThemeToggle } from './ThemeToggle.svelte';
 export { default as Tabs, type TabDefinition } from './Tabs.svelte';
 export { default as Badge } from './Badge.svelte';
+export { default as ContextMenu, type ContextMenuItem } from './ContextMenu.svelte';

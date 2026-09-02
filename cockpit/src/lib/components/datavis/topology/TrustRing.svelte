@@ -25,7 +25,7 @@
     .topology-ring {
       fill: none;
       stroke-width: 1px;
-      stroke: var(--border);
+      stroke: var(--text-muted);
       opacity: 0.4;
       transition: stroke 0.3s ease;
     }
@@ -34,8 +34,9 @@
       opacity: 0.6;
     }
     .topology-ring--limbo {
+      stroke: var(--text-muted);
       stroke-dasharray: 4 4;
-      opacity: 0.3;
+      opacity: 0.5;
     }
   }
 </style>

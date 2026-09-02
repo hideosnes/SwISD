@@ -1,7 +1,7 @@
 <!--
 1. Relative path: cockpit/src/lib/components/datavis/topology/GhostNode.svelte
 2. Description: Renders a pending (ghost) swarm peer in the limbo orbit as an interactive SVG node.
-3. Expects: A LaidOutPeer model with position, radius, and peer DTO.
+3. Expects: A LaidOutPeer model with position and radius.
 4. Provides: A clickable, accessible SVG group representing a peer awaiting trust approval.
 -->
 <script lang="ts">
@@ -40,12 +40,12 @@
       outline: none;
     }
     .topology-ghost:focus-visible .topology-ghost__body {
-      stroke: var(--focus-ring, var(--accent));
+      stroke: var(--accent);
       stroke-width: 2px;
     }
     .topology-ghost__body {
       fill: transparent;
-      stroke: var(--text-muted, var(--text));
+      stroke: var(--text-muted);
       stroke-width: 1.5px;
       stroke-dasharray: 3 3;
       transition: stroke 0.2s ease;
@@ -54,7 +54,7 @@
       stroke: var(--accent);
     }
     .topology-ghost__icon {
-      fill: var(--text-muted, var(--text));
+      fill: var(--text-muted);
       font-size: 12px;
       font-family: var(--font-mono, monospace);
       pointer-events: none;

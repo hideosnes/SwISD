@@ -1,10 +1,9 @@
 // 1. Relative path: cockpit/src/lib/components/datavis/topology/layout.ts
-// 2. Description: Deterministic orbital layout engine for the swarm topology canvas. Conductor sits at the center; trusted peers orbit the trust ring; pending ghosts dock in the limbo orbit; rejected peers are excluded from the canvas entirely. D3 is used strictly as headless math.
-// 3. Expects: A SwarmTopologyDTO and a validated OrbitalLayoutConfig sized to the viewport.
-// 4. Provides: computeOrbitalLayout() returning stable positions, and defaultOrbitalConfig() deriving proportional radii from viewport dimensions.
+// 2. Description: Deterministic orbital layout engine with modality color generation and stress arc math.
+// 3. Expects: A SwarmTopologyDTO and a validated OrbitalLayoutConfig.
+// 4. Provides: computeOrbitalLayout(), defaultOrbitalConfig(), modalityToColor(), and stressArcPath().
 
 import { scaleLinear } from 'd3-scale';
-
 import type { SwarmTopologyDTO, TopologyPeerDTO } from '$lib/server/topology.js';
 import type {
   LaidOutPeer,
@@ -13,10 +12,10 @@ import type {
   OrbitalRingKind,
   OrbitalRingModel,
   Point,
+  ModalityCode,
 } from '../types.js';
 
 const TAU = Math.PI * 2;
-// First node of each ring sits at the top of the orbit. Deterministic, not decorative.
 const TOP_ANGLE_OFFSET_RAD = -Math.PI / 2;
 
 function comparePeerId(a: TopologyPeerDTO, b: TopologyPeerDTO): number {
@@ -65,7 +64,6 @@ function placeRing(
         x: center.x + ringRadius * Math.cos(angleRad),
         y: center.y + ringRadius * Math.sin(angleRad),
       },
-      // Unknown load renders at base radius. We do not inflate ghosts with fake numbers.
       nodeRadius: nodeRadiusFor(peer.loadScore ?? 0),
     };
   });
@@ -87,7 +85,6 @@ export function computeOrbitalLayout(
 
   const trusted = topology.peers.filter((peer) => peer.trustState === 'trusted');
   const pending = topology.peers.filter((peer) => peer.trustState === 'pending');
-  // Rejected peers are intentionally invisible on the canvas. They live in lists, not maps.
 
   const peers: ReadonlyArray<LaidOutPeer> = [
     ...placeRing(trusted, 'trust', config.trustRingRadius, center, config.angleOffsetRad, nodeRadiusFor),
@@ -126,4 +123,64 @@ export function defaultOrbitalConfig(width: number, height: number): OrbitalLayo
     nodeMaxRadius: minSide * 0.052,
     angleOffsetRad: 0,
   };
+}
+
+/**
+ * Generates a deterministic HSL color from a modality code.
+ * Hashes the code string to a hue (0-360), fixed saturation and lightness.
+ */
+export function modalityToColor(modality: ModalityCode): string {
+  let hash = 0;
+  for (let i = 0; i < modality.length; i++) {
+    hash = ((hash << 5) - hash) + modality.charCodeAt(i);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 55%)`;
+}
+
+/**
+ * Generates a stress arc color from load score using piecewise linear HSL interpolation.
+ * 0% = blue (hue 210), 50% = yellow (hue 60), 100% = red (hue 0).
+ */
+export function loadToStressColor(loadScore: number): string {
+  const clamped = Math.max(0, Math.min(1, loadScore));
+  let hue: number;
+  if (clamped < 0.5) {
+    hue = 210 - (clamped * 2 * 150);
+  } else {
+    hue = 60 - ((clamped - 0.5) * 2 * 60);
+  }
+  return `hsl(${Math.round(hue)}, 80%, 50%)`;
+}
+
+/**
+ * Computes an SVG arc path for the stress ring.
+ * Starts at 6 o'clock (bottom), sweeps clockwise.
+ * 0% = no arc, 100% = full circle.
+ */
+export function stressArcPath(
+  cx: number,
+  cy: number,
+  radius: number,
+  loadScore: number
+): string {
+  if (loadScore <= 0) return '';
+  if (loadScore >= 1) {
+    // Full circle
+    return `M ${cx} ${cy + radius} A ${radius} ${radius} 0 1 1 ${cx - 0.001} ${cy + radius} Z`;
+  }
+
+  const sweepAngle = loadScore * TAU;
+  const startAngle = Math.PI / 2; // 6 o'clock in SVG coords
+  const endAngle = startAngle + sweepAngle;
+
+  const x1 = cx + radius * Math.cos(startAngle);
+  const y1 = cy + radius * Math.sin(startAngle);
+  const x2 = cx + radius * Math.cos(endAngle);
+  const y2 = cy + radius * Math.sin(endAngle);
+
+  const largeArc = sweepAngle > Math.PI ? 1 : 0;
+
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
 }

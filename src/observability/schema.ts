@@ -105,14 +105,20 @@ export interface ObservabilityDeliveryInfo {
 export type ObservabilityPeerTrustState = 'pending' | 'trusted' | 'rejected';
 export type ObservabilityPeerSource = 'mdns' | 'genesis' | 'manual' | 'replay';
 
+// Phase B: Device type and modality encoding
+export type DeviceType = 'raspi' | 'arduino' | 'android' | 'ios' | 'windows' | 'linux' | 'apple' | 'unknown';
+export type ModalityCode = 'T2T' | 'T2I' | 'I2T' | 'T2A' | 'A2T' | 'I2I' | 'A2A';
+
 export interface ObservabilityPeerInfo {
-  readonly peerId: string; // HexId
+  readonly peerId: string;
   readonly trustState: ObservabilityPeerTrustState;
   readonly discoveredAt: number;
   readonly trustedAt: number | null;
   readonly source: ObservabilityPeerSource;
-  readonly loadScore: number | null; 
-  readonly capabilities: ReadonlyArray<ExecutorSignature> | null; 
+  readonly loadScore: number | null;
+  readonly capabilities: ReadonlyArray<ExecutorSignature> | null;
+  readonly deviceType: DeviceType;
+  readonly modalities: ReadonlyArray<ModalityCode>;
 }
 
 export interface SwarmSnapshot {
@@ -125,7 +131,7 @@ export interface SwarmSnapshot {
   readonly delivery: ObservabilityDeliveryInfo;
   readonly peers: ReadonlyArray<ObservabilityPeerInfo>;
   readonly recentEvents: ReadonlyArray<ObservabilityEvent>;
-  readonly source: 'live' | 'replay'; // Honesty gate for the UI
+  readonly source: 'live' | 'replay';
 }
 
 export interface ObservabilitySource {

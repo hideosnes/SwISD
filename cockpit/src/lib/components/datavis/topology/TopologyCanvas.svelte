@@ -1,17 +1,21 @@
 <!--
 1. Relative path: cockpit/src/lib/components/datavis/topology/TopologyCanvas.svelte
-2. Description: The main SVG container for the swarm topology map. Handles responsive sizing, computes the deterministic orbital layout, and renders the conductor, rings, and peer nodes.
+2. Description: The main SVG container for the swarm topology map. Handles responsive sizing, computes the deterministic orbital layout, and renders the conductor, rings, peer nodes, and the dynamic modality legend.
 3. Expects: A SwarmTopologyDTO from the BFF API.
-4. Provides: A fully interactive, accessible SVG topology canvas.
+4. Provides: A fully interactive, accessible SVG topology canvas with modality legend.
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { SwarmTopologyDTO } from '$lib/server/index.js';
-  import { computeOrbitalLayout, defaultOrbitalConfig, type OrbitalLayoutResult } from '../index.js';
+  
+  // FIXED: Import layout functions from layout.js, and types from types.js
+  import { computeOrbitalLayout, defaultOrbitalConfig } from './layout.js';
+  import type { OrbitalLayoutResult } from '../types.js';
   
   import TrustRing from './TrustRing.svelte';
   import SwarmNode from './SwarmNode.svelte';
   import GhostNode from './GhostNode.svelte';
+  import ModalityLegend from './ModalityLegend.svelte';
 
   let { 
     topology,
@@ -29,6 +33,10 @@
     const config = defaultOrbitalConfig(dimensions.width, dimensions.height);
     return computeOrbitalLayout(topology, config);
   });
+
+  const allModalities = $derived(
+    topology.peers.flatMap(p => p.modalities)
+  );
 
   onMount(() => {
     if (!svgElement) return;
@@ -59,50 +67,58 @@
   }
 </script>
 
-<svg 
-  bind:this={svgElement}
-  class="topology-canvas"
-  viewBox="0 0 {dimensions.width} {dimensions.height}"
-  preserveAspectRatio="xMidYMid meet"
-  role="img"
-  aria-label="Swarm topology map showing {topology.swarmSize} trusted peers and {topology.ghostCount} pending peers."
->
-  {#if layout}
-    <!-- Orbital Rings -->
-    {#each layout.rings as ring (ring.kind)}
-      <TrustRing {ring} />
-    {/each}
+<div class="topology-container">
+  <svg 
+    bind:this={svgElement}
+    class="topology-canvas"
+    viewBox="0 0 {dimensions.width} {dimensions.height}"
+    preserveAspectRatio="xMidYMid meet"
+    role="img"
+    aria-label="Swarm topology map showing {topology.swarmSize} trusted peers and {topology.ghostCount} pending peers."
+  >
+    {#if layout}
+      {#each layout.rings as ring (ring.kind)}
+        <TrustRing {ring} />
+      {/each}
 
-    <!-- Conductor Center Node -->
-    <g transform="translate({layout.center.x}, {layout.center.y})" class="topology-conductor">
-      <circle r={layout.conductorRadius} class="topology-conductor__body" />
-      <text class="topology-conductor__label" text-anchor="middle" dominant-baseline="central">C</text>
-    </g>
+      <g transform="translate({layout.center.x}, {layout.center.y})" class="topology-conductor">
+        <circle r={layout.conductorRadius} class="topology-conductor__body" />
+        <text class="topology-conductor__label" text-anchor="middle" dominant-baseline="central">C</text>
+      </g>
 
-    <!-- Peer Nodes -->
-    {#each layout.peers as laidOut (laidOut.peer.peerId)}
-      {#if laidOut.ring === 'trust'}
-        <SwarmNode 
-          peer={laidOut} 
-          onclick={() => handleNodeClick(laidOut.peer.peerId)}
-          onkeydown={(e) => handleNodeKeydown(e, laidOut.peer.peerId)}
-        />
-      {:else if laidOut.ring === 'limbo'}
-        <GhostNode 
-          peer={laidOut} 
-          onclick={() => handleNodeClick(laidOut.peer.peerId)}
-          onkeydown={(e) => handleNodeKeydown(e, laidOut.peer.peerId)}
-        />
-      {/if}
-    {/each}
+      {#each layout.peers as laidOut (laidOut.peer.peerId)}
+        {#if laidOut.ring === 'trust'}
+          <SwarmNode 
+            peer={laidOut} 
+            onclick={() => handleNodeClick(laidOut.peer.peerId)}
+            onkeydown={(e) => handleNodeKeydown(e, laidOut.peer.peerId)}
+          />
+        {:else if laidOut.ring === 'limbo'}
+          <GhostNode 
+            peer={laidOut} 
+            onclick={() => handleNodeClick(laidOut.peer.peerId)}
+            onkeydown={(e) => handleNodeKeydown(e, laidOut.peer.peerId)}
+          />
+        {/if}
+      {/each}
+    {/if}
+  </svg>
+
+  {#if allModalities.length > 0}
+    <ModalityLegend modalities={allModalities} />
   {/if}
-</svg>
+</div>
 
 <style>
   @layer components {
+    .topology-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
     .topology-canvas {
       width: 100%;
-      height: 100%;
+      height: auto;
       display: block;
       background-color: var(--bg);
     }

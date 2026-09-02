@@ -12,12 +12,12 @@
   import { isPinned, togglePin } from '$lib/pins.svelte.js';
 
   import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
-  import PendingTrustPanel from '$lib/components/PendingTrustPanel.svelte';
   import StageView from '$lib/components/StageView.svelte';
   import EngineRoomView from '$lib/components/EngineRoomView.svelte';
   import SwarmSidebar from '$lib/components/SwarmSidebar.svelte';
   import CommandQueue from '$lib/components/CommandQueue.svelte';
-
+  import ReplayControlModal from '$lib/components/ReplayControlModal.svelte';
+  
   let snapshot = $state<SwarmSnapshot | null>(null);
   let topology = $state<SwarmTopologyDTO | null>(null);
   let selectedPeerId = $state<string | null>(null);
@@ -26,6 +26,7 @@
 
   let queueOpen = $state(false);
   let busyPeerId = $state<string | null>(null);
+  let replayModalOpen = $state(false);
 
   const pendingPeers = $derived(
     topology?.peers.filter((peer) => peer.trustState === 'pending') ?? [],
@@ -99,6 +100,11 @@
       {#if snapshot?.source === 'replay'}
         <StatusPill status="warn" label="REPLAY" />
       {/if}
+      {#if import.meta.env.DEV}
+        <Button variant="ghost" size="sm" onclick={() => replayModalOpen = true}>
+          Replay Deck
+        </Button>
+      {/if}
     </div>
     <Button
       onclick={() => queueOpen = true}
@@ -142,7 +148,6 @@
             onSelectPeer={(id) => selectedPeerId = id}
           />
           <DiscoveryPanel />
-          <PendingTrustPanel />
         </div>
       </div>
 
@@ -190,6 +195,10 @@
     onTrust={(id) => void decideTrust(id, 'trust')}
     onReject={(id) => void decideTrust(id, 'reject')}
   />
+
+  {#if import.meta.env.DEV}
+    <ReplayControlModal open={replayModalOpen} onclose={() => replayModalOpen = false} />
+  {/if}
 </PageShell>
 
 <style>

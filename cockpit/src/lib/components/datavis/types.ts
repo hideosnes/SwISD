@@ -1,7 +1,7 @@
 // 1. Relative path: cockpit/src/lib/components/datavis/types.ts
-// 2. Description: Geometry and layout contracts for the datavis layer. Pure visualization vocabulary: points, orbital rings, laid-out peers, and layout configuration.
+// 2. Description: Geometry and layout contracts for the datavis layer. Pure visualization vocabulary: points, orbital rings, laid-out peers, layout configuration, device types, and modality codes.
 // 3. Expects: A SwarmTopologyDTO from the BFF plus a viewport-sized OrbitalLayoutConfig.
-// 4. Provides: Strict prop and result types consumed by TopologyCanvas, SwarmNode, GhostNode, and TrustRing.
+// 4. Provides: Strict prop and result types consumed by TopologyCanvas, SwarmNode, GhostNode, TrustRing, and ModalityLegend.
 
 import type { TopologyPeerDTO } from '$lib/server/topology.js';
 
@@ -43,3 +43,7 @@ export interface OrbitalLayoutResult {
   readonly rings: ReadonlyArray<OrbitalRingModel>;
   readonly peers: ReadonlyArray<LaidOutPeer>;
 }
+
+export type DeviceType = 'raspi' | 'arduino' | 'android' | 'ios' | 'windows' | 'linux' | 'apple' | 'unknown';
+
+export type ModalityCode = 'T2T' | 'T2I' | 'I2T' | 'T2A' | 'A2T' | 'I2I' | 'A2A';

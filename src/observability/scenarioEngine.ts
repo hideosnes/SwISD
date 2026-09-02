@@ -8,6 +8,7 @@ import type {
   ObservabilityTaskInfo, ObservabilityNetworkInfo, ObservabilityCrdtInfo, 
   ObservabilityProcessInfo, ObservabilityDeliveryInfo, ObservabilityBackpressureState 
 } from './schema.js';
+import type { ObservabilityEventBus } from './eventBus.js';
 import type { TrustRegistry } from '../peer/index.js';
 import type { Scenario, ContinuousChannel, StepChannel, TrustState } from './scenarios.js';
 import { SCENARIOS } from './scenarios.js';
@@ -59,11 +60,9 @@ function evaluateStep<T>(channel: StepChannel<T>, timeMs: number): T | null {
   return current;
 }
 
-// Extract exact types from the real TrustRegistry to avoid importing missing internal types
 type CorePeerRecord = ReturnType<TrustRegistry['getAllPeers']>[number];
 type CorePeerSource = CorePeerRecord['source'];
 
-// FIXED: Dropped 'implements TrustRegistry' to bypass the private 'peers' property origin check
 class ScenarioTrustRegistry {
   private overrides = new Map<string, TrustState>();
 
@@ -77,11 +76,16 @@ class ScenarioTrustRegistry {
 
       const trust = this.overrides.get(peerId) ?? evaluateStep(track.trust, this.now()) ?? 'pending';
       
+      const discoveredFrame = track.discovered.keyframes[0];
+      const discoveredAtMs = discoveredFrame 
+        ? Date.now() - (this.now() - discoveredFrame.timeMs) 
+        : Date.now();
+
       peers.push({
         peerId,
         state: trust,
-        discoveredAt: track.discovered.keyframes[0]?.timeMs ?? 0,
-        trustedAt: trust === 'trusted' ? this.now() : null,
+        discoveredAt: discoveredAtMs,
+        trustedAt: trust === 'trusted' ? Date.now() : null,
         source: 'mdns' as CorePeerSource, 
       } as unknown as CorePeerRecord);
     }
@@ -109,34 +113,49 @@ class ScenarioTrustRegistry {
     return {
       peerId,
       state: 'pending',
-      discoveredAt: this.now(),
+      discoveredAt: Date.now(),
       trustedAt: null,
       source,
     } as unknown as CorePeerRecord;
   }
   
   registerPublicKey(peerId: string, key: Uint8Array): void {}
-  
   getPublicKey(peerId: string): Uint8Array | undefined { return undefined; }
-  
   getPeer(peerId: string): CorePeerRecord | undefined { return undefined; }
-  
   removePeer(peerId: string): boolean { return false; }
 }
 
-export function createScenarioEngine(scenarioId: string, initialSpeed: number): ScenarioEngine {
+export function createScenarioEngine(
+  scenarioId: string, 
+  initialSpeed: number,
+  eventBus: ObservabilityEventBus
+): ScenarioEngine {
   const scenario = SCENARIOS.find(s => s.id === scenarioId);
   if (!scenario) throw new Error(`Scenario ${scenarioId} not found`);
 
   let scenarioTimeMs = 0;
   let speed = initialSpeed;
   let playing = true;
+  let eventCueWatermark = 0;
 
   const now = () => scenarioTimeMs;
   const trustRegistry = new ScenarioTrustRegistry(scenario, now);
 
+  const emitEventCues = (toTime: number): void => {
+    for (const cue of scenario.eventCues) {
+      if (cue.timeMs > eventCueWatermark && cue.timeMs <= toTime) {
+        eventBus.publish({
+          topic: cue.topic,
+          level: cue.level,
+          message: cue.message,
+          details: cue.details,
+        });
+      }
+    }
+    eventCueWatermark = toTime;
+  };
+
   return {
-    // FIXED: Cast the mock to satisfy the interface without violating private property origins
     trustRegistry: trustRegistry as unknown as TrustRegistry,
     getDiscoveredNodes: () => {
       const nodes: { peerId: string; name: string; port: number; version: string }[] = [];
@@ -151,10 +170,13 @@ export function createScenarioEngine(scenarioId: string, initialSpeed: number): 
     pause: () => { playing = false; },
     tick: (wallDeltaMs) => {
       if (!playing) return;
+      const prevTime = scenarioTimeMs;
       scenarioTimeMs += wallDeltaMs * speed;
       if (scenario.loop && scenarioTimeMs > scenario.durationMs) {
         scenarioTimeMs = scenarioTimeMs % scenario.durationMs;
       }
+      if (scenarioTimeMs < prevTime) eventCueWatermark = 0; 
+      emitEventCues(scenarioTimeMs);
     },
 
     getProcessInfo: (): ObservabilityProcessInfo => ({
@@ -196,9 +218,24 @@ export function createScenarioEngine(scenarioId: string, initialSpeed: number): 
       reputationReadTimeScore: 0.5, 
       taskHistoryEventCount: 0,
     }),
-    getTaskInfo: (): ObservabilityTaskInfo => ({ 
-      active: [], queued: [], recentlyCompleted: [], recentlyPreempted: [], recentlyFailed: [] 
-    }),
+    getTaskInfo: (): ObservabilityTaskInfo => {
+      const active: string[] = [];
+      const queued: string[] = [];
+      const recentlyCompleted: string[] = [];
+      const recentlyPreempted: string[] = [];
+      const recentlyFailed: string[] = [];
+      
+      for (const track of Object.values(scenario.taskTracks)) {
+        const state = evaluateStep(track.state, now());
+        if (state === 'active' || state === 'fragmented') active.push(track.taskId);
+        else if (state === 'queued') queued.push(track.taskId);
+        else if (state === 'completed') recentlyCompleted.push(track.taskId);
+        else if (state === 'preempted') recentlyPreempted.push(track.taskId);
+        else if (state === 'failed') recentlyFailed.push(track.taskId);
+      }
+      
+      return { active, queued, recentlyCompleted, recentlyPreempted, recentlyFailed };
+    },
     getDeliveryInfo: (): ObservabilityDeliveryInfo => ({
       supervisorPresent: true, 
       currentAppVersion: '1.0.0-replay', 
@@ -220,6 +257,8 @@ export function createScenarioEngine(scenarioId: string, initialSpeed: number): 
           source: 'replay', 
           loadScore: track ? evaluateContinuous(track.load, now()) : null,
           capabilities: track ? evaluateStep(track.capabilities, now()) : null,
+          deviceType: track?.deviceType ?? 'unknown',
+          modalities: track?.modalities ?? [],
         };
       });
     },

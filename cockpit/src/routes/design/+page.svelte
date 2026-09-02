@@ -1,8 +1,8 @@
 <!--
 1. Relative path: cockpit/src/routes/design/+page.svelte
 2. Description: Living design-system bench for the Conductor Cockpit (Cyberdeck theme).
-3. Expects: The UI primitive barrel at $lib/components/ui and layout.css tokens loaded globally.
-4. Provides: A dummy visual-verification page exercising every UI primitive in isolation.
+3. Expects: The UI primitive barrel at $lib/components/ui, layout.css tokens loaded globally, and the datavis barrel for live node specimens.
+4. Provides: A visual-verification page exercising every UI primitive in isolation, plus swarm-node specimens rendered by the production orbital pipeline.
 -->
 
 <script lang="ts">
@@ -22,6 +22,17 @@
     Stat,
     EmptyState
   } from '$lib/components/ui';
+
+  // Type-only import: erased at compile time, keeps the BFF mDNS listener out of the client bundle.
+  import type { SwarmTopologyDTO } from '$lib/server/index.js';
+  import {
+    GhostNode,
+    SwarmNode,
+    TrustRing,
+    computeOrbitalLayout,
+    defaultOrbitalConfig
+  } from '$lib/components/datavis';
+  import { TopologyAnatomyBench } from '$lib/components/datavis';
 
   let modalOpen = $state(false);
   let drawerOpen = $state(false);
@@ -62,6 +73,162 @@
   function restart(): void {
     startSimulation(0);
   }
+
+  // --- Swarm node specimens: real orbital math, real node components, zero illustration ---
+  const BENCH_W = 480;
+  const BENCH_H = 360;
+  const CONDUCTOR_ID = `0x${'c'.repeat(64)}`;
+
+  const benchTopology: SwarmTopologyDTO = {
+    generatedAt: 0,
+    conductorPeerId: CONDUCTOR_ID,
+    swarmSize: 3,
+    ghostCount: 2,
+    peers: [
+      {
+        peerId: `0x${'a'.repeat(64)}`,
+        trustState: 'trusted',
+        discoveredAt: 0,
+        lastSeenAt: null,
+        source: 'replay',
+        capabilities: ['llama-cpp'],
+        loadScore: 0.15,
+        activeTaskCount: null,
+        deviceType: 'raspi',
+        modalities: ['T2T']
+      },
+      {
+        peerId: `0x${'b'.repeat(64)}`,
+        trustState: 'trusted',
+        discoveredAt: 0,
+        lastSeenAt: null,
+        source: 'replay',
+        capabilities: ['stable-diffusion'],
+        loadScore: 0.5,
+        activeTaskCount: null,
+        deviceType: 'linux',
+        modalities: ['T2I']
+      },
+      {
+        peerId: `0x${'d'.repeat(64)}`,
+        trustState: 'trusted',
+        discoveredAt: 0,
+        lastSeenAt: null,
+        source: 'replay',
+        capabilities: ['llama-cpp', 'stable-diffusion', 'whisper-cpp'],
+        loadScore: 0.9,
+        activeTaskCount: null,
+        deviceType: 'windows',
+        modalities: ['T2T', 'T2I', 'T2A']
+      },
+      {
+        peerId: `0x${'e'.repeat(64)}`,
+        trustState: 'pending',
+        discoveredAt: 0,
+        lastSeenAt: null,
+        source: 'replay',
+        capabilities: [],
+        loadScore: null,
+        activeTaskCount: null,
+        deviceType: 'unknown',
+        modalities: []
+      },
+      {
+        peerId: `0x${'f'.repeat(64)}`,
+        trustState: 'pending',
+        discoveredAt: 0,
+        lastSeenAt: null,
+        source: 'replay',
+        capabilities: [],
+        loadScore: null,
+        activeTaskCount: null,
+        deviceType: 'unknown',
+        modalities: []
+      }
+    ]
+  };
+
+  const benchLayout = computeOrbitalLayout(
+    benchTopology,
+    defaultOrbitalConfig(BENCH_W, BENCH_H)
+  );
+
+  // --- Legend specimens: isolated, display-sized renders of each node state ---
+  const loadLowSpecimen = {
+    peer: {
+      peerId: `0x${'1'.repeat(64)}`,
+      trustState: 'trusted',
+      discoveredAt: 0,
+      lastSeenAt: null,
+      source: 'replay',
+      capabilities: ['llama-cpp'],
+      loadScore: 0.15,
+      activeTaskCount: null,
+      deviceType: 'raspi',
+      modalities: ['T2T']
+    },
+    ring: 'trust',
+    angleRad: 0,
+    position: { x: 42, y: 42 },
+    nodeRadius: 12
+  } as const;
+
+  const loadHighSpecimen = {
+    peer: {
+      peerId: `0x${'2'.repeat(64)}`,
+      trustState: 'trusted',
+      discoveredAt: 0,
+      lastSeenAt: null,
+      source: 'replay',
+      capabilities: ['llama-cpp'],
+      loadScore: 0.9,
+      activeTaskCount: null,
+      deviceType: 'raspi',
+      modalities: ['T2T']
+    },
+    ring: 'trust',
+    angleRad: 0,
+    position: { x: 126, y: 42 },
+    nodeRadius: 26
+  } as const;
+
+  const bezelSpecimen = {
+    peer: {
+      peerId: `0x${'3'.repeat(64)}`,
+      trustState: 'trusted',
+      discoveredAt: 0,
+      lastSeenAt: null,
+      source: 'replay',
+      capabilities: ['llama-cpp', 'stable-diffusion', 'whisper-cpp'],
+      loadScore: 0.5,
+      activeTaskCount: null,
+      deviceType: 'windows',
+      modalities: ['T2T', 'T2I', 'T2A']
+    },
+    ring: 'trust',
+    angleRad: 0,
+    position: { x: 42, y: 42 },
+    nodeRadius: 22
+  } as const;
+
+  const ghostSpecimen = {
+    peer: {
+      peerId: `0x${'4'.repeat(64)}`,
+      trustState: 'pending',
+      discoveredAt: 0,
+      lastSeenAt: null,
+      source: 'replay',
+      capabilities: [],
+      loadScore: null,
+      activeTaskCount: null,
+      deviceType: 'unknown',
+      modalities: []
+    },
+    ring: 'limbo',
+    angleRad: 0,
+    position: { x: 42, y: 42 },
+    nodeRadius: 22
+  } as const;
 
   $effect(() => {
     return () => {
@@ -113,7 +280,23 @@
       </div>
     </Panel>
 
-    <Panel index="03" title="Buttons">
+    <Panel index="03" title="Backpressure & Load">
+      <p class="mb-3 text-sm text-text-2">
+        Domain adapters map numeric load scores and backpressure states to primitive semantic vocabulary.
+      </p>
+      <div class="flex flex-wrap items-center gap-3">
+        <StatusPill status="idle" label="Idle (< 60%)" />
+        <StatusPill status="warn" label="Throttled (> 60%)" />
+        <StatusPill status="warn" label="Shedding (> 80%)" />
+      </div>
+      <div class="mt-4 flex items-center gap-4">
+        <SwarmPulse state="idle" />
+        <SwarmPulse state="working" />
+        <SwarmPulse state="shedding" />
+      </div>
+    </Panel>
+
+    <Panel index="04" title="Buttons">
       <div class="flex flex-wrap items-center gap-3">
         <Button variant="primary" icon="rocket_launch">Deploy</Button>
         <Button variant="secondary" icon="visibility">Preview</Button>
@@ -128,7 +311,7 @@
       </div>
     </Panel>
 
-    <Panel index="04" title="Text Fields">
+    <Panel index="05" title="Text Fields">
       <TextField
         id="peer-name"
         label="Peer Name"
@@ -144,7 +327,7 @@
       />
     </Panel>
 
-    <Panel index="05" title="Progress">
+    <Panel index="06" title="Progress">
       <div class="flex items-center gap-6">
         <ProgressRing
           value={progress}
@@ -194,7 +377,7 @@
       </div>
     </Panel>
 
-    <Panel index="06" title="Data Readouts">
+    <Panel index="07" title="Data Readouts">
       <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="Throughput" value="118 MB/s" variant="live" />
         <Stat label="ETA" value="00:42" variant="accent" />
@@ -203,7 +386,7 @@
       </div>
     </Panel>
 
-    <Panel index="07" title="Expandable Card">
+    <Panel index="08" title="Expandable Card">
       <Card
         title="pi-kappa"
         subtitle="12D3KooWSD5p9aQyV4nZRu2LhXcM7bFq"
@@ -225,7 +408,7 @@
       </Card>
     </Panel>
 
-    <Panel index="08" title="Empty State">
+    <Panel index="09" title="Empty State">
       <div class="rounded-sm border border-border bg-bg p-6">
         <EmptyState
           icon="folder_off"
@@ -239,7 +422,7 @@
       </div>
     </Panel>
 
-    <Panel index="09" title="Icons (Material Symbols)">
+    <Panel index="10" title="Icons (Material Symbols)">
       <div class="flex flex-wrap items-center gap-4 text-text-2">
         <Icon name="terminal" aria-hidden={true} />
         <Icon name="hub" size="lg" aria-hidden={true} />
@@ -250,7 +433,7 @@
       </div>
     </Panel>
 
-    <Panel index="10" title="Overlays">
+    <Panel index="11" title="Overlays">
       <p class="text-sm text-text-2">
         Overlays inherit the active theme. Modal traps focus for accessibility.
         Drawer slides in from the right edge as a notification queue.
@@ -272,6 +455,166 @@
         >
           Open Action Queue
         </Button>
+      </div>
+    </Panel>
+
+    <!-- Swarm Node States: the real rendering path, not an illustration -->
+    <Panel index="12" title="Swarm Node States">
+      <p class="mb-3 text-sm text-text-2">
+        Live specimens rendered by the production orbital pipeline — computeOrbitalLayout positioning
+        SwarmNode and GhostNode over a deterministic fixture topology.
+      </p>
+
+      <div class="rounded-sm border border-border bg-bg p-3">
+        <svg
+          viewBox="0 0 {BENCH_W} {BENCH_H}"
+          class="node-bench-canvas"
+          role="img"
+          aria-label="Swarm node state specimens: trusted peers on the trust ring with load-scaled radii and capability bezels, pending ghosts docked on the limbo orbit"
+        >
+          {#each benchLayout.rings as ring (ring.kind)}
+            <TrustRing {ring} />
+          {/each}
+
+          <g transform="translate({benchLayout.center.x}, {benchLayout.center.y})">
+            <circle r={benchLayout.conductorRadius} class="node-bench-conductor" />
+            <text class="node-bench-conductor-label" text-anchor="middle" dominant-baseline="central">C</text>
+          </g>
+
+          {#each benchLayout.peers as laidOut (laidOut.peer.peerId)}
+            {#if laidOut.ring === 'trust'}
+              <SwarmNode peer={laidOut} />
+            {:else if laidOut.ring === 'limbo'}
+              <GhostNode peer={laidOut} />
+            {/if}
+          {/each}
+        </svg>
+      </div>
+
+      <!-- Visual legend: every encoding grounded in a rendered specimen -->
+      <h3 class="mt-6 mb-3 font-mono text-xs font-bold uppercase tracking-widest text-text-3">
+        Legend — rendered specimens
+      </h3>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="flex items-center gap-4 rounded-sm border border-border bg-bg p-3">
+          <svg
+            viewBox="0 0 168 84"
+            class="node-bench-specimen"
+            role="img"
+            aria-label="Load-scaled radii: a small trusted node at load 0.15 beside a large trusted node at load 0.9"
+          >
+            <SwarmNode peer={loadLowSpecimen} />
+            <SwarmNode peer={loadHighSpecimen} />
+          </svg>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <span class="font-mono text-xs font-bold uppercase tracking-widest text-text-1">
+              Radius → load score
+            </span>
+            <span class="text-sm text-text-2">
+              Node radius tracks loadScore through the orbital scale. The harder a Pi works, the larger it looms on the ring.
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 rounded-sm border border-border bg-bg p-3">
+          <svg
+            viewBox="0 0 84 84"
+            class="node-bench-specimen"
+            role="img"
+            aria-label="A trusted node whose fill encodes its dominant capability and whose bezel is divided into one ring segment per advertised capability"
+          >
+            <SwarmNode peer={bezelSpecimen} />
+          </svg>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <span class="font-mono text-xs font-bold uppercase tracking-widest text-text-1">
+              Fill → dominant capability · Bezel → capability set
+            </span>
+            <span class="text-sm text-text-2">
+              The body fill encodes the dominant executor; the bezel divides into one ring segment per advertised capability.
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 rounded-sm border border-border bg-bg p-3">
+          <svg
+            viewBox="0 0 84 84"
+            class="node-bench-specimen"
+            role="img"
+            aria-label="A pending ghost rendered as a dashed hollow circle with a question mark"
+          >
+            <GhostNode peer={ghostSpecimen} />
+          </svg>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <span class="font-mono text-xs font-bold uppercase tracking-widest text-text-1">
+              Dashed body → pending ghost
+            </span>
+            <span class="text-sm text-text-2">
+              Discovered but untrusted: hollow body, dashed outline, docked in the limbo orbit until the operator approves the Ed25519 identity.
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 rounded-sm border border-border bg-bg p-3">
+          <svg
+            viewBox="0 0 84 84"
+            class="node-bench-specimen rounded-sm border border-dashed border-border"
+            role="img"
+            aria-label="An empty frame: churned and rejected peers render no circle at all"
+          ></svg>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <span class="font-mono text-xs font-bold uppercase tracking-widest text-text-1">
+              No circle → churned & rejected
+            </span>
+            <span class="text-sm text-text-2">
+              Peers that drop mid-task or fail trust vanish from the map by doctrine. They live in lists and logs, never as geometry.
+            </span>
+          </div>
+        </div>
+      </div>
+      <TopologyAnatomyBench />
+    </Panel>
+
+    <Panel index="13" title="Conductor States (Cockpit Device)">
+      <p class="mb-3 text-sm text-text-2">
+        The operator's local device states, from Genesis bootstrap to live orchestration and backpressure shedding.
+      </p>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="rounded-sm border border-border bg-bg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <SwarmPulse state="awaiting" />
+            <span class="text-sm font-bold text-text-1">Genesis (Searching)</span>
+          </div>
+          <p class="text-xs text-text-3 mb-3">Zero peers discovered. Overlay active.</p>
+          <StatusPill status="accent" label="Searching" />
+        </div>
+
+        <div class="rounded-sm border border-border bg-bg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <SwarmPulse state="working" />
+            <span class="text-sm font-bold text-text-1">Live (Orchestrating)</span>
+          </div>
+          <p class="text-xs text-text-3 mb-3">Mesh connected, routing tasks.</p>
+          <StatusPill status="live" label="Live" />
+        </div>
+
+        <div class="rounded-sm border border-border bg-bg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <SwarmPulse state="shedding" />
+            <span class="text-sm font-bold text-text-1">Shedding (Overloaded)</span>
+          </div>
+          <p class="text-xs text-text-3 mb-3">Local load > 80%. Dropping low-priority.</p>
+          <StatusPill status="warn" label="Shedding" />
+        </div>
+
+        <div class="rounded-sm border border-border bg-bg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <SwarmPulse state="error" />
+            <span class="text-sm font-bold text-text-1">Disconnected</span>
+          </div>
+          <p class="text-xs text-text-3 mb-3">BFF telemetry lost.</p>
+          <StatusPill status="warn" label="Error" />
+        </div>
       </div>
     </Panel>
   </div>
@@ -358,3 +701,31 @@
     </div>
   </div>
 </Drawer>
+
+<style>
+  @layer components {
+    .node-bench-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 380px;
+    }
+    .node-bench-conductor {
+      fill: var(--accent);
+      stroke: var(--bg);
+      stroke-width: 2px;
+    }
+    .node-bench-conductor-label {
+      fill: var(--bg);
+      font-size: 14px;
+      font-weight: bold;
+      font-family: var(--font-mono, monospace);
+    }
+    .node-bench-specimen {
+      display: block;
+      height: 84px;
+      width: auto;
+      flex: none;
+    }
+  }
+</style>

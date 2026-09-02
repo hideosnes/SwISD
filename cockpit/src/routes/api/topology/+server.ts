@@ -1,7 +1,7 @@
 // 1. Relative path: cockpit/src/routes/api/topology/+server.ts
-// 2. Description: BFF API route that aggregates the core's local observability and trust registry into a SwarmTopologyDTO for the datavis layer.
+// 2. Description: BFF API route that aggregates the core's local observability and trust registry into a SwarmTopologyDTO.
 // 3. Expects: GET request from the Conductor Cockpit client.
-// 4. Provides: Strict SwarmTopologyDTO JSON response.
+// 4. Provides: Strict SwarmTopologyDTO JSON response with device type and modality encoding.
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
@@ -17,10 +17,11 @@ export const GET: RequestHandler = async ({ locals }) => {
     discoveredAt: p.discoveredAt,
     lastSeenAt: p.trustedAt,
     source: p.source,
-    // FIXED: Branded ExecutorSignature[] requires unknown intermediary at the BFF serialization boundary
     capabilities: (p.capabilities ?? []) as unknown as ReadonlyArray<string>,
     loadScore: p.loadScore,
     activeTaskCount: null,
+    deviceType: p.deviceType,
+    modalities: p.modalities,
   }));
 
   const dto = buildSwarmTopology({
