@@ -198,3 +198,22 @@ root/
 ├── GUIDE.md               # Core philosophy & strict dev standards
 ├── SVELTE.md              # Domain C Svelte 5, a11y, and CSS architecture standards
 └── package.json           # Dependencies (Node 22+, libp2p v3)
+
+## SwISD Marketing Site (`site/`)
+
+site/
+├── package.json                          # Independent dependencies for the marketing site
+├── tsconfig.json                         # Strict TypeScript configuration
+├── vite.config.ts                        # SvelteKit 2 + Tailwind v4 + Static adapter (inline config)
+└── src/
+    ├── app.d.ts                          # SvelteKit Locals typing
+    ├── app.html                          # HTML shell
+    ├── lib/
+    │   ├── assets/
+    │   │   └── favicon.svg               # Site favicon
+    │   └── index.ts                      # Barrel export for site components
+    ── routes/
+        ├── +layout.svelte                # Minimal shell (imports ./layout.css)
+        ├── +layout.ts                    # Prerender master switch (export const prerender = true)
+        ├── +page.svelte                  # Main landing page (fullpage scroll sections)
+        └── layout.css                    # Global marketing styles (colors, typography, scroll-snap)

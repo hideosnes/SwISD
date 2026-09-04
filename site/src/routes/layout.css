@@ -1,0 +1,53 @@
+/**
+ * 1. Relative path: site/src/routes/layout.css
+ * 2. Description: Global styles and Tailwind imports for the SwISD marketing site.
+ * 3. Expects: Tailwind CSS v4, forms plugin, typography plugin.
+ * 4. Provides: Base reset, typography tokens, and component layer foundations.
+ */
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@layer base {
+  :root {
+    --color-lime: #54FF7E;
+    --color-purple: #5E17EB;
+  }
+
+  html {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  /* UI Primitive Utilities */
+  .ui-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4;
+  }
+
+  .ui-modal-content {
+    @apply bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative focus:outline-none;
+  }
+
+  .ui-toast-container {
+    @apply fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none;
+  }
+
+  .ui-toast {
+    @apply pointer-events-auto bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] transition-all duration-300;
+  }
+}
