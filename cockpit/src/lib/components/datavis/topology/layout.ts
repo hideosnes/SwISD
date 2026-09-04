@@ -1,9 +1,10 @@
 // 1. Relative path: cockpit/src/lib/components/datavis/topology/layout.ts
-// 2. Description: Deterministic orbital layout engine with modality color generation and stress arc math.
-// 3. Expects: A SwarmTopologyDTO and a validated OrbitalLayoutConfig.
-// 4. Provides: computeOrbitalLayout(), defaultOrbitalConfig(), modalityToColor(), and stressArcPath().
+// 2. Description: Deterministic orbital layout engine with load-to-radius mapping, modality color generation, and stress arc math.
+// 3. Expects: A SwarmTopologyDTO and a validated OrbitalLayoutConfig sized to the viewport.
+// 4. Provides: computeOrbitalLayout(), defaultOrbitalConfig(), modalityToColor(), loadToStressColor(), and stressArcPath().
 
 import { scaleLinear } from 'd3-scale';
+
 import type { SwarmTopologyDTO, TopologyPeerDTO } from '$lib/server/topology.js';
 import type {
   LaidOutPeer,
@@ -16,7 +17,18 @@ import type {
 } from '../types.js';
 
 const TAU = Math.PI * 2;
+// First node of each ring sits at the top of the orbit. Deterministic, not decorative.
 const TOP_ANGLE_OFFSET_RAD = -Math.PI / 2;
+
+// ════════════════════════════════════════════════════════════════
+//  ORBITAL LAYOUT TUNING HANDLES — fractions of the smaller viewport side
+// ════════════════════════════════════════════════════════════════
+const NODE_BASE_RATIO = 0.052;
+const NODE_MAX_RATIO = 0.10;
+const CONDUCTOR_RATIO = 0.055;
+const TRUST_RING_RATIO = 0.26;
+const LIMBO_RING_RATIO = 0.39;
+// ════════════════════════════════════════════════════════════════
 
 function comparePeerId(a: TopologyPeerDTO, b: TopologyPeerDTO): number {
   if (a.peerId < b.peerId) return -1;
@@ -85,6 +97,7 @@ export function computeOrbitalLayout(
 
   const trusted = topology.peers.filter((peer) => peer.trustState === 'trusted');
   const pending = topology.peers.filter((peer) => peer.trustState === 'pending');
+  // Rejected peers are intentionally invisible on the canvas. They live in lists, not maps.
 
   const peers: ReadonlyArray<LaidOutPeer> = [
     ...placeRing(trusted, 'trust', config.trustRingRadius, center, config.angleOffsetRad, nodeRadiusFor),
@@ -116,40 +129,44 @@ export function defaultOrbitalConfig(width: number, height: number): OrbitalLayo
   return {
     width,
     height,
-    conductorRadius: minSide * 0.055,
-    trustRingRadius: minSide * 0.3,
-    limboRingRadius: minSide * 0.44,
-    nodeBaseRadius: minSide * 0.03,
-    nodeMaxRadius: minSide * 0.052,
+    conductorRadius: minSide * CONDUCTOR_RATIO,
+    trustRingRadius: minSide * TRUST_RING_RATIO,
+    limboRingRadius: minSide * LIMBO_RING_RATIO,
+    nodeBaseRadius: minSide * NODE_BASE_RATIO,
+    nodeMaxRadius: minSide * NODE_MAX_RATIO,
     angleOffsetRad: 0,
   };
 }
 
 /**
  * Generates a deterministic HSL color from a modality code.
- * Hashes the code string to a hue (0-360), fixed saturation and lightness.
+ * Alternating lightness bands (45% / 65%) guarantee adjacent-slice contrast.
  */
-export function modalityToColor(modality: ModalityCode): string {
+export function modalityToColor(modality: ModalityCode, index: number = 0): string {
   let hash = 0;
   for (let i = 0; i < modality.length; i++) {
     hash = ((hash << 5) - hash) + modality.charCodeAt(i);
     hash |= 0;
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 55%)`;
+  const lightness = index % 2 === 0 ? 45 : 65;
+  return `hsl(${hue}, 85%, ${lightness}%)`;
 }
 
 /**
- * Generates a stress arc color from load score using piecewise linear HSL interpolation.
- * 0% = blue (hue 210), 50% = yellow (hue 60), 100% = red (hue 0).
+ * Generates a stress arc color from load score via piecewise linear HSL.
+ * Blue (hue 210) at 0, pivoting to Yellow (hue 60) at 0.6 to match the
+ * shedding threshold, then to Red (hue 0) at 1.0.
  */
 export function loadToStressColor(loadScore: number): string {
   const clamped = Math.max(0, Math.min(1, loadScore));
   let hue: number;
-  if (clamped < 0.5) {
-    hue = 210 - (clamped * 2 * 150);
+  if (clamped < 0.6) {
+    // Blue → Yellow across 0 → 0.6
+    hue = 210 - (clamped / 0.6) * 150;
   } else {
-    hue = 60 - ((clamped - 0.5) * 2 * 60);
+    // Yellow → Red across 0.6 → 1.0
+    hue = 60 - ((clamped - 0.6) / 0.4) * 60;
   }
   return `hsl(${Math.round(hue)}, 80%, 50%)`;
 }
@@ -163,7 +180,7 @@ export function stressArcPath(
   cx: number,
   cy: number,
   radius: number,
-  loadScore: number
+  loadScore: number,
 ): string {
   if (loadScore <= 0) return '';
   if (loadScore >= 1) {
