@@ -7,3 +7,5 @@
 export { default as Modal } from './Modal.svelte';
 export { default as Toast } from './Toast.svelte';
 export { default as ToastContainer } from './ToastContainer.svelte';
+export { default as SwarmCanvas } from './SwarmCanvas.svelte';
+export { default as SegmentedControl } from './SegmentedControl.svelte';
