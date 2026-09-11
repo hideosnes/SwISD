@@ -5,3 +5,4 @@
  * 4. Provides: Explicit, unambiguous directive to prerender the entire application tree to static HTML.
  */
 export const prerender = true;
+

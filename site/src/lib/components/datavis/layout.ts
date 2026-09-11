@@ -2,7 +2,7 @@
  * 1. Relative path: site/src/lib/components/datavis/layout.ts
  * 2. Description: Deterministic orbital positioning math for the marketing orbit explainer. Pure functions, no DOM.
  * 3. Expects: A fixed square viewBox coordinate space.
- * 4. Provides: computeOrbitLayout() returning conductor, green neighborhood ring (worker/diplomat/siblings in adjacency order), blue outer swarm, lone ghost, radii, and bridge targets.
+ * 4. Provides: computeOrbitLayout() returning conductor, green neighborhood ring (worker/diplomat/siblings at organic angles), blue outer swarm, lone ghost, radii, and bridge targets.
  */
 
 export interface Point {
@@ -47,15 +47,14 @@ function polar(angleDeg: number, radius: number): Point {
 export function computeOrbitLayout(): OrbitLayout {
   const radii = { green: 130, blue: 220, limbo: 320 };
 
-  // Green neighborhood ring. Angular order defines left/right adjacency:
-  // worker (top) → sibling (right) → diplomat (bottom) → sibling (left) → back to worker.
-  const worker = polar(270, radii.green);
-  const diplomat = polar(90, radii.green);
+  // Green neighborhood ring at organic, asymmetric angles.
+  const worker = polar(240, radii.green);
+  const diplomat = polar(80, radii.green);
   const greenRing: GreenPip[] = [
     { point: worker, role: 'worker' },
-    { point: polar(0, radii.green), role: 'sibling' },
+    { point: polar(330, radii.green), role: 'sibling' },
     { point: diplomat, role: 'diplomat' },
-    { point: polar(180, radii.green), role: 'sibling' }
+    { point: polar(145, radii.green), role: 'sibling' }
   ];
 
   // Blue outer swarm, parked on the second ring.
@@ -65,7 +64,7 @@ export function computeOrbitLayout(): OrbitLayout {
     polar(240, radii.blue)
   ];
 
-  // The diplomat (bottom of the green ring) is the sole bridge, reaching the two flanking blue pips.
+  // The diplomat is the sole bridge, reaching the two flanking blue pips.
   const diplomatBlueTargets = [0, 1];
 
   // The ghost waits alone in the limbo orbit.

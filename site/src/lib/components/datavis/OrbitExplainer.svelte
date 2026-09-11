@@ -2,7 +2,7 @@
 1. Relative path: site/src/lib/components/datavis/OrbitExplainer.svelte
 2. Description: Interactive orbital swarm explainer. Header + role tabs + plain-text rundown on the left, vertically-centered orbit on the right.
 3. Expects: A readonly Rundown dataset, an optional header snippet, CSS tokens from layout.css, and the ui SegmentedControl primitive.
-4. Provides: Deterministic SVG orbit map (green neighborhood ring, blue outer swarm, lone ghost) with keyboard-accessible actors and a live rundown.
+4. Provides: Deterministic SVG orbit map (asymmetric green neighborhood ring, blue outer swarm, lone ghost) with keyboard-accessible actors and a live rundown.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
@@ -31,11 +31,6 @@
     x2: pip.point.x,
     y2: pip.point.y
   }));
-
-  const chainEdges = orbit.greenRing.map((pip, i) => {
-    const next = orbit.greenRing[(i + 1) % orbit.greenRing.length];
-    return { x1: pip.point.x, y1: pip.point.y, x2: next.point.x, y2: next.point.y };
-  });
 
   const bridgeEdges = orbit.diplomatBlueTargets.map((bi) => ({
     x1: orbit.diplomat.x,
@@ -107,13 +102,6 @@
       <g class="decor" aria-hidden="true">
         {#each spokeEdges as e, i (i)}
           <line class="spoke" x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} />
-        {/each}
-      </g>
-
-      <!-- Green ring chain: each pip gossips with its left and right neighbor -->
-      <g class="decor" aria-hidden="true">
-        {#each chainEdges as e, i (i)}
-          <line class="chain" x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} />
         {/each}
       </g>
 
@@ -262,7 +250,6 @@
   .ring-limbo { stroke: var(--color-purple); opacity: 0.18; stroke-dasharray: 3 8; stroke-width: 1.5; }
 
   .spoke { stroke: var(--color-lime); opacity: 0.3; stroke-width: 1.5; stroke-dasharray: 3 7; }
-  .chain { stroke: var(--color-lime); opacity: 0.22; stroke-width: 1; }
   .bridge { stroke: var(--color-purple); opacity: 0.5; stroke-width: 1.5; stroke-dasharray: 4 6; }
 
   .blue-pip { fill: var(--color-purple); opacity: 0.55; }

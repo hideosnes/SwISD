@@ -174,35 +174,44 @@ cockpit/src/lib/components/datavis/
     └── Gauge.svelte            # Load score visualization
 
 Marketing Site (`site/`)
-Isolated static marketing surface. Strict Svelte 5 Runes, a11y, and Tailwind v4 enforcement. 
-Lenis-powered magnetic-glide scroll engine with dual-audience carousels and staggered reveals.
+Isolated static marketing surface. Strict Svelte 5 Runes, a11y, and Tailwind v4 enforcement.
 Barrel rules apply: imports travel through barrels only, max one step deep.
 site/
 ├── vite.config.ts              # Vite config with inline SvelteKit static adapter & Tailwind v4
 ├── src/
 │   ├── lib/
+│   │   ├── assets/
+│   │   │   └── index.ts                 # Barrel export for static image assets (logos, SDGs)
 │   │   ├── components/
 │   │   │   ├── ui/
-│   │   │   │   ├── index.ts              # Barrel export for UI primitives
-│   │   │   │   ├── Modal.svelte          # Accessible modal dialog (focus trapping, keyboard parity)
-│   │   │   │   ├── Toast.svelte          # Auto-dismissing notification with accessible status role
-│   │   │   │   ├── ToastContainer.svelte # Global container rendering active toasts via uiStore
-│   │   │   │   ├── CircleNav.svelte      # Right-edge dot nav (presentational, variant-contrasting)
-│   │   │   │   ├── TopNav.svelte         # Sticky hem-to-top adaptive menu bar (mock # links)
-│   │   │   │   ├── Reveal.svelte         # Scroll-reveal primitive (per-breakpoint variants, child stagger)
-│   │   │   │   ├── SplitSection.svelte   # Dual-audience split; mobile snap carousel with bindable side
-│   │   │   │   └── AudienceToggle.svelte # Developers/Executives segmented control
-│   │   ├── scroll/
-│   │   │   ├── index.ts                  # Barrel export for scroll infrastructure
-│   │   │   └── engine.ts                 # Lenis-powered glide + magnetic section locking (reduced-motion fallback)
+│   │   │   │   ├── index.ts             # Barrel export for UI primitives
+│   │   │   │   ├── Arrow.svelte         # Directional SVG arrow primitive
+│   │   │   │   ├── Footer.svelte        # Global site footer (utility nav, cross-route anchor resolution)
+│   │   │   │   ├── LogoGallery.svelte   # Single-row flex logo grid (configurable alignment)
+│   │   │   │   ├── ManifestoList.svelte # Star-prefixed list primitive
+│   │   │   │   ├── Modal.svelte         # Accessible modal dialog (default + flush variants, lime-circle close)
+│   │   │   │   ├── RoadmapModal.svelte  # Editorial 1/3:2/3 modal for roadmap entries
+│   │   │   │   ├── RoadmapTimeline.svelte # Vertical timeline with continuous spine and alternating leaves
+│   │   │   │   ├── SegmentedControl.svelte # Audience toggle primitive
+│   │   │   │   ├── SwarmCanvas.svelte   # Hero background topology canvas
+│   │   │   │   ├── Toast.svelte         # Auto-dismissing notification with accessible status role
+│   │   │   │   ├── ToastContainer.svelte# Global container rendering active toasts via uiStore
+│   │   │   │   └── TopNav.svelte        # Global sticky navigation bar (glassmorphic, SSR-safe)
+│   │   │   ├── datavis/
+│   │   │   │   ├── index.ts             # Barrel export for datavis primitives
+│   │   │   │   └── OrbitExplainer.svelte # Interactive architecture orbit explainer
+│   │   ├── content/
+│   │   │   └── roadmap.ts               # Typed roadmap data source (status, time, title, image, description)
 │   │   ├── stores/
-│   │   │   └── ui.svelte.ts              # Global reactive state for UI engines (Toasts/Modals) via module-level $state
-│   │   └── index.ts                      # Root barrel export for the site library
+│   │   │   └── ui.svelte.ts             # Global reactive state for UI engines (Toasts/Modals) via module-level $state
+│   │   └── index.ts                     # Root barrel export for the site library
 │   ├── routes/
-│   │   ├── layout.css                    # Global styles, Lenis scroll physics, reveal choreography, Tailwind v4 imports
-│   │   ├── +layout.ts                    # Root layout config: explicit directive to prerender entire tree to static HTML
-│   │   ├── +layout.svelte                # Global shell: imports layout.css, favicon, and global UI engines (ToastContainer)
-│   │   └── +page.svelte                  # Main landing page: 7 sections, Lenis engine, keyboard stepping, staggered reveals
+│   │   ├── layout.css                   # Theme Conductor (tokens, cascade layers, primitive styles)
+│   │   ├── +layout.ts                   # Root layout config: prerender directive
+│   │   ├── +layout.svelte               # Global shell: TopNav, Footer, ToastContainer
+│   │   ├── roadmap/
+│   │   │   └── +page.svelte             # Interactive roadmap route
+│   │   └── +page.svelte                 # Main landing page (hero, problem, solution, etc.)
 
 Tooling, CI & Delivery Assets (Root Level)
 .github/

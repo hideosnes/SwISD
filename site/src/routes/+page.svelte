@@ -2,15 +2,15 @@
 1. Relative path: site/src/routes/+page.svelte
 2. Description: SwISD marketing site with standardized sections and an interactive architecture orbit explainer.
 3. Expects: Svelte 5 runes, SSR-safe DOM access.
-4. Provides: Swarm-topology hero, dual-audience toggle, scroll reveal, sticky nav, orbit architecture explainer.
+4. Provides: Swarm-topology hero, dual-audience toggle, scroll reveal, orbit architecture explainer.
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { SwarmCanvas, SegmentedControl } from '$lib/components/ui';
+  import { Arrow, LogoGallery, ManifestoList, SwarmCanvas, SegmentedControl, type LogoGalleryItem } from '$lib/components/ui';
   import { OrbitExplainer, type Rundown } from '$lib/components/datavis';
+  import { currentEntry } from '$lib/content/roadmap';
+  import { swisdLogo, huggingfaceLogo, nodejsLogo, webgpuLogo, sdg9, sdg12, sdg16 } from '$lib/assets';
 
-  let mobileMenuOpen = $state(false);
-  let navScrolled = $state(false);
   let revealObserver: IntersectionObserver | null = null;
   let audience = $state<'dev' | 'exec'>('dev');
 
@@ -43,7 +43,7 @@
       actorId: 'diplomat',
       pillar: 'Deep Networking',
       title: 'The Diplomat',
-      text: 'The elected ambassador. Diplomats are the sole bridge between swarms, holding connections to the diplomats of neighboring swarms to carry knowledge and route tasks across boundaries — without ever exposing raw data.',
+      text: 'The elected ambassador. Diplomats are the sole bridge between swarms, holding connections to the diplomats of neighboring swarms to carry knowledge and route tasks across boundaries without ever exposing raw data.',
       chipLabel: 'Diplomat'
     },
     {
@@ -53,14 +53,6 @@
       text: "A stranger at the gate. Newly discovered peers dock in a limbo orbit as PENDING. Discovery is advisory only; the operator must explicitly trust the peer's Ed25519 identity before it may join CRDT gossip or receive tasks.",
       chipLabel: 'Ghost'
     }
-  ];
-
-  const navLinks = [
-    { href: '#problem', label: 'Problem' },
-    { href: '#solution', label: 'Solution' },
-    { href: '#architecture', label: 'Architecture' },
-    { href: '#business', label: 'For Business' },
-    { href: '#philosophy', label: 'Philosophy' }
   ];
 
   const problems = [
@@ -94,28 +86,28 @@
   ];
 
   const solutions = [
-    { num: '01', title: 'Agency', text: 'You choose the models, not the platform. Open weights, opinionated interface. Full control over what runs on your hardware.' },
-    { num: '02', title: 'Autonomy', text: 'Built-in metadata reporting. Edge-native, OS-agnostic infrastructure that works without centralized servers.' },
-    { num: '03', title: 'Reciprocity', text: 'User-facing controls. Runs locally on your devices. Your data stays yours, always.' }
-  ];
-
-  const codeFeatures = [
-    { icon: '⚙', title: 'Zero-config setup', text: 'Initialize a swarm node with a single command. No complex orchestration needed.' },
-    { icon: '🔗', title: 'Model-agnostic', text: 'Works with any open-weight model. Bring your own, or use community models.' },
-    { icon: '📊', title: 'Built-in telemetry', text: "Metadata reporting out of the box. Know what's running, where, and how." }
+    { title: 'Agency', text: 'You choose the models, not the platform. Open weights, opinionated interface. Full control over what runs on your hardware.' },
+    { title: 'Autonomy', text: 'Built-in metadata reporting. Edge-native, OS-agnostic infrastructure that works without centralized servers.' },
+    { title: 'Reciprocity', text: 'User-facing controls. Runs locally on your devices. Your data stays yours, always.' }
   ];
 
   const businessPoints = [
-    { num: '1', title: 'Cost Reduction', text: 'Eliminate cloud inference costs. Run models on existing hardware at the edge.' },
-    { num: '2', title: 'Data Sovereignty', text: 'Keep sensitive data on-premise. No third-party access, no compliance headaches.' },
-    { num: '3', title: 'Future-Proof', text: 'Model-agnostic architecture. Switch models without rewriting infrastructure.' }
+    { title: 'Cost Reduction', text: 'Eliminate unpredictable cloud bills by running AI workloads directly on the hardware you already own.' },
+    { title: 'Data Sovereignty', text: 'Keep sensitive information entirely on-premise, safely insulated from third-party access and compliance risks.' },
+    { title: 'Independence', text: 'Adopt new AI models and operating systems freely without rewriting your infrastructure or losing historical context.' },
+    { title: 'Sustainability', text: 'Extend the lifespan of your existing devices to eliminate e-waste while precisely tracking your environmental footprint.' }
   ];
 
-  const metrics = [
-    { value: '~90%', label: 'Cloud cost reduction' },
-    { value: '<50ms', label: 'Local inference latency' },
-    { value: '100%', label: 'Data ownership' },
-    { value: '0', label: 'Vendor dependencies' }
+  const runtimeLogos: readonly LogoGalleryItem[] = [
+    { src: webgpuLogo, alt: 'WebGPU' },
+    { src: nodejsLogo, alt: 'NodeJS' },
+    { src: huggingfaceLogo, alt: 'HuggingFace' }
+  ];
+
+  const sdgLogos: readonly LogoGalleryItem[] = [
+    { src: sdg9, alt: 'SDG9' },
+    { src: sdg12, alt: 'SDG12' },
+    { src: sdg16, alt: 'SDG16' }
   ];
 
   const oldWay = ['Complexity', 'Obscurity', 'Incapacity', 'Dependency', 'Extraction'];
@@ -125,18 +117,6 @@
 
   const GITHUB = 'https://github.com/hideosnes/swisd';
   const HOMAHUKI = 'https://www.homahuki.eu';
-
-  function handleScroll() {
-    navScrolled = window.scrollY > 50;
-  }
-
-  function toggleMobileMenu() {
-    mobileMenuOpen = !mobileMenuOpen;
-  }
-
-  function closeMobileMenu() {
-    mobileMenuOpen = false;
-  }
 
   function selectAudience(next: 'dev' | 'exec') {
     audience = next;
@@ -148,7 +128,6 @@
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    closeMobileMenu();
   }
 
   onMount(() => {
@@ -161,21 +140,17 @@
       { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
     );
     document.querySelectorAll('.reveal').forEach((el) => revealObserver?.observe(el));
-
-    window.addEventListener('scroll', handleScroll);
   });
 
   onDestroy(() => {
     if (typeof window === 'undefined') return;
     revealObserver?.disconnect();
-    window.removeEventListener('scroll', handleScroll);
   });
 </script>
 
 <svelte:head>
   <title>SwISD | Swarm Inference on Small Devices</title>
   <meta name="description" content="SwISD is a decentralized, capability-aware P2P network for distributed AI inference on small devices." />
-  <link rel="icon" href="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='107'%20height='128'%20viewBox='0%200%20107%20128'%3e%3ctitle%3esvelte-logo%3c/title%3e%3cpath%20d='M94.157%2022.819c-10.4-14.885-30.94-19.297-45.792-9.835L22.282%2029.608A29.92%2029.92%200%200%200%208.764%2049.65a31.5%2031.5%200%200%200%203.108%2020.231%2030%2030%200%200%200-4.477%2011.183%2031.9%2031.9%200%200%200%205.448%2024.116c10.402%2014.887%2030.942%2019.297%2045.791%209.835l26.083-16.624A29.92%2029.92%200%200%200%2098.235%2078.35a31.53%2031.53%200%200%200-3.105-20.232%2030%2030%200%200%200%204.474-11.182%2031.88%2031.88%200%200%200-5.447-24.116'%20style='fill:%23ff3e00'/%3e%3cpath%20d='M45.817%20106.582a20.72%2020.72%200%200%201-22.237-8.243%2019.17%2019.17%200%200%201-3.277-14.503%2018%2018%200%200%201%20.624-2.435l.49-1.498%201.337.981a33.6%2033.6%200%200%200%2010.203%205.098l.97.294-.09.968a5.85%205.85%200%200%200%201.052%203.878%206.24%206.24%200%200%200%206.695%202.485%205.8%205.8%200%200%200%201.603-.704L69.27%2076.28a5.43%205.43%200%200%200%202.45-3.631%205.8%205.8%200%200%200-.987-4.371%206.24%206.24%200%200%200-6.698-2.487%205.7%205.7%200%200%200-1.6.704l-9.953%206.345a19%2019%200%200%201-5.296%202.326%2020.72%2020.72%200%200%201-22.237-8.243%2019.17%2019.17%200%200%201-3.277-14.502%2017.99%2017.99%200%200%201%208.13-12.052l26.081-16.623a19%2019%200%200%201%205.3-2.329%2020.72%2020.72%200%200%201%2022.237%208.243%2019.17%2019.17%200%200%201%203.277%2014.503%2018%2018%200%200%201-.624%202.435l-.49%201.498-1.337-.98a33.6%2033.6%200%200%200-10.203-5.1l-.97-.294.09-.968a5.86%205.86%200%200%200-1.052-3.878%206.24%206.24%200%200%200-6.696-2.485%205.8%205.8%200%200%200-1.602.704L37.73%2051.72a5.42%205.42%200%200%200-2.449%203.63%205.79%205.79%200%200%200%20.986%204.372%206.24%206.24%200%200%200%206.698%202.486%205.8%205.8%200%200%200%201.602-.704l9.952-6.342a19%2019%200%200%201%205.295-2.328%2020.72%2020.72%200%200%201%2022.237%208.242%2019.17%2019.17%200%200%201%203.277%2014.503%2018%2018%200%200%201-8.13%2012.053l-26.081%2016.622a19%2019%200%200%201-5.3%202.328'%20style='fill:%23fff'/%3e%3c/svg%3e" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-500-normal.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.css" />
@@ -184,28 +159,6 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-500-normal.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/jetbrains-mono@latest/latin-700-normal.css" />
 </svelte:head>
-
-<nav class="navbar" class:scrolled={navScrolled}>
-  <a href="#hero" class="nav-logo" onclick={(e) => smoothScroll(e, '#hero')}>
-    <span class="logo-dot"></span>
-    SwISD
-  </a>
-  <ul class="nav-links" class:open={mobileMenuOpen}>
-    {#each navLinks as link}
-      <li><a href={link.href} onclick={(e) => smoothScroll(e, link.href)}>{link.label}</a></li>
-    {/each}
-    <li><a href={GITHUB} target="_blank" rel="noopener noreferrer" class="nav-cta">GitHub ↗</a></li>
-  </ul>
-  <button
-    type="button"
-    class="mobile-menu-btn"
-    onclick={toggleMobileMenu}
-    aria-label="Toggle menu"
-    aria-expanded={mobileMenuOpen}
-  >
-    {mobileMenuOpen ? '✕' : '☰'}
-  </button>
-</nav>
 
 <section id="hero">
   <SwarmCanvas />
@@ -233,7 +186,7 @@
         <div class="hero-subtitle hero-swap">
           <p>{AUDIENCE_COPY[audience]}</p>
           <a href="#problem" class="btn-secondary" onclick={(e) => smoothScroll(e, '#problem')}>
-            Learn More →
+            Learn More <Arrow direction="down" />
           </a>
         </div>
       {/key}
@@ -271,7 +224,7 @@
 
 <section id="solution">
   <div class="container">
-    <div class="solution-layout">
+    <div class="manifesto-layout">
       <div class="reveal">
         <span class="section-label">The Solution</span>
         <h2 class="section-title section-title-sm">
@@ -279,18 +232,32 @@
           <span class="lime">We build the alternative.</span>
         </h2>
         <p class="section-desc">
-          Agency is capability-aware by construction. Peers advertise the executors and models they actually run, and work flows only to nodes that explicitly claim the capability. You choose the models, and the swarm obeys. Autonomy is coordinator-free by mathematics. Membership, reputation, and task state live in Merkle-DAG CRDTs that converge on their own when peers vanish, while built-in telemetry reports what ran, where, and how. Reciprocity is symmetric by design. Your devices contribute compute, your models and data stay sharded inside your own swarm, and results return through a targeted encrypted tunnel to you, never broadcast and never surrendered to a third party.
+          Proprietary AI rents you a black box. You don't own the model, the data, or the bill. SwISD flips the contract. You choose the models, and work routes only to peers that claim the capability. The swarm converges without a coordinator, through mathematics that heal when peers vanish. Your data stays sharded inside your own network and returns through a targeted tunnel. Never broadcast. Never surrendered.
         </p>
       </div>
-      <div class="solution-stack reveal reveal-delay-2">
-        {#each solutions as s, i (s.title)}
-          <div class="solution-card">
-            <span class="solution-card-number">{s.num}</span>
-            <h3>{s.title}</h3>
-            <p>{s.text}</p>
-          </div>
-        {/each}
+      <div class="manifesto-block reveal reveal-delay-2">
+        <ManifestoList items={solutions} ariaLabel="SwISD principles" />
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="showcase" class="cta-band">
+  <div class="cta-content reveal">
+    <h2 class="cta-title">
+      One framework. Many ideas.<br />
+      <span class="lime">Creativity is the only limit.</span>
+    </h2>
+    <p class="cta-desc">
+      Glitch-proof live audio. Cultural archives that answer your questions. Spectrogram transformers that help researchers hear. These are the first ideas already taking shape on the swarm.
+    </p>
+    <div class="cta-actions">
+      <a href="/example" class="btn-primary">
+        Examples <Arrow direction="right" />
+      </a>
+      <a href="#architecture" class="btn-secondary" onclick={(e) => smoothScroll(e, '#architecture')}>
+        Learn more <Arrow direction="down" />
+      </a>
     </div>
   </div>
 </section>
@@ -318,21 +285,16 @@
   <div class="container">
     <div class="code-layout">
       <div class="reveal">
-        <span class="section-label">Developer Experience</span>
+        <span class="section-label">Implementation</span>
         <h2 class="section-title section-title-sm">
-          Ship in minutes,<br />
-          <span class="lime">not months.</span>
+          No cluster to provision.<br />
+          <span class="lime">The swarm is a function call.</span>
         </h2>
-        <div class="code-features">
-          {#each codeFeatures as f (f.title)}
-            <div class="code-feature">
-              <div class="code-feature-icon" aria-hidden="true">{f.icon}</div>
-              <div>
-                <h4>{f.title}</h4>
-                <p>{f.text}</p>
-              </div>
-            </div>
-          {/each}
+        <p class="section-desc">
+          Boot devices with no monitor, no router, no YAML. Without a network, the Conductor spins up its own hotspot and mDNS announces every node on the wire. A phone injects WiFi credentials in one tap. Drop a FAT32 stick with a single JSON file and the whole fleet provisions identically. One command, no orchestrator, no Terraform, no certification required.  
+        </p>
+        <div class="logo-gallery-slot">
+          <LogoGallery items={runtimeLogos} ariaLabel="Supported runtimes" align="left" />
         </div>
       </div>
       <div class="code-block reveal reveal-delay-2">
@@ -371,64 +333,67 @@
 
 <section id="business">
   <div class="container">
-    <div class="business-layout">
+    <div class="manifesto-layout">
       <div class="reveal">
         <span class="section-label">For Decision Makers</span>
         <h2 class="section-title section-title-sm">
-          Infrastructure<br />
+          AI Infrastructure<br />
           <span class="lime">that scales with you.</span>
         </h2>
-        <p class="section-desc" style="margin-top: 1rem;">Reduce costs. Eliminate vendor lock-in. Own your AI stack end-to-end.</p>
-        <div class="business-points">
-          {#each businessPoints as b (b.title)}
-            <div class="business-point">
-              <span class="business-point-num">{b.num}</span>
-              <div>
-                <h4>{b.title}</h4>
-                <p>{b.text}</p>
-              </div>
-            </div>
-          {/each}
+        <p class="section-desc">
+          SwISD meets your business where it already stands. It works with the systems you run today, no migration required. Setup is simple, maintenance stays light, and nothing is locked to a single vendor or buried in a bill. Every task, every watt, every cost shows up in reporting your board can actually read.
+        </p>
+        <div class="logo-gallery-slot">
+          <LogoGallery items={sdgLogos} ariaLabel="SDG's" align="left" />
         </div>
       </div>
-      <div class="metrics-grid reveal reveal-delay-2">
-        {#each metrics as m (m.label)}
-          <div class="metric-card">
-            <div class="metric-value">{m.value}</div>
-            <div class="metric-label">{m.label}</div>
-          </div>
-        {/each}
+      <div class="manifesto-block reveal reveal-delay-2">
+        <ManifestoList items={businessPoints} ariaLabel="Business value" />
       </div>
     </div>
   </div>
 </section>
 
-<section id="philosophy">
+<section id="research" class="cta-band cta-band-thin">
+  <div class="container">
+    <div class="cta-band-inner reveal">
+      <div>
+        <span class="section-label">The Science</span>
+        <h2 class="section-title section-title-sm">
+          We build infrastructure<br />
+          <span class="lime">and grow knowledge.</span>
+        </h2>
+      </div>
+      <div class="cta-actions-right">
+        <a href="/research" class="btn-primary">
+          Read the Whitepapers <Arrow direction="right" />
+        </a>
+        <a href="#roadmap" class="btn-secondary" onclick={(e) => smoothScroll(e, '#roadmap')}>
+          Learn more <Arrow direction="down" />
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="roadmap-preview">
   <div class="container">
     <div class="reveal" style="text-align: center; margin-bottom: 3rem;">
-      <span class="section-label">Philosophy</span>
-      <h2 class="section-title section-title-sm">Two paths forward.</h2>
+      <span class="section-label">Roadmap</span>
+      <h2 class="section-title section-title-sm">
+        {#if currentEntry}
+          Currently building:<br />
+          <span class="lime">{currentEntry.title}</span>
+        {:else}
+          The path forward.
+        {/if}
+      </h2>
+      {#if currentEntry?.description}
+        <p class="section-desc" style="margin: 0 auto;">{currentEntry.description}</p>
+      {/if}
     </div>
-    <div class="philosophy-compare reveal">
-      <div class="philosophy-col old">
-        <p class="philosophy-col-label">Proprietary Platform</p>
-        <h3 style="color: var(--gray-500);">The Old Way</h3>
-        <ul>
-          {#each oldWay as item}
-            <li>{item}</li>
-          {/each}
-        </ul>
-      </div>
-      <div class="philosophy-divider" aria-hidden="true">→</div>
-      <div class="philosophy-col new">
-        <p class="philosophy-col-label">Participatory Framework</p>
-        <h3 style="color: var(--lime);">The SwISD Way</h3>
-        <ul>
-          {#each newWay as item}
-            <li>✦ {item}</li>
-          {/each}
-        </ul>
-      </div>
+    <div class="reveal" style="text-align: center;">
+      <a href="/roadmap" class="btn-primary">View Full Timeline <Arrow direction="right" /></a>
     </div>
   </div>
 </section>
@@ -450,7 +415,7 @@
   </div>
 </section>
 
-<section id="cta">
+<section id="cta" class="cta-band">
   <div class="cta-content">
     <div class="reveal">
       <h2 class="cta-title">
@@ -460,29 +425,15 @@
       <p class="cta-desc">SwISD is open-source and actively seeking contributors. Join the swarm.</p>
       <div class="cta-actions">
         <a href={GITHUB} target="_blank" rel="noopener noreferrer" class="btn-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-          Star on GitHub
+          Star on GitHub <Arrow direction="external" />
         </a>
         <a href={HOMAHUKI} target="_blank" rel="noopener noreferrer" class="btn-secondary">
-          Visit homahuki.eu →
+          Visit homahuki.eu <Arrow direction="external" />
         </a>
       </div>
     </div>
     <div class="cta-footer reveal">
-      <p>A project by <a href={HOMAHUKI} target="_blank" rel="noopener noreferrer">homahuki.eu</a> &middot; Linz, Austria</p>
+      <p>A project by <a href={HOMAHUKI} target="_blank" rel="noopener noreferrer">homahuki.eu <Arrow direction="external" /></a> &middot; Linz, Austria</p>
     </div>
   </div>
 </section>
-
-<footer>
-  <div class="footer-content">
-    <span class="footer-logo">SwISD</span>
-    <div class="footer-links">
-      <a href={GITHUB} target="_blank" rel="noopener noreferrer">GitHub</a>
-      <a href="#architecture" onclick={(e) => smoothScroll(e, '#architecture')}>Docs</a>
-      <a href="#philosophy" onclick={(e) => smoothScroll(e, '#philosophy')}>Philosophy</a>
-      <a href={HOMAHUKI} target="_blank" rel="noopener noreferrer">homahuki.eu</a>
-    </div>
-    <span class="footer-copy">&copy; 2025 SwISD. Open Source.</span>
-  </div>
-</footer>
