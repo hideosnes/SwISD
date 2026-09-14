@@ -6,10 +6,37 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Arrow, LogoGallery, ManifestoList, SwarmCanvas, SegmentedControl, type LogoGalleryItem } from '$lib/components/ui';
+  import { Arrow, LogoGallery, ManifestoList, SwarmCanvas, SegmentedControl, type LogoGalleryGroup } from '$lib/components/ui';
   import { OrbitExplainer, type Rundown } from '$lib/components/datavis';
   import { currentEntry } from '$lib/content/roadmap';
-  import { swisdLogo, huggingfaceLogo, nodejsLogo, webgpuLogo, sdg9, sdg12, sdg16 } from '$lib/assets';
+  import { 
+    huggingfaceLogo, 
+    nodejsLogo, 
+    webgpuLogo, 
+    sdg9, 
+    sdg12, 
+    sdg16,
+    ffgLogo,
+    hpcjuLogo,
+    stsbgLogo,
+    angewandteLogo,
+    europarkLogo,
+    fhsbgLogo,
+    gelaoxLogo,
+    kupfLogo,
+    mozarteumLogo,
+    ndaLogo,
+    schmiedeLogo,
+    sparLogo,
+    subnetLogo,
+    symposionlindabrunnLogo,
+    tolukaLogo,
+    villavidaLogo,
+    voxerlLogo,
+    monochromLogo,
+    swkLogo,
+    klnoeLogo
+  } from '$lib/assets';
 
   let revealObserver: IntersectionObserver | null = null;
   let audience = $state<'dev' | 'exec'>('dev');
@@ -98,22 +125,72 @@
     { title: 'Sustainability', text: 'Extend the lifespan of your existing devices to eliminate e-waste while precisely tracking your environmental footprint.' }
   ];
 
-  const runtimeLogos: readonly LogoGalleryItem[] = [
-    { src: webgpuLogo, alt: 'WebGPU' },
-    { src: nodejsLogo, alt: 'NodeJS' },
-    { src: huggingfaceLogo, alt: 'HuggingFace' }
+  const runtimeGroups: readonly LogoGalleryGroup[] = [
+    {
+      items: [
+        { src: webgpuLogo, alt: 'WebGPU' },
+        { src: nodejsLogo, alt: 'NodeJS' },
+        { src: huggingfaceLogo, alt: 'HuggingFace' }
+      ]
+    }
   ];
 
-  const sdgLogos: readonly LogoGalleryItem[] = [
-    { src: sdg9, alt: 'SDG9' },
-    { src: sdg12, alt: 'SDG12' },
-    { src: sdg16, alt: 'SDG16' }
+  const sdgGroups: readonly LogoGalleryGroup[] = [
+    {
+      items: [
+        { src: sdg9, alt: 'SDG9' },
+        { src: sdg12, alt: 'SDG12' },
+        { src: sdg16, alt: 'SDG16' }
+      ]
+    }
   ];
 
-  const oldWay = ['Complexity', 'Obscurity', 'Incapacity', 'Dependency', 'Extraction'];
-  const newWay = ['Agency', 'Autonomy', 'Reciprocity', 'Sovereignty', 'Contribution'];
+  const grantGroups: readonly LogoGalleryGroup[] = [
+    {
+      items: [
+        { src: ffgLogo, alt: 'FFG', wide: true },
+        { src: hpcjuLogo, alt: 'EuroHPC JU', wide: true },
+        { src: stsbgLogo, alt: 'Stadt Salzburg', wide: true }
+      ]
+    }
+  ];
 
-  const partners = ['FFG', 'FH Salzburg', 'KUPF OÖ', 'homahuki.eu'];
+  const partnerGroups: readonly LogoGalleryGroup[] = [
+    {
+      label: 'Research',
+      items: [
+        { src: angewandteLogo, alt: 'Angewandte', wide: true },
+        { src: fhsbgLogo, alt: 'FH Salzburg', wide: false },
+        { src: mozarteumLogo, alt: 'Mozarteum', wide: true },
+        { src: ndaLogo, alt: 'NDA', wide: false }
+      ]
+    },
+    {
+      label: 'Culture',
+      items: [
+        { src: kupfLogo, alt: 'Kupf OOe', wide: true },
+        { src: klnoeLogo, alt: 'Kulturland Niederösterreich', wide: true },
+        { src: monochromLogo, alt: 'Monochrom', wide: true },
+        { src: schmiedeLogo, alt: 'Schmiede Hallein', wide: false },
+        { src: subnetLogo, alt: 'Subnet', wide: false },
+        { src: swkLogo, alt: 'Stadt Wien Kultur', wide: true },
+        { src: symposionlindabrunnLogo, alt: 'Symposion Lindabrunn', wide: true },
+        { src: villavidaLogo, alt: 'VillaVida', wide: false }
+      ]
+    },
+    {
+      label: 'Industry',
+      items: [
+        { src: europarkLogo, alt: 'Europark', wide: true },
+        { src: gelaoxLogo, alt: 'GeLa Ox', wide: false },
+        { src: sparLogo, alt: 'Spar', wide: true },
+        { src: tolukaLogo, alt: 'Toluka', wide: false },
+        { src: voxerlLogo, alt: 'Voxerl', wide: true },
+        { src: ndaLogo, alt: 'NDA', wide: false },
+        { src: ndaLogo, alt: 'NDA', wide: false }
+      ]
+    }
+  ];
 
   const GITHUB = 'https://github.com/hideosnes/swisd';
   const HOMAHUKI = 'https://www.homahuki.eu';
@@ -294,7 +371,7 @@
           Boot devices with no monitor, no router, no YAML. Without a network, the Conductor spins up its own hotspot and mDNS announces every node on the wire. A phone injects WiFi credentials in one tap. Drop a FAT32 stick with a single JSON file and the whole fleet provisions identically. One command, no orchestrator, no Terraform, no certification required.  
         </p>
         <div class="logo-gallery-slot">
-          <LogoGallery items={runtimeLogos} ariaLabel="Supported runtimes" align="left" />
+          <LogoGallery groups={runtimeGroups} ariaLabel="Supported runtimes" variant="grid" columns={4} align="left" />
         </div>
       </div>
       <div class="code-block reveal reveal-delay-2">
@@ -344,7 +421,7 @@
           SwISD meets your business where it already stands. It works with the systems you run today, no migration required. Setup is simple, maintenance stays light, and nothing is locked to a single vendor or buried in a bill. Every task, every watt, every cost shows up in reporting your board can actually read.
         </p>
         <div class="logo-gallery-slot">
-          <LogoGallery items={sdgLogos} ariaLabel="SDG's" align="left" />
+          <LogoGallery groups={sdgGroups} ariaLabel="SDGs" variant="grid" columns={4} align="left" />
         </div>
       </div>
       <div class="manifesto-block reveal reveal-delay-2">
@@ -398,19 +475,40 @@
   </div>
 </section>
 
-<section id="traction">
+<section id="supported-by">
   <div class="container">
     <div class="reveal" style="text-align: center;">
-      <span class="section-label">Traction</span>
-      <h2 class="section-title section-title-sm">Building the Federated Future</h2>
-      <p class="section-desc" style="margin: 0 auto;">Supported by serious research. Trusted by institutions.</p>
+      <span class="section-label">Thank you!</span>
+      <h2 class="section-title section-title-sm">Supported by:</h2>
     </div>
-    <div class="partners-grid reveal">
-      {#each partners as p (p)}
-        <div class="partner-card">
-          <span>{p}</span>
-        </div>
-      {/each}
+    <div class="reveal" style="margin-top: var(--spacing-xl);">
+      <LogoGallery groups={grantGroups} ariaLabel="Grant partners" variant="grid" columns={6} align="center" />
+    </div>
+  </div>
+</section>
+
+<section id="partners">
+  <div class="container">
+    <div class="reveal" style="text-align: center; max-width: 720px; margin: 0 auto;">
+      <span class="section-label">Co-Development</span>
+      <h2 class="section-title section-title-sm">
+        Souvereign AI means<br />
+        <span class="lime">giving future users agency.</span>
+      </h2>
+      <p class="section-desc" style="margin: 0 auto var(--spacing-lg);">
+        SwISD is co-developed with research institutions and partners from culture and industry. Together we build the infrastructure for European, edge-native AI.
+      </p>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: var(--spacing-2xl);">
+        <a href="https://newsletter.homahuki.eu" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          Newsletter <Arrow direction="external" />
+        </a>
+        <a href="https://www.homahuki.eu" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          Work with us <Arrow direction="external" />
+        </a>
+      </div>
+    </div>
+    <div class="reveal">
+      <LogoGallery groups={partnerGroups} ariaLabel="Institutional partners" variant="grid" columns={6} align="center" />
     </div>
   </div>
 </section>

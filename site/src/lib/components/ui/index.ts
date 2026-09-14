@@ -11,7 +11,7 @@ export { default as SwarmCanvas } from './SwarmCanvas.svelte';
 export { default as SegmentedControl } from './SegmentedControl.svelte';
 export { default as ManifestoList } from './ManifestoList.svelte';
 export { default as Arrow } from './Arrow.svelte';
-export { default as LogoGallery } from './LogoGallery.svelte';
+export { default as LogoGallery, type LogoGalleryGroup } from './LogoGallery.svelte';
 export { default as TopNav } from './TopNav.svelte';
 export { default as Footer } from './Footer.svelte';
 export { default as RoadmapTimeline } from './RoadmapTimeline.svelte';

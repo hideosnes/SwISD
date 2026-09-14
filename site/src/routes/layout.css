@@ -234,7 +234,7 @@
     gap: var(--spacing-md);
   }
 
-  .grid-4, .partners-grid {
+  .grid-4 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
@@ -244,7 +244,7 @@
   @media (max-width: 1024px) {
     .grid-3, .problem-grid { grid-template-columns: 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
-    .grid-4, .partners-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* ===== BUTTONS ===== */
@@ -1026,31 +1026,6 @@
   /* ===== TRACTION SECTION ===== */
   #traction {
     background: var(--color-bg-deep);
-  }
-
-  .partner-card {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius-lg);
-    transition: all 0.3s ease;
-  }
-
-  .partner-card:hover {
-    border-color: var(--color-border-hover);
-    background: var(--color-bg-hover);
-    transform: translateY(-2px);
-  }
-
-  .partner-card span {
-    font-family: var(--font-mono);
-    font-size: 0.9375rem;
-    color: var(--color-gray-400);
-    font-weight: 600;
-    letter-spacing: -0.01em;
   }
 
   /* ===== CTA BAND (shared treatment for mid-page & final CTA) ===== */
