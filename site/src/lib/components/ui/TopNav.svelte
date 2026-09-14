@@ -54,7 +54,11 @@
     {#each links as link}
       <li><a href={resolveHref(link.href)} onclick={closeMobileMenu}>{link.label}</a></li>
     {/each}
-    <li><a href={GITHUB} target="_blank" rel="noopener noreferrer" class="nav-cta">GitHub <Arrow direction="external" /></a></li>
+    <li>
+      <a href={GITHUB} target="_blank" rel="noopener noreferrer" class="nav-cta">
+        GitHub <Arrow direction="external" />
+      </a>
+    </li>
   </ul>
   <button
     type="button"

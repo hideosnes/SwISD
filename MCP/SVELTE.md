@@ -70,3 +70,14 @@ Svelte's a11y compiler warnings are treated as **build-failing errors**. We neve
 - **Keyboard Parity (`a11y_click_events_have_key_events`):** Any visible element with an `onclick` handler MUST have a corresponding `onkeydown` handler that triggers the same action on `Enter` and `Space` keys. Mouse-only interactions are strictly forbidden.
 - **Dialog Focus Management:** Elements with `role="dialog"` or `role="alertdialog"` MUST include `tabindex="-1"` to support programmatic focus trapping and management. They must not rely on default browser focus behavior.
 - **SVG Accessibility:** SVG elements used as interactive nodes (like the topology map) are invisible to screen readers by default. They require explicit `role`, `tabindex="0"`, descriptive `aria-label`s, and keyboard event handlers.
+
+## 8. Client-Side Performance & Localized Actions
+To maintain blistering performance as component counts grow, we enforce localized DOM observation over global queries.
+
+- **The `use:reveal` Action Doctrine:** Scroll-triggered animations MUST use a localized Svelte action (e.g., `use:reveal`) rather than global `document.querySelectorAll` inside `onMount`. 
+  - **Why:** Global queries force the browser to scan the entire DOM tree on mount, causing performance thrashing and potential memory leaks if cleanup is missed. A Svelte action attaches the `IntersectionObserver` directly to the specific DOM node, ensuring automatic, localized cleanup when the element unmounts.
+  - **Implementation:** See `site/src/lib/actions/reveal.ts`. 
+- **Negative Case (When NOT to use `use:reveal`):** 
+  - Do NOT use `use:reveal` for layout-critical visibility logic (e.g., hiding/showing content based on user toggles). It is strictly for *progressive enhancement* of scroll-based entrance animations.
+  - Do NOT use it for elements that must be immediately visible upon initial paint without any animation delay, as the observer threshold might cause a perceptible "pop-in" effect on slow devices.
+  - Do NOT use it if the element is already inside a container that is being animated; animate the parent instead to reduce observer overhead.

@@ -22,6 +22,8 @@
   ];
 </script>
 
+
+
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <TopNav links={navLinks} currentPath={page.url.pathname} />
