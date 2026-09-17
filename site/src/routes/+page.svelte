@@ -1,14 +1,17 @@
 <!--
 1. Relative path: site/src/routes/+page.svelte
 2. Description: SwISD marketing site with standardized sections and an interactive architecture orbit explainer.
-3. Expects: Svelte 5 runes, SSR-safe DOM access.
-4. Provides: Swarm-topology hero, dual-audience toggle, scroll reveal, orbit architecture explainer.
+3. Expects: Svelte 5 runes, SSR-safe DOM access, strict adherence to the Single-Source Doctrine.
+4. Provides: Swarm-topology hero, dual-audience toggle, scroll reveal, orbit architecture explainer, using canonical UI primitives.
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Arrow, LogoGallery, ManifestoList, SwarmCanvas, SegmentedControl, type LogoGalleryGroup } from '$lib/components/ui';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
+  import { Arrow, Button, LogoGallery, ManifestoList, Modal, SwarmCanvas, SegmentedControl, type LogoGalleryGroup } from '$lib/components/ui';
   import { OrbitExplainer, type Rundown } from '$lib/components/datavis';
   import { currentEntry } from '$lib/content/roadmap';
+  import { uiStore } from '$lib/stores/ui.svelte.js';
   import { 
     huggingfaceLogo, 
     nodejsLogo, 
@@ -40,6 +43,8 @@
 
   let revealObserver: IntersectionObserver | null = null;
   let audience = $state<'dev' | 'exec'>('dev');
+  let isNewsletterModalOpen = $state(false);
+  let isSubmitting = $state(false);
 
   const AUDIENCE_OPTIONS: readonly { value: 'dev' | 'exec'; label: string }[] = [
     { value: 'dev', label: 'For Developers' },
@@ -193,11 +198,35 @@
   ];
 
   const GITHUB = 'https://github.com/hideosnes/swisd';
-  const HOMAHUKI = 'https://www.homahuki.eu';
 
   function selectAudience(next: 'dev' | 'exec') {
     audience = next;
   }
+
+  function openNewsletterModal() {
+    isNewsletterModalOpen = true;
+  }
+
+  function closeNewsletterModal() {
+    isNewsletterModalOpen = false;
+  }
+
+  const handleNewsletterSubmit: SubmitFunction = ({ formElement }) => {
+    isSubmitting = true;
+    
+    return async ({ result }) => {
+      if (result.type === 'success') {
+        uiStore.addToast('Welcome to the swarm. Check your inbox.', 'success');
+        formElement.reset();
+        closeNewsletterModal();
+      } else if (result.type === 'failure') {
+        const errorData = result.data as { error?: string } | undefined;
+        const message = errorData?.error ?? 'Subscription failed. Please try again.';
+        uiStore.addToast(message, 'error');
+      }
+      isSubmitting = false;
+    };
+  };
 
   function smoothScroll(e: MouseEvent, href: string) {
     e.preventDefault();
@@ -262,9 +291,9 @@
       {#key audience}
         <div class="hero-subtitle hero-swap">
           <p>{AUDIENCE_COPY[audience]}</p>
-          <a href="#problem" class="btn-secondary" onclick={(e) => smoothScroll(e, '#problem')}>
+          <Button variant="secondary" href="#problem" onclick={(e) => smoothScroll(e, '#problem')}>
             Learn More <Arrow direction="down" />
-          </a>
+          </Button>
         </div>
       {/key}
     </div>
@@ -329,12 +358,12 @@
       Glitch-proof live audio. Cultural archives that answer your questions. Spectrogram transformers that help researchers hear. These are the first ideas already taking shape on the swarm.
     </p>
     <div class="cta-actions">
-      <a href="/example" class="btn-primary">
-        Examples <Arrow direction="right" />
-      </a>
-      <a href="#architecture" class="btn-secondary" onclick={(e) => smoothScroll(e, '#architecture')}>
+      <Button variant="primary" href="/projects">
+        Projects <Arrow direction="right" />
+      </Button>
+      <Button variant="secondary" href="#architecture" onclick={(e) => smoothScroll(e, '#architecture')}>
         Learn more <Arrow direction="down" />
-      </a>
+      </Button>
     </div>
   </div>
 </section>
@@ -442,12 +471,12 @@
         </h2>
       </div>
       <div class="cta-actions-right">
-        <a href="/research" class="btn-primary">
+        <Button variant="primary" href="/research">
           Read the Whitepapers <Arrow direction="right" />
-        </a>
-        <a href="#roadmap" class="btn-secondary" onclick={(e) => smoothScroll(e, '#roadmap')}>
+        </Button>
+        <Button variant="secondary" href="#roadmap" onclick={(e) => smoothScroll(e, '#roadmap')}>
           Learn more <Arrow direction="down" />
-        </a>
+        </Button>
       </div>
     </div>
   </div>
@@ -470,7 +499,9 @@
       {/if}
     </div>
     <div class="reveal" style="text-align: center;">
-      <a href="/roadmap" class="btn-primary">View Full Timeline <Arrow direction="right" /></a>
+      <Button variant="primary" href="/roadmap">
+        View Full Timeline <Arrow direction="right" />
+      </Button>
     </div>
   </div>
 </section>
@@ -498,13 +529,13 @@
       <p class="section-desc" style="margin: 0 auto var(--spacing-lg);">
         SwISD is co-developed with research institutions and partners from culture and industry. Together we build the infrastructure for European, edge-native AI.
       </p>
-      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: var(--spacing-2xl);">
-        <a href="https://newsletter.homahuki.eu" target="_blank" rel="noopener noreferrer" class="btn-primary">
-          Newsletter <Arrow direction="external" />
-        </a>
-        <a href="https://www.homahuki.eu" target="_blank" rel="noopener noreferrer" class="btn-secondary">
-          Work with us <Arrow direction="external" />
-        </a>
+      <div class="cta-actions" style="margin-bottom: var(--spacing-2xl);">
+        <Button variant="primary" onclick={openNewsletterModal}>
+          Newsletter <Arrow direction="right" />
+        </Button>
+        <Button variant="secondary" href="/projects">
+          Projects <Arrow direction="right" />
+        </Button>
       </div>
     </div>
     <div class="reveal">
@@ -513,25 +544,71 @@
   </div>
 </section>
 
+<!-- Newsletter Modal -->
+<Modal
+  isOpen={isNewsletterModalOpen}
+  onClose={closeNewsletterModal}
+  ariaLabel="Subscribe to the SwISD newsletter"
+>
+  <div class="newsletter-modal-body">
+    <h3 class="modal-title">Join the swarm</h3>
+    <p class="modal-desc">
+      Get updates on SwISD development, research, and community events. No spam, no central coordinator.
+    </p>
+
+    <form method="POST" action="?/subscribe" use:enhance={handleNewsletterSubmit} class="newsletter-form">
+      <div class="newsletter-row">
+        <div class="newsletter-field">
+          <input
+            type="text"
+            name="first_name"
+            placeholder="First name"
+            class="newsletter-input"
+            aria-label="First name"
+          />
+        </div>
+        <div class="newsletter-field">
+          <input
+            type="text"
+            name="last_name"
+            placeholder="Last name"
+            class="newsletter-input"
+            aria-label="Last name"
+          />
+        </div>
+      </div>
+      <input
+        type="email"
+        name="email"
+        placeholder="your@email.com"
+        required
+        class="newsletter-input"
+        aria-label="Email address"
+      />
+      <Button type="submit" variant="primary" disabled={isSubmitting} class="newsletter-submit w-full justify-center">
+        {#if isSubmitting}
+          Joining...
+        {:else}
+          Subscribe <Arrow direction="right" />
+        {/if}
+      </Button>
+    </form>
+  </div>
+</Modal>
+
 <section id="cta" class="cta-band">
   <div class="cta-content">
     <div class="reveal">
       <h2 class="cta-title">
         Let's build AI infrastructure<br />
-        that <span class="lime">puts people first.</span>
+        <span class="lime"> that puts people first.</span>
       </h2>
-      <p class="cta-desc">SwISD is open-source and actively seeking contributors. Join the swarm.</p>
+      <p class="cta-desc">SwISD is free and open-source. Don't be a stranger, join the swarm.</p>
       <div class="cta-actions">
-        <a href={GITHUB} target="_blank" rel="noopener noreferrer" class="btn-primary">
+        <Button variant="primary" href={GITHUB} target="_blank" rel="noopener noreferrer">
           Star on GitHub <Arrow direction="external" />
-        </a>
-        <a href={HOMAHUKI} target="_blank" rel="noopener noreferrer" class="btn-secondary">
-          Visit homahuki.eu <Arrow direction="external" />
-        </a>
+        </Button>
       </div>
-    </div>
-    <div class="cta-footer reveal">
-      <p>A project by <a href={HOMAHUKI} target="_blank" rel="noopener noreferrer">homahuki.eu <Arrow direction="external" /></a> &middot; Linz, Austria</p>
     </div>
   </div>
 </section>
