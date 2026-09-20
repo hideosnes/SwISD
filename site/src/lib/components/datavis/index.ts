@@ -6,3 +6,4 @@
  */
 export { default as OrbitExplainer } from './OrbitExplainer.svelte';
 export type { OrbitActorId, Rundown } from './types';
+export { default as StatsChart } from './StatsChart.svelte';

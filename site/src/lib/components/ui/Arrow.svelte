@@ -1,41 +1,38 @@
 <!--
 1. Relative path: site/src/lib/components/ui/Arrow.svelte
-2. Description: Directional SVG arrow primitive for UI navigation and indicators.
-3. Expects: A strictly typed direction and an optional class string for styling.
-4. Provides: A consistent, accessible SVG arrow that obeys the Single-Source Doctrine.
+2. Description: Directional SVG arrow primitive.
+3. Expects: Svelte 5 runes, strict TypeScript, direction prop.
+4. Provides: A type-safe, fine-stroke SVG arrow with smaller default dimensions for precise visual cues.
 -->
 <script lang="ts">
-  let {
-    direction,
-    class: className = ''
-  }: {
-    direction: 'up' | 'down' | 'left' | 'right' | 'external';
-    class?: string;
-  } = $props();
+  type Direction = 'up' | 'down' | 'left' | 'right' | 'external';
+  
+  let { direction = 'right' as Direction } = $props();
+  
+  const rotation: Record<Direction, string> = {
+    right: '0',
+    down: '90',
+    left: '180',
+    up: '270',
+    external: '0'
+  };
 </script>
 
-<svg
-  class={className}
-  xmlns="http://www.w3.org/2000/svg"
-  width="24"
-  height="24"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
+<svg 
+  xmlns="http://www.w3.org/2000/svg" 
+  viewBox="0 0 24 24" 
+  fill="none" 
+  stroke="currentColor" 
+  stroke-width="1.5" 
+  stroke-linecap="round" 
   stroke-linejoin="round"
+  class="w-3.5 h-3.5 shrink-0"
+  style={direction !== 'external' ? `transform: rotate(${rotation[direction]}deg)` : ''}
   aria-hidden="true"
 >
-  {#if direction === 'up'}
-    <path d="M12 19V5M5 12l7-7 7 7" />
-  {:else if direction === 'down'}
-    <path d="M12 5v14M5 12l7 7 7-7" />
-  {:else if direction === 'left'}
-    <path d="M19 12H5M12 19l-7-7 7-7" />
-  {:else if direction === 'right'}
+  {#if direction === 'external'}
+    <path d="M7 17L17 7M17 7H8M17 7V16" />
+  {:else}
     <path d="M5 12h14M12 5l7 7-7 7" />
-  {:else if direction === 'external'}
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
   {/if}
 </svg>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { RoadmapTimeline, RoadmapModal, Arrow } from '$lib/components/ui';
-  import { roadmapEntries, type RoadmapEntry } from '$lib/content/roadmap'; // Keep your barrel imports!
+  import { roadmapEntries, type RoadmapEntry } from '$lib/content/roadmap';
 
   let selectedEntry = $state<RoadmapEntry | null>(null);
   let modalOpen = $state(false);
@@ -19,7 +19,6 @@
   <meta name="description" content="The SwISD project timeline. From cryptographic primitives to inter-swarm routing." />
 </svelte:head>
 
-<!-- No svelte:boundary needed anymore. The ghost is dead. -->
 <section id="roadmap-hero" class="reveal">
   <div class="container">
     <span class="section-label">Roadmap</span>

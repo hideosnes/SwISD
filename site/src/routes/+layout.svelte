@@ -14,10 +14,7 @@
   let { children } = $props();
 
   const navLinks = [
-    { href: '#problem', label: 'Problem' },
-    { href: '#solution', label: 'Solution' },
-    { href: '#architecture', label: 'Architecture' },
-    { href: '#business', label: 'For Business' },
+    { href: '/case-studies', label: 'Case Studies' },
     { href: '/roadmap', label: 'Roadmap' }
   ];
 </script>

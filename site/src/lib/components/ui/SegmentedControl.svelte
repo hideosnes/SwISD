@@ -1,75 +1,58 @@
 <!--
 1. Relative path: site/src/lib/components/ui/SegmentedControl.svelte
-2. Description: Generic segmented pill toggle. Single-select, token-themed, keyboard-native.
-3. Expects: A readonly option list, the selected value, a select callback, and an aria label.
-4. Provides: The one true segmented control — consumed by the hero audience toggle and the orbit pillar tabs.
+2. Description: Segmented control primitive for mutually exclusive options.
+3. Expects: Svelte 5 runes, strict TypeScript, $bindable selected value, and an array of options.
+4. Provides: Accessible, radio-group compliant toggle. Supports 'default' (h-12 pill) and 'compact' (h-10 box) variants to match other input footprints. Fully generic to preserve strict string literal unions.
 -->
 <script lang="ts" generics="T extends string">
+  type Option = { value: T; label: string };
+
   let {
     options,
-    selected,
+    selected = $bindable(options[0].value),
     onSelect,
-    ariaLabel
+    ariaLabel,
+    variant = 'default'
   }: {
-    options: readonly { value: T; label: string }[];
-    selected: T;
-    onSelect: (value: T) => void;
+    options: readonly Option[];
+    selected?: T;
+    onSelect?: (value: T) => void;
     ariaLabel: string;
+    variant?: 'default' | 'compact';
   } = $props();
+
+  function handleSelect(value: T) {
+    selected = value;
+    onSelect?.(value);
+  }
+
+  const containerClasses = $derived(
+    variant === 'compact'
+      ? 'inline-flex items-center p-1 rounded-xl border border-(--border) bg-(--surface) h-10 w-72'
+      : 'inline-flex items-center p-1 rounded-full border border-(--color-lime)/20 bg-(--surface) h-12 w-full max-w-[320px] mx-auto'
+  );
+
+  const buttonRadius = $derived(variant === 'compact' ? 'rounded-lg' : 'rounded-full');
 </script>
 
-<div class="segmented" role="group" aria-label={ariaLabel}>
-  {#each options as opt (opt.value)}
+<div 
+  class={containerClasses}
+  role="radiogroup" 
+  aria-label={ariaLabel}
+>
+  {#each options as option}
     <button
       type="button"
-      class="segment"
-      class:active={selected === opt.value}
-      aria-pressed={selected === opt.value}
-      onclick={() => onSelect(opt.value)}
+      role="radio"
+      aria-checked={selected === option.value}
+      class="flex-1 h-full px-2 {buttonRadius} font-mono text-sm font-semibold transition-all duration-200 {
+        selected === option.value 
+          ? 'bg-(--color-lime) text-gray-900 shadow-[0_4px_12px_-4px_var(--color-lime)]' 
+          : 'text-(--text-muted) hover:text-(--text)'
+      }"
+      onclick={() => handleSelect(option.value)}
     >
-      {opt.label}
+      {option.label}
     </button>
   {/each}
 </div>
-
-<style>
-  .segmented {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    padding: 0.25rem;
-    border: var(--border-accent);
-    border-radius: var(--radius-full);
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(8px);
-  }
-
-  .segment {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-gray-400);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-full);
-    padding: 0.5rem 1.25rem;
-    cursor: pointer;
-    transition: color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
-    white-space: nowrap;
-  }
-
-  .segment:hover { color: var(--color-white); }
-
-  .segment.active {
-    background: var(--color-lime);
-    color: var(--color-purple-deeper);
-    box-shadow: 0 2px 8px rgba(84, 255, 126, 0.3);
-  }
-
-  .segment:focus-visible {
-    outline: 2px solid var(--color-lime);
-    outline-offset: 2px;
-  }
-</style>

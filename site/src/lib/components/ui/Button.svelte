@@ -30,7 +30,8 @@
   } = $props();
 
   // Strict h-12 (48px) guarantees identical heights regardless of internal padding variations.
-  const baseClasses = "inline-flex items-center justify-center gap-2 px-6 h-12 rounded-full font-mono text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed";
+  // w-full sm:w-auto ensures confident, full-width tap targets on mobile, reverting to auto on desktop.
+  const baseClasses = "inline-flex items-center justify-center gap-2 px-6 h-12 rounded-full font-mono text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto";
   
   // Shadow shifted down (Y: 12px) and softened (spread: -6px) to anchor the button.
   const variantClasses = $derived(

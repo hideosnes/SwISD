@@ -45,6 +45,27 @@
   let audience = $state<'dev' | 'exec'>('dev');
   let isNewsletterModalOpen = $state(false);
   let isSubmitting = $state(false);
+  
+  // SDG Modal State
+  let activeSdg = $state<9 | 12 | 16 | null>(null);
+  function openSdgModal(id: 9 | 12 | 16) { activeSdg = id; }
+  function closeSdgModal() { activeSdg = null; }
+
+  // Web-optimized SDG Content
+  const SDG_CONTENT: Record<number, { title: string; description: string }> = {
+    9: {
+      title: 'Industry, Innovation, and Infrastructure',
+      description: 'We replace fragile, centralized cloud dependencies with resilient, decentralized edge infrastructure. By leveraging mathematically proven CRDTs and capability-aware routing, SwISD turns local, heterogeneous devices into a robust, sovereign network that heals organically from node churn. This guarantees business continuity and operational independence, even when external internet connections fail, empowering organizations to build truly resilient local compute meshes.'
+    },
+    12: {
+      title: 'Responsible Consumption and Production',
+      description: 'The AI boom demands massive energy and generates electronic waste. SwISD champions a circular hardware economy by integrating existing, low-power devices into its compute mesh. By extending the lifespan of current silicon and utilizing edge-native backpressure to consume only the exact wattage required for inference, we prevent premature e-waste and dramatically reduce the carbon footprint of distributed AI workloads.'
+    },
+    16: {
+      title: 'Peace, Justice, and Strong Institutions',
+      description: 'We protect fundamental data rights and digital sovereignty. SwISD enforces strict privacy-by-design, ensuring sensitive operational data never leaves the local network. With cryptographic trust boundaries, air-gap capabilities, and strict model approval gates, we provide a transparent, auditable, and privacy-preserving alternative to invasive cloud monopolies, ensuring full compliance with stringent data protection regulations.'
+    }
+  };
 
   const AUDIENCE_OPTIONS: readonly { value: 'dev' | 'exec'; label: string }[] = [
     { value: 'dev', label: 'For Developers' },
@@ -140,22 +161,24 @@
     }
   ];
 
+  // SDG Logos: Interactive, open modal on click
   const sdgGroups: readonly LogoGalleryGroup[] = [
     {
       items: [
-        { src: sdg9, alt: 'SDG9' },
-        { src: sdg12, alt: 'SDG12' },
-        { src: sdg16, alt: 'SDG16' }
+        { src: sdg9, alt: 'SDG 9', onclick: () => openSdgModal(9) },
+        { src: sdg12, alt: 'SDG 12', onclick: () => openSdgModal(12) },
+        { src: sdg16, alt: 'SDG 16', onclick: () => openSdgModal(16) }
       ]
     }
   ];
 
+  // Grant Logos: External links (Updated to exact provided URLs)
   const grantGroups: readonly LogoGalleryGroup[] = [
     {
       items: [
-        { src: ffgLogo, alt: 'FFG', wide: true },
-        { src: hpcjuLogo, alt: 'EuroHPC JU', wide: true },
-        { src: stsbgLogo, alt: 'Stadt Salzburg', wide: true }
+        { src: ffgLogo, alt: 'FFG', wide: true, href: 'https://ffg.at' },
+        { src: hpcjuLogo, alt: 'EuroHPC JU', wide: true, href: 'https://eurohpc-ju.europa.eu' },
+        { src: stsbgLogo, alt: 'Stadt Salzburg', wide: true, href: 'https://stadt-salzburg.at/' }
       ]
     }
   ];
@@ -291,9 +314,11 @@
       {#key audience}
         <div class="hero-subtitle hero-swap">
           <p>{AUDIENCE_COPY[audience]}</p>
-          <Button variant="secondary" href="#problem" onclick={(e) => smoothScroll(e, '#problem')}>
-            Learn More <Arrow direction="down" />
-          </Button>
+          <div class="mt-8">
+            <Button variant="secondary" href="#problem" onclick={(e) => smoothScroll(e, '#problem')}>
+              Learn More <Arrow direction="down" />
+            </Button>
+          </div>
         </div>
       {/key}
     </div>
@@ -358,8 +383,8 @@
       Glitch-proof live audio. Cultural archives that answer your questions. Spectrogram transformers that help researchers hear. These are the first ideas already taking shape on the swarm.
     </p>
     <div class="cta-actions">
-      <Button variant="primary" href="/projects">
-        Projects <Arrow direction="right" />
+      <Button variant="primary" href="/case-studies">
+        Case Studies <Arrow direction="right" />
       </Button>
       <Button variant="secondary" href="#architecture" onclick={(e) => smoothScroll(e, '#architecture')}>
         Learn more <Arrow direction="down" />
@@ -533,8 +558,8 @@
         <Button variant="primary" onclick={openNewsletterModal}>
           Newsletter <Arrow direction="right" />
         </Button>
-        <Button variant="secondary" href="/projects">
-          Projects <Arrow direction="right" />
+        <Button variant="secondary" href="/case-studies">
+          Case Studies <Arrow direction="right" />
         </Button>
       </div>
     </div>
@@ -594,6 +619,22 @@
       </Button>
     </form>
   </div>
+</Modal>
+
+<!-- SDG Details Modal -->
+<Modal
+  isOpen={activeSdg !== null}
+  onClose={closeSdgModal}
+  ariaLabel="SDG Details"
+>
+  {#if activeSdg !== null}
+    <div class="p-6">
+      <h3 class="font-mono font-bold text-xl mb-4 text-(--color-lime)">SDG {activeSdg}: {SDG_CONTENT[activeSdg].title}</h3>
+      <p class="text-(--text-muted) leading-relaxed">
+        {SDG_CONTENT[activeSdg].description}
+      </p>
+    </div>
+  {/if}
 </Modal>
 
 <section id="cta" class="cta-band">

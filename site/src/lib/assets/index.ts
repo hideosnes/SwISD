@@ -41,6 +41,28 @@ export { default as monochromLogo } from './monochrom-logo.png';
 export { default as swkLogo } from './stadtwienkultur-logo.png';
 export { default as klnoeLogo } from './kulturnoe-logo.png';
 
-export {default as ndaLogo} from './nda-logo.png';
+export { default as ndaLogo } from './nda-logo.png';
 export * from './gallery';
-/* no export for swisd-xx.jpg deep histories images - loaded via script! */
+
+// Case Studies Artwork
+export { default as deepBackofficeArt } from './case-studies/deep-backoffice.jpg';
+export { default as deepHistoriesArt } from './case-studies/deep-histories.jpg';
+export { default as intelligentMicrophoneArt } from './case-studies/intelligent-microphone.jpg';
+export { default as kupfBotArt } from './case-studies/kupf-bot.jpg';
+export { default as retailAnalysisArt } from './case-studies/retail-analysis.jpg';
+export { default as ricaFuentesArt } from './case-studies/rica-fuentes.jpg'
+export { default as biometricExpressionsArt } from './case-studies/biometric-expressions.jpg'
+export { default as sundayInOsakaArt } from './case-studies/sunday-in-osaka.jpg'
+export { default as voxerlArt } from './case-studies/voxerl.jpg'
+export { default as webxrArt } from './case-studies/webxr.jpg'
+
+/* ===== Roadmap artwork pool (swisd-01.jpg … swisd-60.jpg) — LAZY loaders ===== */
+const artworkLoaders = import.meta.glob('./swisd-*.jpg', {
+  query: '?url',
+  import: 'default'
+}) as Record<string, () => Promise<string>>;
+
+export const roadmapArtworkLoaders: readonly (() => Promise<string>)[] = Object.keys(artworkLoaders)
+  .sort()
+  .map((key) => artworkLoaders[key])
+  .filter((loader): loader is () => Promise<string> => loader !== undefined);

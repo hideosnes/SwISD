@@ -1,12 +1,12 @@
 <!--
 1. Relative path: site/src/lib/components/datavis/OrbitExplainer.svelte
-2. Description: Interactive orbital swarm explainer. Header + role tabs + plain-text rundown on the left, vertically-centered orbit on the right.
-3. Expects: A readonly Rundown dataset, an optional header snippet, CSS tokens from layout.css, and the ui SegmentedControl primitive.
+2. Description: Interactive orbital swarm explainer. Header + nav tabs + rundown on the left, vertically-centered orbit on the right.
+3. Expects: A readonly Rundown dataset, an optional header snippet, CSS tokens from layout.css, and the ui Tabs primitive.
 4. Provides: Deterministic SVG orbit map (asymmetric green neighborhood ring, blue outer swarm, lone ghost) with keyboard-accessible actors and a live rundown.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { SegmentedControl } from '$lib/components/ui';
+  import { Tabs } from '$lib/components/ui';
   import type { Rundown, OrbitActorId } from './types';
   import { computeOrbitLayout, ORBIT_VIEWBOX } from './layout';
 
@@ -40,18 +40,16 @@
   }));
 
   const active = $derived(rundowns.find((r) => r.actorId === selected));
-  const tabs = $derived(
-    rundowns.flatMap((r) => (r.chipLabel ? [{ value: r.actorId, label: r.chipLabel }] : []))
+  
+  // Map rundowns to the strict { id, label } shape required by the Tabs primitive
+  const navTabs = $derived(
+    rundowns.flatMap((r) => (r.chipLabel ? [{ id: r.actorId, label: r.chipLabel }] : []))
   );
-
-  function select(id: OrbitActorId): void {
-    selected = id;
-  }
 
   function handleKeydown(event: KeyboardEvent, id: OrbitActorId): void {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      select(id);
+      selected = id;
     }
   }
 </script>
@@ -65,23 +63,19 @@
     {/if}
 
     <div class="orbit-tabs">
-      <SegmentedControl
-        options={tabs}
-        selected={selected}
-        onSelect={select}
-        ariaLabel="Swarm roles"
-      />
-    </div>
-
-    <div class="rundown" aria-live="polite">
-      {#if active}
-        {#key selected}
-          <div class="rundown-inner">
-            <h3 class="rundown-title">{active.title}</h3>
-            <p class="rundown-body">{active.text}</p>
+      <Tabs tabs={navTabs} bind:selected>
+        {#snippet children(id)}
+          <div class="rundown" aria-live="polite">
+            {#key id}
+              <div class="rundown-inner">
+                {#if active && active.actorId === id}
+                  <p class="rundown-body">{active.text}</p>
+                {/if}
+              </div>
+            {/key}
           </div>
-        {/key}
-      {/if}
+        {/snippet}
+      </Tabs>
     </div>
   </div>
 
@@ -134,7 +128,7 @@
         tabindex="0"
         aria-label="The Conductor: workload execution. Blind ingress, targeted egress."
         aria-pressed={selected === 'conductor'}
-        onclick={() => select('conductor')}
+        onclick={() => selected = 'conductor'}
         onkeydown={(e) => handleKeydown(e, 'conductor')}
       >
         <circle class="focus-ring" cx={orbit.conductor.x} cy={orbit.conductor.y} r="44" />
@@ -152,7 +146,7 @@
         tabindex="0"
         aria-label="The Worker: task mediation. A stateless peer advertising capabilities."
         aria-pressed={selected === 'worker'}
-        onclick={() => select('worker')}
+        onclick={() => selected = 'worker'}
         onkeydown={(e) => handleKeydown(e, 'worker')}
       >
         <circle class="focus-ring" cx={orbit.worker.x} cy={orbit.worker.y} r="27" />
@@ -169,7 +163,7 @@
         tabindex="0"
         aria-label="The Diplomat: deep networking. The green bridge to the blue outer swarm."
         aria-pressed={selected === 'diplomat'}
-        onclick={() => select('diplomat')}
+        onclick={() => selected = 'diplomat'}
         onkeydown={(e) => handleKeydown(e, 'diplomat')}
       >
         <circle class="focus-ring" cx={orbit.diplomat.x} cy={orbit.diplomat.y} r="27" />
@@ -186,7 +180,7 @@
         tabindex="0"
         aria-label="The Ghost: trust boundary. A pending peer awaiting operator trust."
         aria-pressed={selected === 'ghost'}
-        onclick={() => select('ghost')}
+        onclick={() => selected = 'ghost'}
         onkeydown={(e) => handleKeydown(e, 'ghost')}
       >
         <circle class="focus-ring focus-ring-purple" cx={orbit.ghost.x} cy={orbit.ghost.y} r="25" />
@@ -204,6 +198,7 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
     gap: 3rem;
     align-items: center;
+    overflow: hidden;
   }
 
   .orbit-info {
@@ -211,18 +206,12 @@
     flex-direction: column;
     gap: 1.75rem;
     align-self: start;
+    min-width: 0;
   }
 
   .orbit-header { display: block; }
 
   .rundown { max-width: 640px; }
-
-  .rundown-title {
-    color: var(--color-white);
-    font-size: 1.375rem;
-    margin-bottom: 0.75rem;
-    letter-spacing: -0.02em;
-  }
 
   .rundown-body {
     color: var(--color-gray-400);
@@ -234,6 +223,7 @@
     width: 100%;
     max-width: 560px;
     justify-self: center;
+    min-width: 0;
   }
 
   .orbit-canvas svg {

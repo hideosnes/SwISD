@@ -35,7 +35,7 @@ src/
 │   ├── localSupervisor.ts # CLI entrypoint for supervisor
 │   ├── mockReleaseGenerator.ts # Dev tool for mock releases
 │   ├── schema.ts          # Delivery state types
-│   ├── verifier.ts        # SHA-256 + Ed256 artifact verification
+│   ├── verifier.ts        # SHA-256 + Ed25519 artifact verification
 │   └── watchdog.ts        # Heartbeat monitor & rollback trigger
 ├── executor/              # Capability-aware execution routing
 │   ├── index.ts           # Barrel export
@@ -58,13 +58,14 @@ src/
 │   └── router/            # Gossip & Egress routing
 │       ├── index.ts       # Barrel export
 │       ├── egressTunnel.ts# Direct result push to Conductor
-│       └── gossipRouter.ts# Capability-aware blind propagation
+│       ├── gossipRouter.ts# Capability-aware blind propagation
+│       └── modelSeeder.ts # ⏳ planned — /swisd/model/1.0.0 chunk seeding handler
 ├── observability/         # Telemetry & snapshot generation
 │   ├── index.ts           # Barrel export
 │   ├── devSource.ts       # Dev environment state aggregator (live vs scenario source selection)
 │   ├── eventBus.ts        # Bounded in-memory event ring
-│   ├── scenarioEngine.ts  # Replay engine implementing ObservabilitySource (scenario clock, channel interpolation, event cues)
-│   ├── scenarios.ts       # Keyframed scenario fixtures + channel types (Scenario Replay Mode)
+│   ├── scenarioEngine.ts  # Replay engine implementing ObservabilitySource
+│   ├── scenarios.ts       # Keyframed scenario fixtures + channel types
 │   ├── schema.ts          # Observability DTOs (peer loadScore/capabilities + replay source discriminator)
 │   └── snapshot.ts        # Immutable snapshot builder
 ├── peer/                  # Peer trust & membership
@@ -75,8 +76,10 @@ src/
 │   ├── load.ts            # LoadScore math & Token Bucket rate limiting
 │   └── monitor.ts         # Stateful OS metric polling and gossip throttling
 ├── provision/             # Hardware & out-of-box provisioning
-│   ├── index.ts           # Barrel export
-│   └── apply.ts           # Idempotent USB config application (nmcli)
+│   ├── apply.ts           # Idempotent USB config application (nmcli)
+│   ├── apFallback.ts      # ⏳ planned — SwISD-Setup-XXXX access point fallback
+│   └── captivePortal.ts   # ⏳ planned — smartphone WiFi credential injection
+│   # ⚠ BARREL VIOLATION: provision/index.ts is missing on disk — every folder must have a barrel
 ├── storage/               # Elastic capacity allocation
 │   ├── index.ts           # Barrel export
 │   └── capacity.ts        # Swarm storage watermarks & replication math
@@ -95,32 +98,13 @@ Conductor Cockpit ( `cockpit/` )
 cockpit/
 ├── src/
 │   ├── lib/
-│   │   ├── adapters/      # Client-side domain adapters (domain → primitive vocabulary)
-│   │   │   ├── index.ts   # Barrel export for adapters
-│   │   │   ├── load.ts    # loadToStatus: loadScore → StatusPill vocabulary (idle/throttled/shedding)
-│   │   │   └── trust.ts   # trustToStatus: TopologyTrustState → StatusPill Status
-│   │   ├── assets/        # Static UI assets (icons, favicons)
-│   │   │   ├── icons/     # Device modality icons (android, apple, arduino, ios, linux, raspi, unknown, windows)
-│   │   │   └── favicon.svg
 │   │   ├── components/
-│   │   │   ├── datavis/   # Data visualisation Source of Truth
-│   │   │   │   ├── topology/ # Orbital swarm map
-│   │   │   │   │   ├── index.ts                # Barrel export
-│   │   │   │   │   ├── GhostNode.svelte        # PENDING peer docked in the limbo orbit
-│   │   │   │   │   ├── ModalityLegend.svelte   # Legend for node modalities/capabilities
-│   │   │   │   │   ├── SwarmNode.svelte        # Peer node (dominant capability fill + ring-segment bezel)
-│   │   │   │   │   ├── TopologyAnatomyBench.svelte # Visual bench/test for topology anatomy
-│   │   │   │   │   ├── TopologyCanvas.svelte   # Main SVG container; zoom/pan, responsive sizing
-│   │   │   │   │   ├── TrustRing.svelte        # Orbital ring for trusted clusters
-│   │   │   │   │   └── layout.ts               # Pure math: deterministic orbital positioning, D3 scale mappings
-│   │   │   │   ├── index.ts # Barrel export for datavis primitives
-│   │   │   │   └── types.ts # Strict DTOs for datavis props
-│   │   │   ├── ui/        # Primitive Source of Truth
-│   │   │   │   ├── index.ts       # Barrel export for UI primitives
+│   │   │   ├── ui/                        # Primitive Source of Truth
+│   │   │   │   ├── index.ts               # Barrel export for UI primitives
 │   │   │   │   ├── Badge.svelte
 │   │   │   │   ├── Button.svelte
 │   │   │   │   ├── Card.svelte
-│   │   │   │   ├── ContextMenu.svelte # Right-click/context menu primitive
+│   │   │   │   ├── ContextMenu.svelte
 │   │   │   │   ├── Drawer.svelte
 │   │   │   │   ├── EmptyState.svelte
 │   │   │   │   ├── Icon.svelte
@@ -135,134 +119,168 @@ cockpit/
 │   │   │   │   ├── Tabs.svelte
 │   │   │   │   ├── TextField.svelte
 │   │   │   │   └── ThemeToggle.svelte
-│   │   │   ├── CommandQueue.svelte       # Operator action queue (composes ui/Drawer, trust approvals)
-│   │   │   ├── DiscoveryPanel.svelte     # mDNS node visualization
-│   │   │   ├── EngineRoomView.svelte     # Sysadmin-focused, task-centric telemetry view
-│   │   │   ├── ModelDropZone.svelte      # Streaming drag-and-drop ingestion
-│   │   │   ├── PendingTrustPanel.svelte  # ⚠ transitional — superseded by CommandQueue, pending removal
-│   │   │   ├── ReplayControlModal.svelte # Modal for scenario replay controls
-│   │   │   ├── StageView.svelte          # Artist-focused, peer-centric masonry grid
-│   │   │   └── SwarmSidebar.svelte       # Pinned peers + scrollable event log (prolonged control)
-│   │   ├── server/        # BFF server modules
-│   │   │   ├── index.ts   # Barrel export for BFF server modules
-│   │   │   ├── discovery.ts # BFF mDNS listener & TrustRegistry injector
-│   │   │   └── topology.ts  # SwarmTopologyDTO aggregator & builder
-│   │   ├── themes/        # Theme Folder Doctrine (N regimes, bundled at build time)
-│   │   │   ├── index.css  # CSS barrel (single import surface for layout.css)
-│   │   │   ├── midnight.css # Default regime (owns bare :root)
-│   │   │   ├── daylight.css # Light regime (cold lavender daylight)
-│   │   │   ├── cyberdeck.css # Legacy regime (hairlines + CRT lines on)
-│   │   │   └── ultraviolet.css # Violet regime
-│   │   ├── index.ts       # Barrel export
-│   │   ├── pins.svelte.ts # Shared reactive pin store (prolonged control, localStorage)
-│   │   ├── theme.svelte.ts # Shared reactive theme store (device-local persistence)
-│   │   └── theme.ts       # Typed theme registry (ThemeId, THEMES, regimeOf)
+│   │   │   ├── datavis/                   # Data visualisation Source of Truth (expanded below)
+│   │   │   │   └── index.ts               # Barrel export for datavis primitives
+│   │   │   ├── CommandQueue.svelte        # Operator action queue (composes ui/Drawer, trust approvals)
+│   │   │   ├── DiscoveryPanel.svelte      # mDNS node visualization
+│   │   │   ├── EngineRoomView.svelte      # Sysadmin-focused, task-centric telemetry view
+│   │   │   ├── FragmentReassembly.svelte  # ⏳ planned — per-chunk reassembly progress (ENGINE ROOM)
+│   │   │   ├── ModelDropZone.svelte       # Streaming drag-and-drop ingestion
+│   │   │   ├── PendingTrustPanel.svelte   # ⚠ transitional — superseded by CommandQueue, pending removal
+│   │   │   ├── ReplayControlModal.svelte  # Scenario replay transport controls
+│   │   │   ├── StageView.svelte           # Artist-focused, peer-centric masonry grid
+│   │   │   └── SwarmSidebar.svelte        # Pinned peers + scrollable event log (prolonged control)
+│   │   ├── adapters/                      # Client-side domain adapters (domain → primitive vocabulary)
+│   │   │   ├── index.ts                   # Barrel export for adapters
+│   │   │   ├── load.ts                    # loadToStatus: loadScore → StatusPill vocabulary
+│   │   │   └── trust.ts                   # trustToStatus: TopologyTrustState → StatusPill Status
+│   │   ├── assets/                        # Static cockpit assets
+│   │   │   ├── icons/
+│   │   │   │   ├── device-android.svg
+│   │   │   │   ├── device-apple.svg
+│   │   │   │   ├── device-arduino.svg
+│   │   │   │   ├── device-ios.svg
+│   │   │   │   ├── device-linux.svg
+│   │   │   │   ├── device-raspi.svg
+│   │   │   │   ├── device-unknown.svg
+│   │   │   │   └── device-windows.svg
+│   │   │   └── favicon.svg
+│   │   ├── themes/                        # Theme Folder Doctrine (N regimes, bundled at build time)
+│   │   │   ├── index.css                  # CSS barrel (single import surface for layout.css)
+│   │   │   ├── midnight.css               # Default regime (owns bare :root)
+│   │   │   ├── daylight.css               # Light regime (cold lavender daylight)
+│   │   │   ├── cyberdeck.css              # Legacy regime (hairlines + CRT lines on)
+│   │   │   └── ultraviolet.css            # Violet regime
+│   │   ├── theme.ts                       # Typed theme registry (ThemeId, THEMES, regimeOf)
+│   │   ├── theme.svelte.ts                # Shared reactive theme store (device-local persistence)
+│   │   ├── pins.svelte.ts                 # Shared reactive pin store (prolonged control, localStorage)
+│   │   ├── server/
+│   │   │   ├── index.ts                   # Barrel export for BFF server modules
+│   │   │   ├── discovery.ts               # BFF mDNS listener & TrustRegistry injector
+│   │   │   └── topology.ts                # SwarmTopologyDTO aggregator & builder
+│   │   └── index.ts                       # Barrel export
 │   ├── routes/
 │   │   ├── api/
-│   │   │   ├── discovery/+server.ts   # GET /api/discovery
+│   │   │   ├── discovery/+server.ts       # GET /api/discovery
+│   │   │   ├── events/+server.ts          # ⏳ planned — GET SSE bridge (task lifecycle, trust changes)
 │   │   │   ├── models/
-│   │   │   │   ├── approve/+server.ts # POST consume nonce & start download
-│   │   │   │   ├── ingest/+server.ts  # POST streaming local ingestion
-│   │   │   │   ├── library/+server.ts # GET persistent model registry
-│   │   │   │   ├── request/+server.ts # POST HF metadata fetch & nonce gen
-│   │   │   │   └── status/+server.ts  # GET SSE bridge for download progress
-│   │   │   ├── peers/+server.ts       # GET/POST /api/peers
-│   │   │   ├── scenario/+server.ts    # GET/POST scenario control (DEV-only: play/pause/speed/select)
-│   │   │   ├── snapshot/+server.ts    # GET /api/snapshot
-│   │   │   └── topology/+server.ts    # GET /api/topology (Aggregates SwarmTopologyDTO)
-│   │   ├── design/+page.svelte        # Living style guide & primitive gallery
-│   │   ├── dev/replay/+page.svelte    # DEV-only scenario control deck
-│   │   ├── models/+page.svelte        # Model distribution view
-│   │   ├── settings/+page.svelte      # Per-device theme gallery & regime controls
-│   │   ├── layout.css                 # Theme Conductor (imports themes barrel + shared tokens)
-│   │   ├── +layout.svelte             # Global UI shell (imports ./layout.css)
-│   │   └── +page.svelte               # Main dashboard view (Pulse + Topology + tabs live here)
-│   ├── app.d.ts           # SvelteKit Locals typing (Core Bridge)
-│   ├── app.html           # Pre-hydration theme bootstrap (zero flash)
-│   └── hooks.server.ts    # BFF Bridge (Core injection & singleton init)
-├── static/
-│   └── robots.txt
-├── .gitignore
-├── .npmrc
-├── .prettierignore
-├── README.md
-├── eslint.config.js
-├── package-lock.json
-├── package.json
-├── prettier.config.js
-├── tsconfig.json
-└── vite.config.ts
+│   │   │   │   ├── approve/+server.ts     # POST consume nonce & start download
+│   │   │   │   ├── ingest/+server.ts      # POST streaming local ingestion
+│   │   │   │   ├── library/+server.ts     # GET persistent model registry
+│   │   │   │   ├── request/+server.ts     # POST HF metadata fetch & nonce gen
+│   │   │   │   └── status/+server.ts      # GET SSE bridge for download progress
+│   │   │   ├── peers/+server.ts           # GET/POST /api/peers
+│   │   │   ├── scenario/+server.ts        # GET/POST scenario control (DEV-only: play/pause/speed/select)
+│   │   │   ├── snapshot/+server.ts        # GET /api/snapshot
+│   │   │   └── topology/+server.ts        # GET /api/topology (Aggregates SwarmTopologyDTO)
+│   │   ├── design/+page.svelte            # Living style guide & primitive gallery
+│   │   ├── dev/replay/+page.svelte        # DEV-only scenario control deck
+│   │   ├── models/+page.svelte            # Model distribution view
+│   │   ├── settings/+page.svelte          # Per-device theme gallery & regime controls
+│   │   ├── layout.css                     # Theme Conductor (imports themes barrel + shared tokens)
+│   │   ├── +layout.svelte                 # Global UI shell (imports ./layout.css)
+│   │   └── +page.svelte                   # Main dashboard view (Pulse + Topology + tabs live here)
+│   ├── app.d.ts                           # SvelteKit Locals typing (Core Bridge)
+│   ├── app.html                           # Pre-hydration theme bootstrap (zero flash)
+│   └── hooks.server.ts                    # BFF Bridge (Core injection & singleton init)
+└── vite.config.ts                         # SvelteKit 2 + Tailwind + Runes enforcement
+
+Datavisualisation & Maps (nested under `cockpit/src/lib/components/datavis/`)
+D3 serves as a headless math engine only (`d3-scale`); Svelte owns every rendered SVG atom.
+No styled graph frameworks. Strict separation from `components/ui/`.
+cockpit/src/lib/components/datavis/
+├── index.ts                        # Barrel export (sole import surface for feature code)
+├── types.ts                        # Strict DTOs for datavis props (TopologyNode, TopologyEdge, ...)
+├── topology/                       # Orbital swarm map
+│   ├── index.ts                    # Barrel export
+│   ├── layout.ts                   # Pure math: deterministic orbital positioning, D3 scale mappings
+│   ├── TopologyCanvas.svelte       # Main SVG container; zoom/pan, responsive sizing
+│   ├── SwarmNode.svelte            # Peer node (dominant capability fill + ring-segment bezel)
+│   ├── GhostNode.svelte            # PENDING peer docked in the limbo orbit
+│   ├── TrustRing.svelte            # Orbital ring for trusted clusters
+│   ├── ModalityLegend.svelte       # Capability/modality legend for the topology map
+│   └── TopologyAnatomyBench.svelte # Topology anatomy bench (design/dev fixture)
+└── charts/                         # ⏳ planned — drill-down telemetry (not on disk yet)
+    ├── index.ts                    # Barrel export
+    ├── Sparkline.svelte            # STAGE / ENGINE ROOM drill-downs
+    └── Gauge.svelte                # Load score visualization
 
 Marketing Site ( `site/` )
 Isolated static marketing surface. Strict Svelte 5 Runes, a11y, and Tailwind v4 enforcement.
 Barrel rules apply: imports travel through barrels only, max one step deep.
 site/
+├── vite.config.ts                  # Vite config with inline SvelteKit static adapter & Tailwind v4
 ├── src/
 │   ├── lib/
-│   │   ├── actions/       # Svelte actions for progressive enhancement
-│   │   │   └── reveal.ts  # Localized IntersectionObserver for scroll-triggered animations
-│   │   ├── assets/        # Static image assets (logos, SDGs, gallery images)
-│   │   │   ├── index.ts   # Barrel export for static image assets
-│   │   │   ├── gallery.ts # Typed gallery data source
-│   │   │   └── ...        # (60+ swisd showcase images, partner logos, SDG icons)
+│   │   ├── assets/
+│   │   │   ├── case-studies/       # Case-study artwork (11 images)
+│   │   │   ├── gallery.ts          # Curated gallery image manifest
+│   │   │   ├── index.ts            # Barrel export for static assets
+│   │   │   └── …                   # Partner/runtime logos, SDG icons, favicon.ico, swisd-01…60.jpg hero set
 │   │   ├── components/
-│   │   │   ├── datavis/   # Site data visualisation
-│   │   │   │   ├── index.ts             # Barrel export for datavis primitives
-│   │   │   │   ├── layout.ts            # Pure math for orbit explainer
-│   │   │   │   ├── types.ts             # Strict DTOs for site datavis
-│   │   │   │   └── OrbitExplainer.svelte # Interactive architecture orbit explainer
-│   │   │   └── ui/        # Site UI primitives
-│   │   │       ├── index.ts             # Barrel export for UI primitives
-│   │   │       ├── Arrow.svelte         # Directional SVG arrow primitive
-│   │   │       ├── Footer.svelte        # Global site footer
-│   │   │       ├── LogoGallery.svelte   # Single-row flex logo grid
-│   │   │       ├── ManifestoList.svelte # Star-prefixed list primitive
-│   │   │       ├── Modal.svelte         # Accessible modal dialog
-│   │   │       ├── RoadmapModal.svelte  # Editorial 1/3:2/3 modal for roadmap entries
-│   │   │       ├── RoadmapTimeline.svelte # Vertical timeline with continuous spine
-│   │   │       ├── SegmentedControl.svelte # Audience toggle primitive
-│   │   │       ├── SwarmCanvas.svelte   # Hero background topology canvas
-│   │   │       ├── Toast.svelte         # Auto-dismissing notification
-│   │   │       ├── ToastContainer.svelte# Global container rendering active toasts
-│   │   │       └── TopNav.svelte        # Global sticky navigation bar
-│   │   ├── content/       # Typed content sources
-│   │   │   └── roadmap.ts # Typed roadmap data source
-│   │   ├── scroll/        # Scroll engine for progressive enhancements
-│   │   │   ├── index.ts   # Barrel export
-│   │   │   └── engine.ts  # Core scroll observation logic
-│   │   ├── stores/        # Global reactive state
-│   │   │   └── ui.svelte.ts # Global reactive state for UI engines (Toasts/Modals)
-│   │   └── index.ts       # Root barrel export for the site library
+│   │   │   ├── ui/
+│   │   │   │   ├── index.ts             # Barrel export for UI primitives
+│   │   │   │   ├── Arrow.svelte         # Directional SVG arrow primitive
+│   │   │   │   ├── Badge.svelte         # Numeric/status counter chip
+│   │   │   │   ├── Button.svelte        # Primary/secondary button primitive
+│   │   │   │   ├── Card.svelte          # Surface card primitive
+│   │   │   │   ├── CaseCard.svelte      # Polymorphic case study card (6 layout regimes)
+│   │   │   │   ├── CodeBlock.svelte     # Syntax-styled code block
+│   │   │   │   ├── FilterChip.svelte    # Accessible toggle chip for filtering
+│   │   │   │   ├── Footer.svelte        # Global site footer (utility nav, cross-route anchor resolution)
+│   │   │   │   ├── LogoGallery.svelte   # Single-row flex logo grid (configurable alignment)
+│   │   │   │   ├── ManifestoList.svelte # Star-prefixed list primitive
+│   │   │   │   ├── Modal.svelte         # Accessible modal dialog (default + flush variants)
+│   │   │   │   ├── MultiSelect.svelte   # Multi-option dropdown ($bindable string array)
+│   │   │   │   ├── RoadmapModal.svelte  # Editorial 1/3:2/3 modal for roadmap entries
+│   │   │   │   ├── RoadmapTimeline.svelte # Vertical timeline with continuous spine
+│   │   │   │   ├── SegmentedControl.svelte # Mutually-exclusive toggle (default + compact variants)
+│   │   │   │   ├── SwarmCanvas.svelte   # Hero background topology canvas
+│   │   │   │   ├── Tabs.svelte          # WAI-ARIA tabs primitive
+│   │   │   │   ├── Tag.svelte           # Semantic tag primitive
+│   │   │   │   ├── TextField.svelte     # Labelled text input
+│   │   │   │   ├── Toast.svelte         # Auto-dismissing notification with accessible status role
+│   │   │   │   ├── ToastContainer.svelte# Global container rendering active toasts via uiStore
+│   │   │   │   └── TopNav.svelte        # Global sticky navigation bar (glassmorphic, SSR-safe)
+│   │   │   └── datavis/
+│   │   │       ├── index.ts             # Barrel export for datavis primitives
+│   │   │       ├── layout.ts            # Orbital layout math for the explainer
+│   │   │       ├── types.ts             # Strict DTOs for datavis props
+│   │   │       └── OrbitExplainer.svelte # Interactive architecture orbit explainer
+│   │   ├── content/
+│   │   │   ├── cases.ts             # Case study data source (typed CaseEntry DTOs)
+│   │   │   ├── index.ts             # Barrel export for content
+│   │   │   └── roadmap.ts           # Typed roadmap data source
+│   │   ├── scroll/
+│   │   │   ├── engine.ts            # Scroll orchestration engine (successor to the removed use:reveal action)
+│   │   │   └── index.ts             # Barrel export
+│   │   ├── stores/
+│   │   │   └── ui.svelte.ts         # Global reactive state for UI engines (Toasts/Modals) via module-level $state
+│   │   └── index.ts                 # Root barrel export for the site library
 │   ├── routes/
-│   │   ├── design/+page.svelte # Site design system gallery
-│   │   ├── roadmap/+page.svelte # Interactive roadmap route
-│   │   ├── layout.css     # Theme Conductor (tokens, cascade layers, primitive styles)
-│   │   ├── +layout.ts     # Root layout config: prerender directive
-│   │   ├── +layout.svelte # Global shell: TopNav, Footer, ToastContainer
-│   │   ├── +page.server.ts # Main landing page server load (if any)
-│   │   └── +page.svelte   # Main landing page
+│   │   ├── case-studies/+page.svelte # Filterable, sortable case archive
+│   │   ├── design/+page.svelte       # Living style guide & primitive gallery
+│   │   ├── roadmap/+page.svelte      # Interactive roadmap route
+│   │   ├── layout.css                # Theme Conductor (tokens, cascade layers, primitive styles)
+│   │   ├── +layout.ts                # Root layout config: prerender directive
+│   │   ├── +layout.svelte            # Global shell: TopNav, Footer, ToastContainer
+│   │   ├── +page.server.ts           # Landing page server loader
+│   │   └── +page.svelte              # Main landing page (hero, problem, solution, etc.)
 │   ├── app.d.ts
 │   └── app.html
-├── static/
-│   └── robots.txt
-├── .gitignore
-├── .npmrc
-├── README.md
-├── package-lock.json
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
 
 Tooling, CI & Delivery Assets (Root Level)
 .github/
 └── workflows/
-    └── release.yml        # CI/CD: triggers on v* tags or manual dispatch
+    ├── deploy-site.yml          # Marketing site deployment workflow
+    └── release.yml              # CI/CD: triggers on v* tags or manual dispatch
 scripts/
-└── sign-release.ts        # Ed25519 tarball signing (SWISD_SIGNING_KEY_DER_BASE64 secret)
-systemd/                   # Service templates for the Pi delivery image
-├── swisd-app.service      # Strict isolation, Restart=always
-├── swisd-provision.service # One-shot USB provision application
-└── swisd-supervisor.service # Pinned supervisor, decoupled watchdog
+├── sign-release.js              # ⚠ compiled artifact of sign-release.ts — confirm intent (CI runs it, or gitignore it)
+└── sign-release.ts              # Ed25519 tarball signing (SWISD_SIGNING_KEY_DER_BASE64 secret)
+systemd/                         # Service templates for the Pi delivery image
+├── swisd-app.service            # Strict isolation, Restart=always
+├── swisd-provision.service      # One-shot USB provision application
+└── siwsd-supervisor.service     # ⚠ filename typo on disk — should be swisd-supervisor.service
 
 Context & Standards (Root)
 root/

@@ -2,11 +2,11 @@
 1. Relative path: site/src/lib/components/ui/Badge.svelte
 2. Description: Compact numeric counter, hero indicator, or semantic status chip.
 3. Expects: Svelte 5 runes, strict TypeScript, variant prop.
-4. Provides: A type-safe, accessible badge component capping at 99+, with high-contrast text on bright fills.
+4. Provides: A type-safe, accessible badge component capping at 99+, with pulsing hero and status variants (including purple).
 -->
 <script lang="ts">
   type BadgeVariant = 'default' | 'hero' | 'status';
-  type Status = 'live' | 'warn' | 'idle';
+  type Status = 'live' | 'warn' | 'idle' | 'purple';
   
   let {
     variant = 'default' as BadgeVariant,
@@ -23,10 +23,10 @@
   const displayCount = $derived(count > 99 ? '99+' : count.toString());
   const shouldRender = $derived(variant === 'default' ? count > 0 : true);
   
-  // High contrast text: dark gray on bright fills, white on dark fills.
   const statusColor = $derived(
     status === 'live' ? 'bg-(--color-lime) text-gray-900' :
     status === 'warn' ? 'bg-yellow-500 text-gray-900' :
+    status === 'purple' ? 'bg-(--color-purple) text-white' :
     'bg-(--text-muted) text-white'
   );
 </script>
@@ -45,7 +45,7 @@
       {status}
     </span>
   {:else}
-    <span class="inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full bg-(--color-lime) text-gray-900 font-mono text-xs font-bold" aria-hidden={label === ''}>
+    <span class="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-full bg-(--color-lime) text-gray-900 font-mono text-xs font-bold" aria-hidden={label === ''}>
       {displayCount}
       {#if label}
         <span class="sr-only">{label}</span>
