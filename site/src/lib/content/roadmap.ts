@@ -47,8 +47,8 @@ export const roadmapEntries: readonly RoadmapEntry[] = [
     time: 'Spring 2023',
     title: 'The Hackathon Spark',
     description:
-      'During a hackathon hosted by The Ventury, at the end of a long night, the initial concept for the project is sketched out. The vision involves artificial intelligence running on the devices people already own, cooperating as a swarm with no central server. The sketch carries informal working names built around the word swarm. From this weekend onward the idea is treated as a research programme and the slow work of making it defensible begins.',
-    link: { href: 'https://theventury.com', label: 'The Ventury' }
+      'During a hackathon hosted by Horizon Europe and the Technical University of Vienna, at the end of a long night, the initial concept for the project is sketched out. The vision involves artificial intelligence running on the devices people already own, cooperating as a swarm with no central server. The sketch carries informal working names built around the word swarm. From this weekend onward the idea is treated as a research programme and the slow work of making it defensible begins.',
+    link: { href: 'https://research-and-innovation.ec.europa.eu', label: 'Horizon Europe' }
   },
   {
     id: 'proof-years',
@@ -75,7 +75,8 @@ export const roadmapEntries: readonly RoadmapEntry[] = [
     time: 'Winter 2024',
     title: 'The Federated Field Trial',
     description:
-      'The proof of concept escapes the laboratory and enters the field, where a test network of nineteen devices attempts something ambitious. A Llama 3.2 model of roughly twenty-four billion parameters is served and refined. About thirteen diverse mobile devices contribute actively to the workload, while the rest provide hard lessons about churn and battery limits that no simulator would have surfaced. The trial stretches into 2025 and validates federated learning on consumer hardware.'
+      'The proof of concept escapes the laboratory and enters the field, where a test network of nineteen devices attempts something ambitious. A Llama 3.2 model of roughly twenty-four billion parameters is served and refined. About thirteen diverse mobile devices contribute actively to the workload, while the rest provide hard lessons about churn and battery limits that no simulator would have surfaced. The trial stretches into 2025 and validates federated learning on consumer hardware.',
+    link: { href: 'https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/MODEL_CARD.md', label: 'Llama 3.2' }
   },
   {
     id: 'name-sworn',
@@ -148,8 +149,7 @@ export const roadmapEntries: readonly RoadmapEntry[] = [
     time: 'Spring 2026',
     title: 'Heavy Payloads and the Consent Gate',
     description:
-      'Models of multiple gigabytes cannot be gossiped like metadata. A distribution path for heavy payloads is designed in which files are split into verified chunks and seeded across peers in parallel micro-torrents. A real-world validation chains a live camera feed into Moondream2 for vision, passes the semantic understanding to an Apertus 8B language model, and voices the final result through Kokoro TTS. No external download begins without explicit operator consent, ensuring that the swarm remains large and its manners impeccable.',
-    link: { href: '/research', label: 'Read the Whitepapers' }
+      'Models of multiple gigabytes cannot be gossiped like metadata. A distribution path for heavy payloads is designed in which files are split into verified chunks and seeded across peers in parallel micro-torrents. A real-world validation chains a live camera feed into Moondream2 for vision, passes the semantic understanding to an Apertus 8B language model, and voices the final result through Kokoro TTS. No external download begins without explicit operator consent, ensuring that the swarm remains large and its manners impeccable.'
   },
   {
     id: 'tech-demo',
@@ -189,12 +189,13 @@ export const roadmapEntries: readonly RoadmapEntry[] = [
   },
   {
     id: 'open-source-release',
-    status: 'done',
+    status: 'current', // Automatically becomes the living anchor for the timeline
     type: 'milestone',
     time: 'Fall 2026',
     title: 'The Open-Source Release',
     description:
-      'The open-source release is the milestone toward which the entire timeline converges. The research only becomes infrastructure once strangers can build on it. The framework ships at version 0.9.3, a deliberate choice reflecting the architectural pivots of the grant year rather than an arbitrary numerical label. Thanks to the foundational support of the FFG, the roadmap for the coming years is already drawn. Every locked decision becomes reviewable, and the swarm stops being a private research project and starts being a public tool.'
+      'The open-source release is the milestone toward which the entire timeline converges. The research only becomes infrastructure once strangers can build on it. The framework ships at version 0.9.3, a deliberate choice reflecting the architectural pivots of the grant year rather than an arbitrary numerical label. Thanks to the foundational support of the FFG, the roadmap for the coming years is already drawn. Every locked decision becomes reviewable, and the swarm stops being a private research project and starts being a public tool.',
+    link: { href: 'https://github.com/hideosnes/swisd', label: 'SwISD Release' }
   }
 ] as const;
 

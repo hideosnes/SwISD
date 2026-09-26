@@ -497,9 +497,9 @@
       </div>
       <div class="cta-actions-right">
         <Button variant="primary" href="/research">
-          Read the Whitepapers <Arrow direction="right" />
+          Explore <Arrow direction="right" />
         </Button>
-        <Button variant="secondary" href="#roadmap" onclick={(e) => smoothScroll(e, '#roadmap')}>
+        <Button variant="secondary" href="#roadmap-preview" onclick={(e) => smoothScroll(e, '#roadmap-preview')}>
           Learn more <Arrow direction="down" />
         </Button>
       </div>
@@ -509,24 +509,55 @@
 
 <section id="roadmap-preview">
   <div class="container">
-    <div class="reveal" style="text-align: center; margin-bottom: 3rem;">
-      <span class="section-label">Roadmap</span>
-      <h2 class="section-title section-title-sm">
+    <div class="manifesto-layout">
+      <!-- Left Side: Context and CTA -->
+      <div class="reveal">
+        <span class="section-label">The Journey</span>
+        <h2 class="section-title section-title-sm mb-6">
+          From a 3 AM sketch<br />
+          <span class="lime">to a sovereign swarm.</span>
+        </h2>
+        <p class="section-desc mb-8">
+          What began as a protocol for edge devices has evolved into a framework for sovereign AI. Every step on our timeline represents a barrier broken, a centralized assumption dismantled, and a piece of infrastructure returned to the people who actually use it.
+        </p>
+        <Button variant="primary" href="/roadmap">
+          View Full Timeline <Arrow direction="right" />
+        </Button>
+      </div>
+
+      <!-- Right Side: Vertical Timeline Graphic + Current Milestone -->
+      <div class="manifesto-block reveal reveal-delay-2 relative pl-8">
+        <!-- Vertical Timeline Line: Grey gradient up, Lime gradient down from the 1/3 pulsing point -->
+        <div 
+          class="absolute left-0 top-0 bottom-0 w-0.5"
+          style="background: linear-gradient(to bottom, transparent 0%, var(--border) 20%, var(--color-lime) 33%, transparent 100%);"
+        ></div>
+        
+        <!-- Pulsing Point (~1/3 down) -->
+        <div class="absolute left-0 top-1/3 w-3 h-3 -translate-x-1/2 rounded-full bg-(--color-lime) shadow-[0_0_12px_var(--color-lime)]">
+          <div class="absolute inset-0 rounded-full bg-(--color-lime) animate-ping opacity-75"></div>
+        </div>
+        
+        <!-- Current Milestone Content -->
         {#if currentEntry}
-          Currently building:<br />
-          <span class="lime">{currentEntry.title}</span>
+          <div class="pt-4">
+            <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest mb-2 block">{currentEntry.time}</span>
+            <h3 class="font-mono font-bold text-2xl mb-4 text-(--text)">{currentEntry.title}</h3>
+            <p class="text-(--text-muted) leading-relaxed">{currentEntry.description}</p>
+            {#if currentEntry.link}
+              <a href={currentEntry.link.href} class="inline-flex items-center gap-2 mt-6 text-(--color-lime) hover:opacity-80 transition-opacity font-mono text-sm font-semibold">
+                {currentEntry.link.label} <Arrow direction="right" />
+              </a>
+            {/if}
+          </div>
         {:else}
-          The path forward.
+          <div class="pt-4">
+            <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest mb-2 block">Next Phase</span>
+            <h3 class="font-mono font-bold text-2xl mb-4 text-(--text)">The path forward</h3>
+            <p class="text-(--text-muted) leading-relaxed">The next milestone is currently being forged in the laboratory. Stay tuned for the next mathematical proof.</p>
+          </div>
         {/if}
-      </h2>
-      {#if currentEntry?.description}
-        <p class="section-desc" style="margin: 0 auto;">{currentEntry.description}</p>
-      {/if}
-    </div>
-    <div class="reveal" style="text-align: center;">
-      <Button variant="primary" href="/roadmap">
-        View Full Timeline <Arrow direction="right" />
-      </Button>
+      </div>
     </div>
   </div>
 </section>

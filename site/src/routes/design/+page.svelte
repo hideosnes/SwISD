@@ -19,13 +19,11 @@
     stsbgLogo, kupfLogo, monochromLogo, swisdLogo 
   } from '$lib/assets';
 
-  // --- State ---
   let isModalOpen = $state(false);
   let segmentedValue = $state<'dev' | 'exec'>('dev');
   let activeModal = $state<'text' | 'split' | 'appliance' | null>(null);
   let multiSelectValue = $state<string[]>([]);
 
-  // --- Progressive Disclosure State ---
   const MOCK_LONG_LIST = Array.from({ length: 16 }, (_, i) => ({
     id: `item-${i + 1}`,
     title: `Milestone ${i + 1}`,
@@ -35,7 +33,6 @@
   const visibleItems = $derived(MOCK_LONG_LIST.slice(0, revealCount));
   function revealMore() { revealCount += 4; }
 
-  // --- Mock Data ---
   const SEGMENTED_OPTIONS = [
     { value: 'dev' as const, label: 'For Developers' },
     { value: 'exec' as const, label: 'For Executives' }
@@ -55,11 +52,6 @@
     { items: [{ src: ffgLogo, alt: 'FFG', wide: true }, { src: hpcjuLogo, alt: 'EuroHPC JU', wide: true }, { src: stsbgLogo, alt: 'Stadt Salzburg', wide: true }] }
   ];
 
-  const labeledGroups: readonly LogoGalleryGroup[] = [
-    { label: 'Research', items: [{ src: ffgLogo, alt: 'FFG', wide: true }, { src: hpcjuLogo, alt: 'EuroHPC JU', wide: true }] },
-    { label: 'Culture', items: [{ src: kupfLogo, alt: 'Kupf', wide: true }, { src: monochromLogo, alt: 'Monochrom', wide: true }] }
-  ];
-
   const ARCH_RUNDOWNS: readonly Rundown[] = [
     { actorId: 'conductor', pillar: 'Workload Execution', title: 'The Conductor', text: "The operator's stateful brain. Chunks tasks, Merkle-hashes for integrity, HMAC-signs for authenticity.", chipLabel: 'Conductor' },
     { actorId: 'worker', pillar: 'Task Mediation', title: 'The Worker', text: 'Beautifully dumb and stateless. Advertises capabilities, takes chunks, executes in parallel.', chipLabel: 'Worker' },
@@ -69,7 +61,6 @@
 
   const sampleRoadmapEntry = roadmapEntries[0];
 
-  // sampleCase showcases a LINKED title + LINKED partner; sampleCase2 showcases the unlinked states.
   const sampleCase = cases[0] ?? {
     slug: 'mock-1', title: 'Mock Project Alpha', image: swisdLogo, year: 2024,
     partners: [{ name: 'Partner A', link: { href: 'https://example.com', external: true } }],
@@ -153,12 +144,39 @@
           <div class="p-6 flex flex-col gap-2">
             <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">H1 · Display</span>
             <h1 class="font-mono font-bold text-3xl leading-tight">Swarm Inference</h1>
-            <span class="font-mono text-xs text-(--text-muted)">Mono · 700 · 3xl</span>
+            <span class="font-mono text-xs text-(--text-muted)">Mono · 700 · clamp(2.5rem, 7vw, 5.5rem)</span>
           </div>
           <div class="p-6 flex flex-col gap-2">
             <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">H2 · Section</span>
             <h2 class="font-mono font-bold text-2xl leading-tight">The Question Cascade</h2>
-            <span class="font-mono text-xs text-(--text-muted)">Mono · 700 · 2xl</span>
+            <span class="font-mono text-xs text-(--text-muted)">Mono · 700 · clamp(2rem, 4vw, 3.25rem)</span>
+          </div>
+          <div class="p-6 flex flex-col gap-2">
+            <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">H3 · Subsection</span>
+            <h3 class="font-mono font-bold text-xl leading-tight">The Dual-Tier Processing</h3>
+            <span class="font-mono text-xs text-(--text-muted)">Mono · 700 · xl (1.25rem)</span>
+          </div>
+          <div class="p-6 flex flex-col gap-2">
+            <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">H4 · Micro</span>
+            <h4 class="font-mono font-bold text-base leading-tight">The Arabic Context</h4>
+            <span class="font-mono text-xs text-(--text-muted)">Mono · 700 · base (1rem)</span>
+          </div>
+          <div class="p-6 flex flex-col gap-2">
+            <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">Citation Link</span>
+            <p class="text-(--text-muted)">
+              Inline citation: <a href="#ref-1" class="knowledge-citation" aria-label="Jump to reference 1">1</a>
+            </p>
+            <span class="font-mono text-xs text-(--text-muted)">Normal font, lime, no underline, no superscript.</span>
+          </div>
+          <div class="p-6 flex flex-col gap-2">
+            <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">Reference Arrow</span>
+            <div class="flex items-center gap-2 text-(--text-muted)">
+              <span>Alvarado, R. AI as an Epistemic Technology.</span>
+              <a href="#" class="citation-link" aria-label="External link">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="citation-arrow" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16"></path></svg>
+              </a>
+            </div>
+            <span class="font-mono text-xs text-(--text-muted)">Lime external arrow, slightly enlarged (1.25rem) for clarity.</span>
           </div>
           <div class="p-6 flex flex-col gap-2">
             <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">Label</span>
@@ -353,7 +371,7 @@
       <div>
         <h3 class="text-sm font-mono text-(--color-lime) uppercase tracking-widest mb-4">Case Study Layout</h3>
         <p class="text-(--text-muted) text-sm leading-relaxed max-w-3xl mb-8">
-          The selected posture for the Case Studies archive. The <code class="text-(--color-lime)">CaseCard</code> primitive supports variance via the strictly typed <code class="text-(--color-lime)">layout</code> union prop. The first card shows a linked title + linked partner; the second shows the unlinked states.
+          The selected posture for the Case Studies archive. The <code class="text-(--color-lime)">CaseCard</code> primitive supports variance via the strictly typed <code class="text-(--color-lime)">layout</code> union prop.
         </p>
 
         <div>
@@ -361,6 +379,46 @@
           <div class="grid md:grid-cols-2 gap-6">
             <CaseCard project={sampleCase} layout="split" />
             <CaseCard project={sampleCase2} layout="split" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-sm font-mono text-(--color-lime) uppercase tracking-widest mb-4">Knowledge Hub Patterns</h3>
+        <p class="text-(--text-muted) text-sm leading-relaxed max-w-3xl mb-6">
+          The research hub uses a constrained single-column layout (<code class="text-(--color-lime)">max-w-4xl</code>) with a unified filter bar.
+        </p>
+        
+        <div class="bg-(--surface) p-6 rounded-2xl border border-(--border) space-y-8">
+          <div class="flex flex-col md:flex-row gap-4 items-start md:items-end w-full">
+            <div class="w-72">
+              <label class="block text-xs font-mono uppercase tracking-widest text-(--text-muted) mb-2">Search</label>
+              <input
+                type="text"
+                placeholder="Search..."
+                class="w-full px-4 h-10 rounded-xl bg-(--surface) border border-(--border) text-(--text) font-mono text-sm transition-colors placeholder:text-(--text-muted) hover:border-(--color-lime) focus:outline-none focus:ring-2 focus:ring-(--color-lime)/50"
+              />
+            </div>
+            <div class="w-72">
+              <MultiSelect 
+                options={['CRDT', 'Merkle-DAG', 'Cryptography', 'P2P']} 
+                bind:selected={multiSelectValue} 
+                placeholder="All Topics" 
+                label="Filter by topic"
+              />
+            </div>
+            <div class="flex items-end pb-1">
+              <button type="button" class="btn-secondary">Clear filters</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <p class="text-sm font-mono text-(--text-muted)">
+              Showing 3 of 3 entries.
+            </p>
+            <button type="button" class="text-xs font-mono text-(--color-lime) hover:underline">
+              Clear filters
+            </button>
           </div>
         </div>
       </div>

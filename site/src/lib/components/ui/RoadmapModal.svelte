@@ -93,6 +93,18 @@
           Case Study
           <Arrow direction="right" />
         </a>
+
+        {#if entry.link}
+          <a
+            href={entry.link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-(--color-lime) font-semibold hover:opacity-80 transition-opacity ml-auto"
+          >
+            {entry.link.label}
+            <Arrow direction="external" />
+          </a>
+        {/if}
       </div>
     {/snippet}
   </Modal>

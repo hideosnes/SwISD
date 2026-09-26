@@ -1,3 +1,9 @@
+<!--
+1. Relative path: site/src/routes/roadmap/+page.svelte
+2. Description: The Roadmap route, displaying the project timeline with progressive disclosure.
+3. Expects: Svelte 5 runes, roadmap content barrel, and canonical UI primitives.
+4. Provides: An immersive, gradient-framed hero section followed by a strictly typed, interactive timeline.
+-->
 <script lang="ts">
   import { RoadmapTimeline, RoadmapModal, Arrow } from '$lib/components/ui';
   import { roadmapEntries, type RoadmapEntry } from '$lib/content/roadmap';
@@ -8,6 +14,7 @@
   const INITIAL_CHUNK = 8;
   let visibleCount = $state(INITIAL_CHUNK);
   const displayedEntries = $derived(roadmapEntries.slice(-visibleCount));
+  const hasMore = $derived(visibleCount < roadmapEntries.length);
 
   function handleSelect(entry: RoadmapEntry) { selectedEntry = entry; modalOpen = true; }
   function handleClose() { modalOpen = false; }
@@ -19,17 +26,17 @@
   <meta name="description" content="The SwISD project timeline. From cryptographic primitives to inter-swarm routing." />
 </svelte:head>
 
-<section id="roadmap-hero" class="reveal">
+<section id="roadmap-hero" class="cta-band reveal">
   <div class="container">
     <span class="section-label">Roadmap</span>
     <h1 class="section-title">
-      Building infrastructure.<br />
-      <span class="lime">Growing knowledge.</span>
+      Our story:<br />
+      <span class="lime">Step by step</span>
     </h1>
-    <p class="section-desc mx-auto">
-      Every milestone is a mathematical proof. From the bedrock of cryptographic primitives to the emergence of inter-swarm diplomats, this is how the swarm evolves.
+    <p class="section-desc mx-auto mb-8">
+      Infrastructure isn't built in a day. It is forged through cryptographic proofs, tested in the crucible of edge networks, and validated by the swarm. Here is the blueprint of our evolution, from the first local gossip protocol to the emergence of inter-swarm diplomats.
     </p>
-    <a href="#timeline-end" class="btn-secondary timeline-jump" aria-label="Scroll to the origin of the timeline">
+    <a href="#timeline-end" class="btn-secondary" aria-label="Scroll to the origin of the timeline">
       Scroll down <Arrow direction="down" />
     </a>    
   </div>
@@ -37,9 +44,12 @@
 
 <section id="roadmap-timeline-section">
   <div class="container">
-    <RoadmapTimeline entries={displayedEntries} onSelect={handleSelect} />
+    <!-- Wrapper allows us to conditionally style the timeline spine based on progressive disclosure state -->
+    <div class="roadmap-timeline-wrapper" class:has-more={hasMore}>
+      <RoadmapTimeline entries={displayedEntries} onSelect={handleSelect} />
+    </div>
     
-    {#if visibleCount < roadmapEntries.length}
+    {#if hasMore}
       <div class="reveal text-center mt-12">
         <button type="button" class="btn-secondary" onclick={loadMore}>
           Reveal More Milestones

@@ -39,6 +39,11 @@
     return href;
   }
 
+  function isActive(href: string): boolean {
+    if (href === '/') return currentPath === '/';
+    return currentPath.startsWith(href);
+  }
+
   onMount(() => window.addEventListener('scroll', handleScroll));
   onDestroy(() => {
     if (typeof window === 'undefined') return;
@@ -52,7 +57,15 @@
   </a>
   <ul class="nav-links" class:open={mobileMenuOpen}>
     {#each links as link}
-      <li><a href={resolveHref(link.href)} onclick={closeMobileMenu}>{link.label}</a></li>
+      <li>
+        <a 
+          href={resolveHref(link.href)} 
+          onclick={closeMobileMenu}
+          class:active={isActive(link.href)}
+        >
+          {link.label}
+        </a>
+      </li>
     {/each}
     <li>
       <a href={GITHUB} target="_blank" rel="noopener noreferrer" class="nav-cta">

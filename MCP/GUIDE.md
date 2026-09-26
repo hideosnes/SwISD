@@ -50,7 +50,7 @@ SwISD is a decentralized, agentoid P2P network for distributed AI inference. It 
   - *Barrel Enforcement:* Every script/feature must be registered via an `index.ts` and imported *only* via `index.ts`.
   - *Import Depth:* Maximum one step deep for imports. Deep imports (e.g., `../../a/b/c`) are strictly forbidden.
   - *Centralized Files:* Maintain strict centralization for shared resources (`src/utils.ts`, `src/types.ts`, `src/types.d.ts`, `src/errors.ts`).
-  - **File Header Requirement:** Every single file must begin with a 4-point comment block on line 1: (1) relative path, (2) description, (3) expected data, (4) provided data.
+  - **File Header Requirement:** Every single file must begin with a 6-point comment block on line 1. The first four points are the SwISD canon: (1) relative path, (2) description, (3) expected data, (4) provided data. The final two points are the legal integration: (5) `SPDX-License-Identifier: MPL-2.0`, (6) `Copyright (c) 2026 Homahuki GmbH`. Rely on the root `LICENSE` file for the full MPL Exhibit A text.
 - **Domain C Frontend Stack:**
   - Svelte 5 (Runes/Snippets) + SvelteKit 2 Node adapter + TailwindCSS.
   - The SvelteKit server is the BFF and the only process allowed to touch the headless SwISD core.

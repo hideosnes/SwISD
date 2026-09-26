@@ -15,11 +15,12 @@
 
   const navLinks = [
     { href: '/case-studies', label: 'Case Studies' },
-    { href: '/roadmap', label: 'Roadmap' }
+    { href: '/roadmap', label: 'Roadmap' },
+    { href: '/research', label: 'Knowledge' },
+    { href: '/docs', label: 'Docs' },
+    { href: '/pricing', label: 'Pricing' }
   ];
 </script>
-
-
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 

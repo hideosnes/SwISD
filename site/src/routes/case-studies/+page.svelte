@@ -71,13 +71,6 @@
 
 <section class="py-24">
   <div class="container mx-auto px-4">
-    <header class="mb-16 text-center">
-      <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-(--text) mb-4 font-mono">Case Studies</h1>
-      <p class="text-lg text-(--text-muted) max-w-2xl mx-auto">
-        A chronological archive of deployments, research, and installations.
-      </p>
-    </header>
-
     <div class="mb-12">
       <!-- Filter bar: label-on-top groups, separated by standard flex gaps. -->
       <div class="flex flex-wrap items-start gap-x-5 gap-y-8">
