@@ -1,9 +1,9 @@
-/**
+/* /**
  * 1. Relative path: site/src/routes/+page.server.ts
  * 2. Description: Server-side form actions for the marketing site.
  * 3. Expects: SvelteKit Actions API, strict FormData parsing.
  * 4. Provides: Secure JSON proxy to self-hosted Notifuse public subscribe endpoint, bypassing CORS.
- */
+ *//* 
 import { fail, type Actions } from '@sveltejs/kit';
 
 const NOTIFUSE_API = 'https://newsletter.homahuki.eu/subscribe';
@@ -76,4 +76,4 @@ export const actions: Actions = {
       });
     }
   }
-};
+}; */

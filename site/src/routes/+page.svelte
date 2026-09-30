@@ -3,11 +3,11 @@
 2. Description: SwISD marketing site with standardized sections and an interactive architecture orbit explainer.
 3. Expects: Svelte 5 runes, SSR-safe DOM access, strict adherence to the Single-Source Doctrine.
 4. Provides: Swarm-topology hero, dual-audience toggle, scroll reveal, orbit architecture explainer, using canonical UI primitives.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { enhance } from '$app/forms';
-  import type { SubmitFunction } from '@sveltejs/kit';
   import { Arrow, Button, LogoGallery, ManifestoList, Modal, SwarmCanvas, SegmentedControl, type LogoGalleryGroup } from '$lib/components/ui';
   import { OrbitExplainer, type Rundown } from '$lib/components/datavis';
   import { currentEntry } from '$lib/content/roadmap';
@@ -44,7 +44,12 @@
   let revealObserver: IntersectionObserver | null = null;
   let audience = $state<'dev' | 'exec'>('dev');
   let isNewsletterModalOpen = $state(false);
-  let isSubmitting = $state(false);
+  
+  // Anti-bot reveal: email only enters the DOM after a human commits to the click
+  let contactRevealed = $state(false);
+
+  // Fragmented construction defeats naive source-code scrapers
+  const contactEmail = $derived(['office', ' [at] ', 'homahuki', ' [dot] ', 'eu'].join(''));
   
   // SDG Modal State
   let activeSdg = $state<9 | 12 | 16 | null>(null);
@@ -172,7 +177,7 @@
     }
   ];
 
-  // Grant Logos: External links (Updated to exact provided URLs)
+  // Grant Logos: External links
   const grantGroups: readonly LogoGalleryGroup[] = [
     {
       items: [
@@ -232,24 +237,13 @@
 
   function closeNewsletterModal() {
     isNewsletterModalOpen = false;
+    // Reset the reveal so the guard rail is fresh on every open
+    contactRevealed = false;
   }
 
-  const handleNewsletterSubmit: SubmitFunction = ({ formElement }) => {
-    isSubmitting = true;
-    
-    return async ({ result }) => {
-      if (result.type === 'success') {
-        uiStore.addToast('Welcome to the swarm. Check your inbox.', 'success');
-        formElement.reset();
-        closeNewsletterModal();
-      } else if (result.type === 'failure') {
-        const errorData = result.data as { error?: string } | undefined;
-        const message = errorData?.error ?? 'Subscription failed. Please try again.';
-        uiStore.addToast(message, 'error');
-      }
-      isSubmitting = false;
-    };
-  };
+  function revealContact() {
+    contactRevealed = true;
+  }
 
   function smoothScroll(e: MouseEvent, href: string) {
     e.preventDefault();
@@ -600,55 +594,28 @@
   </div>
 </section>
 
-<!-- Newsletter Modal -->
+<!-- Newsletter Modal with Anti-Bot Reveal -->
 <Modal
   isOpen={isNewsletterModalOpen}
   onClose={closeNewsletterModal}
-  ariaLabel="Subscribe to the SwISD newsletter"
+  ariaLabel="SwISD Newsletter"
 >
   <div class="newsletter-modal-body">
-    <h3 class="modal-title">Join the swarm</h3>
-    <p class="modal-desc">
-      Get updates on SwISD development, research, and community events. No spam, no central coordinator.
-    </p>
-
-    <form method="POST" action="?/subscribe" use:enhance={handleNewsletterSubmit} class="newsletter-form">
-      <div class="newsletter-row">
-        <div class="newsletter-field">
-          <input
-            type="text"
-            name="first_name"
-            placeholder="First name"
-            class="newsletter-input"
-            aria-label="First name"
-          />
-        </div>
-        <div class="newsletter-field">
-          <input
-            type="text"
-            name="last_name"
-            placeholder="Last name"
-            class="newsletter-input"
-            aria-label="Last name"
-          />
-        </div>
-      </div>
-      <input
-        type="email"
-        name="email"
-        placeholder="your@email.com"
-        required
-        class="newsletter-input"
-        aria-label="Email address"
-      />
-      <Button type="submit" variant="primary" disabled={isSubmitting} class="newsletter-submit w-full justify-center">
-        {#if isSubmitting}
-          Joining...
-        {:else}
-          Subscribe <Arrow direction="right" />
-        {/if}
+    <h3 class="modal-title">The swarm is waking up</h3>
+    
+    {#if contactRevealed}
+      <p class="modal-desc">
+        Our automated newsletter is currently being forged in the laboratory. Until it is ready, we would love to hear from you directly. Write to us and we will make sure you are the first to know when the swarm goes live.
+      </p>
+            <p class="contact-email lime mt-4">{contactEmail}</p>
+    {:else}
+      <p class="modal-desc">
+        Our automated newsletter is being forged in the laboratory. We are building it to be spam-free, privacy-respecting, and worthy of the swarm. Until then, reach out directly and we will keep you in the loop.
+      </p>
+      <Button variant="primary" onclick={revealContact} class="newsletter-submit w-full justify-center mt-4">
+        Reveal Contact <Arrow direction="right" />
       </Button>
-    </form>
+    {/if}
   </div>
 </Modal>
 

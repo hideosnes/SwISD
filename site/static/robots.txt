@@ -1,3 +1,79 @@
-# allow crawling everything by default
+# ==========================================
+# SwISD Data Sovereignty & Crawler Directives
+# ==========================================
+# We champion data sovereignty and reject the extractive, 
+# non-consensual scraping of intellectual property for 
+# closed-source AI training. 
+#
+# Standard search engines are welcome to index the public 
+# marketing site, but our internal design system is off-limits.
+
+# 1. STANDARD CRAWLERS (Google, Bing, DuckDuckGo, etc.)
 User-agent: *
-Disallow:
+Disallow: /design/
+Disallow: /design/test/
+Allow: /
+
+Sitemap: https://swisd.at/sitemap.xml
+
+# 2. AI TRAINING SCRAPERS (Blocked)
+# The following agents are denied access to protect our essays, 
+# case studies, and architectural manifests from being absorbed 
+# into proprietary, monolingual LLM training corpuses.
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: ImagesiftBot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
+
+User-agent: YouBot
+Disallow: /
+
+User-agent: Timpibot
+Disallow: /
+
+User-agent: VelenPublicWebCrawler
+Disallow: /

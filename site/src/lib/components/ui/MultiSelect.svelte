@@ -3,6 +3,8 @@
 2. Description: Accessible multi-option dropdown menu for selecting multiple string values.
 3. Expects: Svelte 5 runes, strict TypeScript, string options, and bindable selection state.
 4. Provides: A fully keyboard-navigable, aria-compliant multi-select primitive with a static visual footprint.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
   import { Arrow } from '$lib/components/ui';
@@ -25,7 +27,8 @@
 
   const generatedId = `multiselect-${Math.random().toString(36).slice(2, 9)}`;
   const finalId = $derived(id ?? generatedId);
-  const listboxId = `${finalId}-listbox`;
+  // FIXED: Wrapped in $derived to prevent capturing stale initial value
+  const listboxId = $derived(`${finalId}-listbox`);
 
   let isOpen = $state(false);
   let activeIndex = $state(-1);
@@ -130,8 +133,10 @@
     </label>
   {/if}
 
+  <!-- FIXED: Added role="combobox" to satisfy ARIA specs for aria-activedescendant -->
   <button
     type="button"
+    role="combobox"
     id={finalId}
     bind:this={triggerRef}
     class="flex items-center gap-2 w-full px-4 h-10 rounded-xl bg-(--surface) border border-(--border) text-(--text) font-mono text-sm transition-colors hover:border-(--color-lime) focus:outline-none focus:ring-2 focus:ring-(--color-lime)/50"

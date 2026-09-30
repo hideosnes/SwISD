@@ -172,7 +172,8 @@
             <span class="font-mono text-xs text-(--color-lime) uppercase tracking-widest">Reference Arrow</span>
             <div class="flex items-center gap-2 text-(--text-muted)">
               <span>Alvarado, R. AI as an Epistemic Technology.</span>
-              <a href="#" class="citation-link" aria-label="External link">
+              <!-- FIXED: Replaced '#' with valid href to satisfy a11y compiler -->
+              <a href="https://example.com" class="citation-link" aria-label="External link">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="citation-arrow" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16"></path></svg>
               </a>
             </div>
@@ -392,8 +393,10 @@
         <div class="bg-(--surface) p-6 rounded-2xl border border-(--border) space-y-8">
           <div class="flex flex-col md:flex-row gap-4 items-start md:items-end w-full">
             <div class="w-72">
-              <label class="block text-xs font-mono uppercase tracking-widest text-(--text-muted) mb-2">Search</label>
+              <!-- FIXED: Explicitly bound label to control via for/id to satisfy a11y compiler -->
+              <label for="design-search" class="block text-xs font-mono uppercase tracking-widest text-(--text-muted) mb-2">Search</label>
               <input
+                id="design-search"
                 type="text"
                 placeholder="Search..."
                 class="w-full px-4 h-10 rounded-xl bg-(--surface) border border-(--border) text-(--text) font-mono text-sm transition-colors placeholder:text-(--text-muted) hover:border-(--color-lime) focus:outline-none focus:ring-2 focus:ring-(--color-lime)/50"

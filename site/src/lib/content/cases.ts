@@ -3,6 +3,8 @@
  * 2. Description: Case study data source for the SwISD marketing site.
  * 3. Expects: Strictly typed case entries; asset imports from the assets barrel.
  * 4. Provides: The single source of truth for the case studies archive.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
  */
 import {
   deepBackofficeArt, 
@@ -14,7 +16,8 @@ import {
   biometricExpressionsArt,
   sundayInOsakaArt,
   voxerlArt,
-  webxrArt
+  webxrArt,
+  lindabrunnRagArt
 } from '$lib/assets';
 
 export type CaseIndustry = 'Arts & Culture' | 'Retail' | 'Healthcare' | 'Technology' | 'R&D' | 'Event' | 'Finance';
@@ -161,6 +164,18 @@ const rawCases: CaseEntry[] = [
     industry: ['Finance'],
     modalities: ['Classification'],
     summary: 'Austrian fintech startup Voxerl leverages SwISD to maintain persistent, decentralized backups of client ledgers and assets. When primary server infrastructure fails, the swarm acts as an ultra-low-resource fallback, ensuring essential financial services and transaction histories remain available and synchronized across the edge mesh.'
+  },
+  {
+    slug: 'symposion-lindabrunn',
+    title: 'Symposion Lindabrunn',
+    image: lindabrunnRagArt,
+    year: 2027,
+    partners: [
+      { name: 'Symposion Lindabrunn', link: { href: 'https://symposion-lindabrunn.at', external: true } }
+    ],
+    industry: ['Arts & Culture'],
+    modalities: ['Text', 'Retrieval', 'Classification'],
+    summary: 'Symposion Lindabrunn runs a solar powered compute mesh across its sculpture park in Lower Austria. The localized swarm hosts a private language model and retrieval pipeline that stays entirely off the public internet. The system indexes decades of historical archives, supports the daily operations of the institution, and provides a conversational guide for park visitors.'
   }
 ];
 

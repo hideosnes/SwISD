@@ -118,7 +118,8 @@
         <hr class="annotate-block" data-label="HR" />
 
         <p class="annotate-block" data-label="P">
-          Finally, a link to an <a href="#" class="annotate-inline" data-label="A (LINK)">external resource</a> to demonstrate standard link styling within the knowledge content.
+          <!-- FIXED: Replaced '#' with valid href to satisfy a11y compiler -->
+          Finally, a link to an <a href="https://example.com" class="annotate-inline" data-label="A (LINK)">external resource</a> to demonstrate standard link styling within the knowledge content.
         </p>
       {/if}
     </article>

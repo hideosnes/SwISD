@@ -55,7 +55,7 @@ export { default as biometricExpressionsArt } from './case-studies/biometric-exp
 export { default as sundayInOsakaArt } from './case-studies/sunday-in-osaka.jpg'
 export { default as voxerlArt } from './case-studies/voxerl.jpg'
 export { default as webxrArt } from './case-studies/webxr.jpg'
-
+export { default as lindabrunnRagArt } from './case-studies/lindabrunnRagArt.webp'
 /* ===== Roadmap artwork pool (swisd-01.jpg … swisd-60.jpg) — LAZY loaders ===== */
 const artworkLoaders = import.meta.glob('./swisd-*.jpg', {
   query: '?url',

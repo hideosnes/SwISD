@@ -4,5 +4,6 @@
  * 3. Expects: SvelteKit module-level exports.
  * 4. Provides: Explicit, unambiguous directive to prerender the entire application tree to static HTML.
  */
-// export const prerender = true;
+
+export const prerender = true;
 
