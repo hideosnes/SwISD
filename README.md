@@ -11,7 +11,7 @@
 > Insanely resource-efficient, decentralized, and capability-aware.  
 > [Learn more at swisd.at](https://swisd.at)
 
-SwISD is a decentralized, agentoid P2P network for distributed AI inference. Built for open-source degenerates and AI researchers who refuse to be bottlenecked by centralized compute monopolies. It operates without central coordinators or databases, relying on neighborhood propagation, dynamic swarm specialization, and torrent-like workload sharing. Resilience, cryptographic correctness, and resource efficiency are not features—they are the absolute highest priorities.
+SwISD is a decentralized, agentoid P2P network for distributed AI inference. Built for open-source degenerates and AI researchers who refuse to be bottlenecked by centralized compute monopolies. It operates without central coordinators or databases, relying on neighborhood propagation, dynamic swarm specialization, and torrent-like workload sharing.
 
 ---
 
@@ -58,9 +58,9 @@ We do not rely on fragile central databases. SwISD utilizes custom, Merkle-DAG s
 - **Read-Time Reputation Decay**: We never mutate state at write-time (which violates CRDT inflationary laws). Instead, we store an append-only G-Set of signed events and project the decayed reputation score purely at read-time. Convergence is mathematically guaranteed.
 - **Anti-Entropy Sync**: Reconnecting peers exchange Merkle root hashes. If they differ, they recursively descend and fetch *only* the missing or modified branches, dropping bandwidth from O(n) to O(d · log n).
 
-### 3. Domain C: The Conductor Cockpit
+### 3. The Conductor Cockpit:
 The operator-facing control surface is a separate architectural domain. It observes, provisions, and directs through the same strict capability contracts used by the swarm. 
-- Built with **Svelte 5 (Runes/Snippets)**, SvelteKit 2 Node adapter, and TailwindCSS v4.
+- Built with **Svelte 5**, SvelteKit 2 Node adapter, and TailwindCSS v4.
 - The SvelteKit server acts as the Backend-for-Frontend (BFF) and is the *only* process allowed to touch the headless SwISD core. 
 - **Zero-Compromise Type Safety**: The codebase enforces `strictNullChecks`, `noImplicitAny`, and build-failing `eslint-plugin-no-any`. There is no `any` in SwISD. Ever. Unknown network failures are rigorously narrowed from `unknown`.
 
@@ -80,7 +80,7 @@ SwISD is designed to be spun up with minimal friction.
 1. Clone the repository:
    ```bash
    git clone https://github.com/hideosnes/SwISD.git
-   cd SwISD
+   cd SwISD/cockpit
    ```
 
 2. Install dependencies:
@@ -95,7 +95,7 @@ SwISD is designed to be spun up with minimal friction.
 
 4. Open your browser to `http://localhost:5173` to access the Conductor Cockpit.
 
-## 🤝 Community & Contributing
+## Community & Contributing
 
 SwISD is a living, breathing organism. 
 - **Feature Requests**: We are currently prioritizing organizational partnerships. If your organization has specific, high-value use cases or feature ideas, we want to hear them. 
