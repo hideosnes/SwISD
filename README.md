@@ -75,7 +75,7 @@ SwISD is designed to be spun up with minimal friction.
 - **Package Manager**: `npm` (v10.x or higher).
 - *Note: No external database or complex environment variables are required for local development.*
 
-### Installation & Development
+### Installation & Development (don't try as of yet ;-) )
 
 1. Clone the repository:
    ```bash
