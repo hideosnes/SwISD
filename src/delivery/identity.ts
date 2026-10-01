@@ -4,7 +4,7 @@
 // 4. Provides: Lazy-loaded, persistent Ed25519 keypair management, generating a new identity only on first boot.
 import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { generateEd25519KeyPair, type Ed25519KeyPair } from '../crypto';
+import { generateEd25519KeyPair, type Ed25519KeyPair } from '../crypto/index.js';
 import { DeliveryFilesystemError } from '../errors.js';
 
 export interface IdentityState {

@@ -5,6 +5,9 @@
  * 4. Provides: Single import surface for all image assets and the lazy gallery pool.
  */
 
+// Challenges
+export { default as ioebLogo } from './ioeb-logo.png'
+
 // Core & Tech Stack
 export { default as swisdLogo } from './swisd-logo.png';
 export { default as huggingfaceLogo } from './huggingface-logo.png';

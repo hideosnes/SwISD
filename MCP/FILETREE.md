@@ -3,6 +3,8 @@
 2. Description: The canonical architectural map and module index for the SwISD decentralized swarm.
 3. Expects: To be pasted into new context windows to instantly restore the architect's spatial awareness.
 4. Provides: A strictly enforced, barrel-governed directory tree with module responsibilities.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 SwISD Architectural Filetree
 Legend: every folder is a module with an `index.ts` barrel; imports travel through barrels only, max one step deep.
@@ -76,10 +78,10 @@ src/
 │   ├── load.ts            # LoadScore math & Token Bucket rate limiting
 │   └── monitor.ts         # Stateful OS metric polling and gossip throttling
 ├── provision/             # Hardware & out-of-box provisioning
+│   ├── index.ts           # Barrel export
 │   ├── apply.ts           # Idempotent USB config application (nmcli)
 │   ├── apFallback.ts      # ⏳ planned — SwISD-Setup-XXXX access point fallback
 │   └── captivePortal.ts   # ⏳ planned — smartphone WiFi credential injection
-│   # ⚠ BARREL VIOLATION: provision/index.ts is missing on disk — every folder must have a barrel
 ├── storage/               # Elastic capacity allocation
 │   ├── index.ts           # Barrel export
 │   └── capacity.ts        # Swarm storage watermarks & replication math
@@ -275,12 +277,11 @@ Tooling, CI & Delivery Assets (Root Level)
     ├── deploy-site.yml          # Marketing site deployment workflow
     └── release.yml              # CI/CD: triggers on v* tags or manual dispatch
 scripts/
-├── sign-release.js              # ⚠ compiled artifact of sign-release.ts — confirm intent (CI runs it, or gitignore it)
 └── sign-release.ts              # Ed25519 tarball signing (SWISD_SIGNING_KEY_DER_BASE64 secret)
 systemd/                         # Service templates for the Pi delivery image
-├── swisd-app.service            # Strict isolation, Restart=always
+├── swisd-app.service            # Strict isolation, Restart=always, ReadWritePaths for state/models
 ├── swisd-provision.service      # One-shot USB provision application
-└── siwsd-supervisor.service     # ⚠ filename typo on disk — should be swisd-supervisor.service
+└── swisd-supervisor.service     # Pinned supervisor, decoupled watchdog
 
 Context & Standards (Root)
 root/
@@ -289,4 +290,6 @@ root/
 ├── FILETREE.md            # Maps the whole project as reference
 ├── GUIDE.md               # Core philosophy & strict dev standards
 ├── SVELTE.md              # Domain C Svelte 5, a11y, and CSS architecture standards
-└── package.json           # Dependencies (Node 22+, libp2p v3)
+├── package.json           # Dependencies (Node 22+, libp2p v3) & build scripts
+├── tsconfig.json          # Root compiler config (corseted to src/, skipLibCheck, NodeNext ESM)
+└── dist/                  # (Generated) Compiled ESM output for the headless core (index.js)

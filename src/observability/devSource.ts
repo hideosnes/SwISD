@@ -7,8 +7,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { clampLoadScore } from '../utils.js';
 import type { PeerRole, UpdateStatus } from '../types.js';
-import { isSupervisorStatus } from '../delivery';
-import type { TrustRegistry } from '../peer';
+import { isSupervisorStatus } from '../delivery/index.js';
+import type { TrustRegistry } from '../peer/index.js';
 import type { ObservabilityEventBus } from './eventBus.js';
 import type {
   ObservabilityCrdtInfo,

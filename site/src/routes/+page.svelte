@@ -38,7 +38,8 @@
     voxerlLogo,
     monochromLogo,
     swkLogo,
-    klnoeLogo
+    klnoeLogo,
+    ioebLogo
   } from '$lib/assets';
 
   let revealObserver: IntersectionObserver | null = null;
@@ -222,6 +223,36 @@
         { src: ndaLogo, alt: 'NDA', wide: false },
         { src: ndaLogo, alt: 'NDA', wide: false }
       ]
+    }
+  ];
+
+  const ioebGroups: readonly LogoGalleryGroup[] = [
+    {
+      items: [
+        { src: ioebLogo, alt: 'IÖB Innovationsplattform', wide: true, href: 'https://www.ioeb-innovationsplattform.at' }
+      ]
+    }
+  ];
+
+  interface Challenge {
+    readonly issuer: string;
+    readonly title: string;
+    readonly description: string;
+    readonly href: string;
+  }
+
+  const challenges: readonly Challenge[] = [
+    {
+      issuer: 'Austro Control GmbH',
+      title: 'Agentic AI Enterprise Platform for Controlled and Secure AI Agent Operations',
+      description: 'How can an existing or near-market enterprise solution for agentic AI be adapted and deployed to meet ACG\'s requirements in a secure, scalable, and governance-compliant way?',
+      href: 'https://www.ioeb-innovationsplattform.at/challenges/detail/sichere-agentic-ai-im-enterprise-plattform-fuer-kontrollierten-und-sicheren-ki-agenten-betrieb/'
+    },
+    {
+      issuer: 'Keltenmuseum Hallein',
+      title: 'From Measurement to Action: AI-Assisted Assessment and Optimization of Indoor Climate in Historic Museum Buildings',
+      description: 'How can intelligent or AI-assisted measurement and recommendation systems use climate, building, and weather data to recommend specific measures for a suitable indoor climate in museum buildings?',
+      href: 'https://www.ioeb-innovationsplattform.at/challenges/detail/ki-raumklima-museum/'
     }
   ];
 
@@ -594,6 +625,41 @@
   </div>
 </section>
 
+<section id="challenges">
+  <div class="container">
+    <div class="manifesto-layout">
+      <div class="reveal">
+        <span class="section-label">Challenges</span>
+        <h2 class="section-title section-title-sm">
+          Active in the innovation ecosystem.<br />
+          <span class="lime">We show up where the real problems are.</span>
+        </h2>
+        <p class="section-desc">
+          We participate in public challenges from Austrian institutions looking for sovereign AI solutions. If your organization has a hard problem that needs edge-native, privacy-preserving infrastructure, we would love to hear from you.
+        </p>
+        <div class="logo-gallery-slot">
+          <LogoGallery groups={ioebGroups} ariaLabel="Innovation platform" variant="grid" columns={1} align="left" />
+        </div>
+      </div>
+      <div class="manifesto-block reveal reveal-delay-2">
+        <ul class="challenge-list">
+          {#each challenges as challenge}
+            <li class="challenge-item">
+              <span class="challenge-issuer">{challenge.issuer}</span>
+              <h2 class="challenge-title">
+                <a href={challenge.href} target="_blank" rel="noopener noreferrer">
+                  {challenge.title} <Arrow direction="external" />
+                </a>
+              </h2>
+              <p class="challenge-description">{challenge.description}</p>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Newsletter Modal with Anti-Bot Reveal -->
 <Modal
   isOpen={isNewsletterModalOpen}
@@ -607,7 +673,7 @@
       <p class="modal-desc">
         Our automated newsletter is currently being forged in the laboratory. Until it is ready, we would love to hear from you directly. Write to us and we will make sure you are the first to know when the swarm goes live.
       </p>
-            <p class="contact-email lime mt-4">{contactEmail}</p>
+      <p class="contact-email lime mt-4">{contactEmail}</p>
     {:else}
       <p class="modal-desc">
         Our automated newsletter is being forged in the laboratory. We are building it to be spam-free, privacy-respecting, and worthy of the swarm. Until then, reach out directly and we will keep you in the loop.

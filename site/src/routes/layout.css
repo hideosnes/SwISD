@@ -3,6 +3,8 @@
  * 2. Description: Theme Conductor for the SwISD marketing site.
  * 3. Expects: Tailwind CSS v4, cascade layer discipline.
  * 4. Provides: Layered design tokens, crisp typography, primitive class namespaces consumed by site components.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
  */
 @import 'tailwindcss';
 
@@ -282,7 +284,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -360,8 +362,8 @@
   }
 
   .nav-links a:hover::after,
-  .nav-links a.active::after { 
-    width: 100%; 
+  .nav-links a.active::after {
+    width: 100%;
   }
 
   .nav-cta {
@@ -772,30 +774,28 @@
     list-style: none;
   }
 
-  /* Base grey line: thicker (4px), tiny fade at the very top, hard stop at the center of the last circle */
   .roadmap-timeline::before {
     content: '';
     position: absolute;
     left: 50%;
     top: 0;
-    bottom: 14px; /* Hard stop at the center of the last 28px circle */
+    bottom: 14px;
     width: 4px;
     transform: translateX(-50%);
-    background: linear-gradient(to bottom, 
-      transparent 0%, 
-      var(--border) 8%, 
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      var(--border) 8%,
       var(--border) 100%
     );
   }
 
-  /* When there are more items to reveal, the bottom of the spine transitions to solid lime with a hard stop */
   .roadmap-timeline-wrapper.has-more .roadmap-timeline::before {
-    background: linear-gradient(to bottom, 
-      transparent 0%, 
-      var(--border) 8%, 
-      var(--border) 60%, 
-      var(--color-lime) 95%, 
-      var(--color-lime) 100% /* Hard stop at the bottom */
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      var(--border) 8%,
+      var(--border) 60%,
+      var(--color-lime) 95%,
+      var(--color-lime) 100%
     );
   }
 
@@ -818,11 +818,10 @@
     z-index: 1;
   }
 
-  /* Solid lime for completed segments, no gradient */
-  .timeline-segment.lime { 
-    background: var(--color-lime); 
+  .timeline-segment.lime {
+    background: var(--color-lime);
   }
-  
+
   .timeline-segment.half { top: 50%; }
 
   .timeline-circle {
@@ -1030,6 +1029,64 @@
 
   #partners {
     background: var(--bg);
+  }
+
+  #challenges {
+    background: var(--surface);
+  }
+
+  .challenge-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xl);
+    padding: 0;
+    margin: 0;
+  }
+
+  .challenge-item {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .challenge-issuer {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-lime);
+    margin: 0 0 var(--spacing-sm) 0;
+  }
+
+  .challenge-title {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0 0 var(--spacing-sm) 0;
+  }
+
+  .challenge-title a {
+    color: var(--text);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    transition: color 0.2s ease;
+  }
+
+  .challenge-title a:hover {
+    color: var(--color-lime);
+  }
+
+  .challenge-description {
+    font-size: 1.0625rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin: 0;
   }
 
   .cta-band {

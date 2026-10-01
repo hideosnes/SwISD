@@ -2,14 +2,17 @@
 // 2. Description: Local token-guarded HTTP JSON API for observability and headless fleet management.
 // 3. Expects: Admin server configuration, an observability source, and an event bus.
 // 4. Provides: Read-only JSON endpoints for the SvelteKit Conductor Cockpit and local integrations.
+// 5. SPDX-License-Identifier: MPL-2.0
+// 6. Copyright (c) 2026 Homahuki GmbH
+
 import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { SwISDError } from '../errors.js';
 import {
-  buildObservabilitySnapshot,
+  buildSwarmSnapshot,
   ObservabilityEventBus,
   ObservabilitySource,
-} from '../observability';
+} from '../observability/index.js';
 
 export interface AdminServerConfig {
   readonly host: string;
@@ -137,7 +140,7 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
       }
 
       if (url.pathname === '/v1/snapshot') {
-        const snapshot = buildObservabilitySnapshot(config.source, config.eventBus);
+        const snapshot = buildSwarmSnapshot(config.source, config.eventBus);
         sendJson(res, 200, snapshot);
         return;
       }
@@ -170,10 +173,12 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
       }
 
       sendJson(res, 404, { error: 'Unknown observability route' });
-    } catch (error) {
+    } catch (error: unknown) {
       const message = error instanceof SwISDError
         ? error.message
-        : 'Internal observability server error';
+        : error instanceof Error 
+          ? error.message 
+          : 'Internal observability server error';
       sendJson(res, 500, { error: message });
     }
   };

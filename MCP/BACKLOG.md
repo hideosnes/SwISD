@@ -3,6 +3,8 @@
 2. Description: The "don't you dare forget" ledger for SwISD, tracking completed and pending architectural milestones.
 3. Expects: Continuous updates as phases are conquered and new domains are defined.
 4. Provides: A single source of truth for the project's current state, locked decisions, and strategic roadmap.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 SwISD BACKLOG
 The "don't you dare forget" ledger. Split by where the work lives.
@@ -50,6 +52,8 @@ P0 — Foundation (do first, zero behavioral risk)
 - [x] De-centralize the architecture. Remove the elected Gate/coordinator; refactor to the blind model.
 - [x] Critical bug fixes: `peerIdFromString` mock → real `@libp2p/peer-id` import; `require('os')` → ESM `import { cpus }`; graceful shutdown stubbed in `src/index.ts`.
 - [x] KokoroManager singleton. Inject one instance; stop re-instantiating per task.
+- [x] Monorepo build isolation & compiler corset: Root `tsconfig.json` locked to `src/` (excludes SvelteKit apps), `skipLibCheck` enabled, strict ESM `.js` extensions enforced across all core barrels. Headless core compiles cleanly to `dist/`.
+- [x] Admin server ghost import eradicated: Fixed `src/admin/server.ts` to correctly import `buildSwarmSnapshot` from the observability barrel, narrowing `unknown` strictly in catch blocks.
 
 P1 — Core decentralized substrate
 - [x] Custom CRDTs (Merkle-DAG structured) interfaces: OR-Set, LWW-Register, G-Set, OR-Map mapped to swarm state.
@@ -164,7 +168,7 @@ Discovery & Provisioning
 - [x] Drag-and-Drop Ingestion: Build Conductor-side CLI/UI wrapper to ingest local `.gguf` files, chunk them, and seed them to the swarm without browser memory limits.
   - [x] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
   - [x] Streaming chunking into the Polymorphic Ingestion Engine.
-- [ ] Manifest generation and swarm seeding progress visualization.
+- [ ] Manifest generating and swarm seeding progress visualization.
 
 Deferred Logic
 - [ ] Return-visit presentation logic: Badge count vs. dismiss-blocking modal priority rules for operator return. Needs urgency taxonomy.
@@ -204,7 +208,7 @@ P0 — The Image (clone-safe)
 - [x] Embed Ed25519 PUBLIC key for release verification (Implemented in local supervisor key management).
 
 P0 — systemd services
-- [x] Service templates defined: `swisd-provision.service`, `swisd-supervisor.service`, `swisd-app.service` with strict isolation (`ProtectSystem=strict`, `Restart=always`, pinned supervisor).
+- [x] Service templates defined: `swisd-provision.service`, `swisd-supervisor.service`, `swisd-app.service` with strict isolation (`ProtectSystem=strict`, `Restart=always`, pinned supervisor). `swisd-app.service` hardened with `ReadWritePaths` for `state/` and `models/`.
 
 P1 — Supervisor (auto-update mechanics)
 - [x] Local Delivery MVP: Full local dry-run/live testing of artifact verification and atomic symlink swaps.
