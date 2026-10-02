@@ -49,7 +49,7 @@ export function verifyArgon2id(password: Uint8Array, encoded: Argon2idHash): boo
     const saltHex = parts[4] as HexString;
     const hashHex = parts[5] as HexString;
     
-    const paramMatches = paramsPart.match(/m=(\d+),t=(\d+),p=(\d+)/);
+    const paramMatches = paramsPart?.match(/m=(\d+),t=(\d+),p=(\d+)/);
     if (!paramMatches) return false;
     
     const [, mem, time, par] = paramMatches;

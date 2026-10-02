@@ -2,7 +2,10 @@
 // 2. Description: Main entry point for the SwISD application, starting the observation plane, persistent identity, trust registry, and graceful shutdown.
 // 3. Expects: Node.js process environment and local development configuration.
 // 4. Provides: A resilient application instance with token-guarded local observability dashboard, persistent peer identity, and delivery heartbeat.
+// 5. SPDX-License-Identifier: MPL-2.0
+// 6. Copyright (c) 2026 Homahuki GmbH
 
+import { hostname } from 'node:os';
 import { SwISDError } from './errors.js';
 import { createAdminServer } from './admin/index.js';
 import type { AdminServerHandle } from './admin/index.js';
@@ -108,6 +111,7 @@ class SwISDApp {
       peerId,
       role,
       version,
+      hostname: hostname(),
       host,
       port,
     });
