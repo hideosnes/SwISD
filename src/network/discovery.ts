@@ -21,7 +21,7 @@ export function startAdminDiscovery(config: DiscoveryConfig): DiscoveryHandle {
   const bonjour = new Bonjour();
   
   // We use a truncated peerId for the service name to keep it mDNS-friendly (max 63 chars)
-  const serviceName = `swisd-${config.peerId.slice(0, 8)}`;
+  const serviceName = `swisd-${config.peerId.slice(-8)}`;
 
   const service: Service = bonjour.publish({
     name: serviceName,

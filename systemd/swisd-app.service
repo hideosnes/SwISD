@@ -18,6 +18,7 @@ WorkingDirectory=/opt/swisd/current
 Environment=NODE_ENV=production
 Environment=SWISD_STATE_DIR=/opt/swisd/state
 Environment=SWISD_DELIVERY_ROOT=/opt/swisd
+EnvironmentFile=-/opt/swisd/state/swisd.env
 ExecStart=/usr/bin/node dist/index.js
 Restart=always
 RestartSec=3

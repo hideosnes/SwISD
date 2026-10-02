@@ -132,6 +132,16 @@ if ! id -u swisd &>/dev/null; then
   useradd --system --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin swisd
 fi
 
+# Generate persistent admin token if missing
+ENV_FILE="$INSTALL_DIR/state/swisd.env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "   Generating persistent admin token..."
+  TOKEN=$(openssl rand -base64 32)
+  echo "SWISD_ADMIN_TOKEN=$TOKEN" > "$ENV_FILE"
+  chown swisd:swisd "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+fi
+
 # Preserve previous release for manual rollback
 if [ -L "$INSTALL_DIR/current" ]; then
   OLD_TARGET=$(readlink "$INSTALL_DIR/current")
