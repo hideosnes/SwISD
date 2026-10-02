@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 1. Relative path: scripts/install.sh
-# 2. Description: One-click secure installer for SwISD worker nodes (Raspberry Pi).
+# 2. Description: One-click secure installer and updater for SwISD worker nodes (Raspberry Pi).
 # 3. Expects: Root privileges, internet access, and a valid Ed25519 public key embedded below.
-# 4. Provides: Atomic, cryptographically verified deployment of the SwISD headless core.
+# 4. Provides: Atomic, cryptographically verified deployment of the SwISD headless core, with version short-circuit and rollback preservation.
 # 5. SPDX-License-Identifier: MPL-2.0
 # 6. Copyright (c) 2026 Homahuki GmbH
 
@@ -61,6 +61,16 @@ if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" == "null" ]; then
 fi
 echo "   Target version: $VERSION"
 
+# --- VERSION SHORT-CIRCUIT ---
+RELEASE_DIR="$INSTALL_DIR/releases/$VERSION"
+if [ -L "$INSTALL_DIR/current" ]; then
+  CURRENT_TARGET=$(readlink "$INSTALL_DIR/current")
+  if [ "$CURRENT_TARGET" = "$RELEASE_DIR" ]; then
+    echo "   Version $VERSION is already current. Nothing to do."
+    exit 0
+  fi
+fi
+
 # --- DOWNLOAD ARTIFACTS ---
 WORK_DIR=$(mktemp -d)
 cd "$WORK_DIR"
@@ -107,7 +117,6 @@ echo "[6/7] Preparing filesystem..."
 mkdir -p "$INSTALL_DIR"/{releases,state,supervisor,models}
 # CRITICAL: Do NOT mkdir current/previous. They are symlinks.
 
-RELEASE_DIR="$INSTALL_DIR/releases/$VERSION"
 mkdir -p "$RELEASE_DIR"
 tar -xzf "$TARBALL" -C "$RELEASE_DIR"
 
@@ -117,9 +126,25 @@ cd "$RELEASE_DIR"
 npm ci --omit=dev --silent > /dev/null
 cd - > /dev/null
 
+# Create swisd user if missing (must happen before chown)
+if ! id -u swisd &>/dev/null; then
+  echo "   Creating swisd system user..."
+  useradd --system --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin swisd
+fi
+
+# Preserve previous release for manual rollback
+if [ -L "$INSTALL_DIR/current" ]; then
+  OLD_TARGET=$(readlink "$INSTALL_DIR/current")
+  if [ "$OLD_TARGET" != "$RELEASE_DIR" ]; then
+    echo "   Preserving previous release for rollback..."
+    ln -sfnT "$OLD_TARGET" "$INSTALL_DIR/previous"
+  fi
+fi
+
 # Atomic Symlink Swap (The -T flag prevents the symlink-inside-directory trap)
+echo "   Promoting $VERSION to current..."
 ln -sfnT "$RELEASE_DIR" "$INSTALL_DIR/current"
-chown -R swisd:swisd "$INSTALL_DIR" 2>/dev/null || true # Ignore if user doesn't exist yet
+chown -R swisd:swisd "$INSTALL_DIR"
 
 # --- SERVICE INSTALLATION ---
 echo "[7/7] Installing systemd service..."
@@ -127,14 +152,16 @@ echo "[7/7] Installing systemd service..."
 SERVICE_URL="https://raw.githubusercontent.com/$REPO/$TAG_NAME/systemd/$SERVICE_NAME.service"
 curl -sL -o "/etc/systemd/system/$SERVICE_NAME.service" "$SERVICE_URL"
 
-# Create swisd user if missing
-if ! id -u swisd &>/dev/null; then
-  useradd --system --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin swisd
-  chown -R swisd:swisd "$INSTALL_DIR"
-fi
-
 systemctl daemon-reload
-systemctl enable --now "$SERVICE_NAME"
+
+# Restart if already running, else enable and start
+if systemctl is-active --quiet "$SERVICE_NAME"; then
+  echo "   Restarting $SERVICE_NAME..."
+  systemctl restart "$SERVICE_NAME"
+else
+  echo "   Enabling and starting $SERVICE_NAME..."
+  systemctl enable --now "$SERVICE_NAME"
+fi
 
 # --- CLEANUP & VERIFY ---
 cd /
