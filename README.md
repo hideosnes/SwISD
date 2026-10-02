@@ -68,7 +68,12 @@ The operator-facing control surface is a separate architectural domain. It obser
 
 ## Quick Start
 
-SwISD is designed to be spun up with minimal friction. 
+SwISD is designed to be spun up with minimal friction.
+
+Linux (Trixie Deb13):
+```
+curl -fsSL https://raw.githubusercontent.com/hideosnes/swisd/main/scripts/install.sh | sudo bash
+```
 
 ### Prerequisites
 - **Node.js**: v22.x or higher (ESM strict mode).

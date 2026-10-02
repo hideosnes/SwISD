@@ -1,7 +1,11 @@
-// 1. Relative path: cockpit/src/routes/api/models/status/+server.ts
-// 2. Description: Minimal SSE bridge for real-time download progress telemetry.
-// 3. Expects: GET request.
-// 4. Provides: A text/event-stream of DownloadProgress events.
+/**
+ * 1. Relative path: cockpit/src/routes/api/models/status/+server.ts
+ * 2. Description: Minimal SSE bridge for real-time download progress telemetry.
+ * 3. Expects: GET request.
+ * 4. Provides: A text/event-stream of DownloadProgress events.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
+ */
 
 import type { RequestHandler } from './$types.js';
 import type { DownloadProgress } from '$core/models/index.js';
@@ -11,10 +15,10 @@ export const GET: RequestHandler = async ({ locals, request }) => {
     start(controller) {
       const encoder = new TextEncoder();
       
-      const onProgress = (progress: DownloadProgress) => {
+      const onProgress = (progress: DownloadProgress): void => {
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(progress)}\n\n`));
-        } catch (e) {
+        } catch {
           // Stream closed by client
         }
       };
@@ -23,7 +27,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 
       request.signal.addEventListener('abort', () => {
         locals.modelDownloader.off('progress', onProgress);
-        try { controller.close(); } catch {}
+        try { controller.close(); } catch { /* already closed */ }
       });
     }
   });

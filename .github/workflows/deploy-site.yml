@@ -1,4 +1,0 @@
-# 1. Relative path: .github/workflows/deploy-site.yml
-# 2. Description: GitHub Actions workflow to build and deploy the SwISD marketing site.
-# 3. Expects: Hetzner SFTP credentials stored in GitHub Secrets.
-# 4. Provides: Automated, secure static asset mirroring to the production web root.
