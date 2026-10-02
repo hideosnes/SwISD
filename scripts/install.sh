@@ -2,11 +2,44 @@
 # 1. Relative path: scripts/install.sh
 # 2. Description: One-click secure installer and updater for SwISD worker nodes (Raspberry Pi).
 # 3. Expects: Root privileges, internet access, and a valid Ed25519 public key embedded below.
-# 4. Provides: Atomic, cryptographically verified deployment of the SwISD headless core, with version short-circuit and rollback preservation.
+# 4. Provides: Atomic, cryptographically verified deployment of the SwISD headless core, with version short-circuit, rollback preservation, and optional hostname setting.
 # 5. SPDX-License-Identifier: MPL-2.0
 # 6. Copyright (c) 2026 Homahuki GmbH
 
 set -euo pipefail
+
+# --- ARGUMENT PARSING ---
+PI_NAME=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --name)
+      if [[ -z "${2:-}" ]]; then
+        echo "Error: --name requires a value." >&2
+        exit 1
+      fi
+      PI_NAME="$2"
+      shift 2
+      ;;
+    --help|-h)
+      echo "Usage: install.sh [--name <hostname>]"
+      echo "  --name <hostname>  Set the system hostname (e.g., swisd-p5-03)"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "Use --help for usage." >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Validate hostname if provided (RFC 1123: alphanumeric + hyphens, 1-63 chars)
+if [[ -n "$PI_NAME" ]]; then
+  if ! [[ "$PI_NAME" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; then
+    echo "Error: Invalid hostname '$PI_NAME'. Must be alphanumeric with hyphens, 1-63 chars." >&2
+    exit 1
+  fi
+fi
 
 # --- CONFIGURATION ---
 REPO="hideosnes/swisd"
@@ -48,6 +81,13 @@ else
   fi
 fi
 echo "   Node.js $(node -v) ready."
+
+# --- HOSTNAME SETTING ---
+if [[ -n "$PI_NAME" ]]; then
+  echo "   Setting hostname to: $PI_NAME"
+  hostnamectl set-hostname "$PI_NAME"
+  echo "   Hostname set. (Will be broadcast via mDNS as $PI_NAME.local)"
+fi
 
 # --- FETCH LATEST RELEASE ---
 echo "[3/7] Fetching latest release from GitHub..."
@@ -181,6 +221,10 @@ echo ""
 echo "=========================================="
 echo " SwISD $VERSION installed successfully."
 echo " Service: $SERVICE_NAME.service"
+if [[ -n "$PI_NAME" ]]; then
+  echo " Hostname: $PI_NAME"
+  echo " SSH: swisd@${PI_NAME}.local"
+fi
 echo "=========================================="
 echo ""
 echo "Verifying boot sequence..."
