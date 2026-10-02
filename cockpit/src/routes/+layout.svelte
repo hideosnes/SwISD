@@ -1,6 +1,6 @@
 <!--
 1. Relative path: cockpit/src/routes/+layout.svelte
-2. Description: Global Conductor Cockpit layout shell, stylesheet loader, theme regime controller, and session lock overlay.
+2. Description: Global Conductor Cockpit layout shell, stylesheet loader, theme regime controller, session lock overlay, and sovereignty observability.
 3. Expects: SvelteKit child route content; theme persisted per device in localStorage.
 4. Provides: Global theme import, [data-theme] propagation, responsive navigation shell, regime quick-flip, and session lock.
 5. SPDX-License-Identifier: MPL-2.0
@@ -17,12 +17,35 @@
 
   let { children }: { children: Snippet } = $props();
 
-  // TODO: Wire these to a real /api/session/status and /api/ownership/status poller
   let sessionLocked = $state(false); 
   let hasPassword = $state(false);
   let isBonded = $state(false);
   let isWhitelisted = $state(false);
   let isKeystone = $state(false);
+
+  async function fetchShellStatuses(): Promise<void> {
+    try {
+      const [sessionRes, ownershipRes] = await Promise.all([
+        fetch('/api/session/status'),
+        fetch('/api/ownership/status')
+      ]);
+      
+      if (sessionRes.ok) {
+        const sData = await sessionRes.json() as { locked: boolean; hasPassword: boolean };
+        sessionLocked = sData.locked;
+        hasPassword = sData.hasPassword;
+      }
+      
+      if (ownershipRes.ok) {
+        const oData = await ownershipRes.json() as { isBonded: boolean; isWhitelisted: boolean; isKeystone: boolean };
+        isBonded = oData.isBonded;
+        isWhitelisted = oData.isWhitelisted;
+        isKeystone = oData.isKeystone;
+      }
+    } catch (err) {
+      console.error('[Layout] Status poll failed:', err);
+    }
+  }
 
   function handleUnlock(): void {
     sessionLocked = false;
@@ -30,6 +53,9 @@
 
   $effect(() => {
     themeStore.adopt();
+    void fetchShellStatuses();
+    const interval = setInterval(() => void fetchShellStatuses(), 3000);
+    return () => clearInterval(interval);
   });
 </script>
 

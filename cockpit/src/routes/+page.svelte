@@ -1,8 +1,10 @@
 <!--
 1. Relative path: cockpit/src/routes/+page.svelte
-2. Description: The main Conductor Cockpit dashboard. Polls the BFF for live swarm metrics and topology, renders the orbital map, tabbed telemetry views, the pinned sidebar, and the operator command queue.
+2. Description: The main Conductor Cockpit dashboard. Polls the BFF for live swarm metrics, topology, and sovereignty state.
 3. Expects: Svelte 5 runes, typed BFF API responses, and composable UI primitives.
 4. Provides: A real-time, accessible, and strictly themed view of the swarm.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
   import type { SwarmSnapshot } from '$core/observability/index.js';
@@ -17,6 +19,8 @@
   import SwarmSidebar from '$lib/components/SwarmSidebar.svelte';
   import CommandQueue from '$lib/components/CommandQueue.svelte';
   import ReplayControlModal from '$lib/components/ReplayControlModal.svelte';
+  import FoundingModal from '$lib/components/FoundingModal.svelte';
+  import RecoveryPhraseDisplay from '$lib/components/RecoveryPhraseDisplay.svelte';
   
   let snapshot = $state<SwarmSnapshot | null>(null);
   let topology = $state<SwarmTopologyDTO | null>(null);
@@ -27,6 +31,11 @@
   let queueOpen = $state(false);
   let busyPeerId = $state<string | null>(null);
   let replayModalOpen = $state(false);
+  
+  // Sovereignty State
+  let isBonded = $state(false);
+  let setupOpen = $state(false);
+  let recoveryPhrase = $state<string | null>(null);
 
   const pendingPeers = $derived(
     topology?.peers.filter((peer) => peer.trustState === 'pending') ?? [],
@@ -43,9 +52,10 @@
 
   async function fetchTelemetry(): Promise<void> {
     try {
-      const [snapRes, topoRes] = await Promise.all([
+      const [snapRes, topoRes, ownRes] = await Promise.all([
         fetch('/api/snapshot'),
         fetch('/api/topology'),
+        fetch('/api/ownership/status')
       ]);
 
       if (!snapRes.ok || !topoRes.ok) {
@@ -54,6 +64,12 @@
 
       snapshot = await snapRes.json() as SwarmSnapshot;
       topology = await topoRes.json() as SwarmTopologyDTO;
+      
+      if (ownRes.ok) {
+        const ownData = await ownRes.json() as { isBonded: boolean };
+        isBonded = ownData.isBonded;
+      }
+      
       telemetryError = null;
     } catch (err) {
       telemetryError = err instanceof Error ? err.message : 'Unknown telemetry error';
@@ -106,18 +122,25 @@
         </Button>
       {/if}
     </div>
-    <Button
-      onclick={() => queueOpen = true}
-      aria-label="Open command queue, {pendingPeers.length} pending actions"
-    >
-      Actions
-      <Badge count={pendingPeers.length} />
-    </Button>
+    <div class="flex items-center gap-2">
+      {#if !isBonded}
+        <Button variant="primary" onclick={() => setupOpen = true}>
+          Found Swarm
+        </Button>
+      {/if}
+      <Button
+        onclick={() => queueOpen = true}
+        aria-label="Open command queue, {pendingPeers.length} pending actions"
+      >
+        Actions
+        <Badge count={pendingPeers.length} />
+      </Button>
+    </div>
   </header>
 
   {#if telemetryError}
     <Card title="Connection Error">
-      <p style="color: var(--danger, #ef4444);">{telemetryError}</p>
+      <p style="color: var(--danger);">{telemetryError}</p>
     </Card>
   {:else if snapshot && topology}
     <div class="dashboard-grid" class:genesis-inactive={isGenesis}>
@@ -166,8 +189,8 @@
       <div class="genesis-overlay" role="alert" aria-live="polite">
         <div class="genesis-content">
           <div class="genesis-spinner" aria-label="Searching for swarm"></div>
-          <h2 class="text-2xl font-bold mt-6" style="color: var(--text-muted, var(--text));">Searching for swarm...</h2>
-          <p class="mt-2 text-center" style="color: var(--text-muted, var(--text));">The cockpit will wake up when the first peer connects.</p>
+          <h2 class="text-2xl font-bold mt-6" style="color: var(--text-2);">Searching for swarm...</h2>
+          <p class="mt-2 text-center" style="color: var(--text-3);">The cockpit will wake up when the first peer connects.</p>
         </div>
       </div>
     {/if}
@@ -199,6 +222,18 @@
   {#if import.meta.env.DEV}
     <ReplayControlModal open={replayModalOpen} onclose={() => replayModalOpen = false} />
   {/if}
+
+  <FoundingModal 
+    open={setupOpen && !recoveryPhrase} 
+    onclose={() => setupOpen = false} 
+    onfound={(phrase) => { recoveryPhrase = phrase; }} 
+  />
+
+  <RecoveryPhraseDisplay 
+    open={recoveryPhrase !== null} 
+    phrase={recoveryPhrase ?? ''} 
+    onclose={() => { recoveryPhrase = null; setupOpen = false; void fetchTelemetry(); }} 
+  />
 </PageShell>
 
 <style>
@@ -228,7 +263,7 @@
     .genesis-spinner {
       width: 64px;
       height: 64px;
-      border: 4px solid var(--border, transparent);
+      border: 4px solid var(--border);
       border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 1.5s linear infinite;

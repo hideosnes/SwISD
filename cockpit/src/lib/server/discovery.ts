@@ -1,13 +1,18 @@
-// 1. Relative path: cockpit/src/lib/server/discovery.ts
-// 2. Description: Server-side mDNS listener for the SvelteKit BFF, maintaining a reactive map of discovered swarm nodes and injecting them into the core TrustRegistry.
-// 3. Expects: Network access to the local multicast group and a TrustRegistry instance.
-// 4. Provides: A strictly typed, singleton discovery manager that automatically registers new peers as "Pending Trust".
+/**
+ * 1. Relative path: cockpit/src/lib/server/discovery.ts
+ * 2. Description: Server-side mDNS listener for the SvelteKit BFF, maintaining a reactive map of discovered swarm nodes and injecting them into the core TrustRegistry.
+ * 3. Expects: Network access to the local multicast group and a TrustRegistry instance.
+ * 4. Provides: A strictly typed, singleton discovery manager that automatically registers new peers as "Pending Trust".
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
+ */
 
 import { Bonjour, type Service } from 'bonjour-service';
 import type { TrustRegistry } from '$core/peer/index.js';
 
 export interface DiscoveredNode {
   readonly peerId: string;
+  readonly hostname: string;
   readonly role: string;
   readonly version: string;
   readonly host: string;
@@ -37,6 +42,8 @@ export function startCockpitDiscovery(trustRegistry: TrustRegistry): void {
     const peerId = extractTxtString(service.txt, 'peerId');
     if (peerId === 'unknown') return;
 
+    const hostname = extractTxtString(service.txt, 'hostname');
+
     // CRITICAL: Register the peer in the core's trust registry as PENDING
     trustRegistry.discoverPeer(peerId, 'mdns');
 
@@ -44,6 +51,7 @@ export function startCockpitDiscovery(trustRegistry: TrustRegistry): void {
 
     discoveredNodes.set(peerId, {
       peerId,
+      hostname,
       role: extractTxtString(service.txt, 'role'),
       version: extractTxtString(service.txt, 'version'),
       host,
