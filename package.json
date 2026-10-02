@@ -39,6 +39,7 @@
     "@libp2p/mdns": "12.0.30",
     "@libp2p/ping": "^3.1.12",
     "@libp2p/tcp": "11.0.27",
+    "@noble/hashes": "^2.4.0",
     "bonjour-service": "^1.4.4",
     "libp2p": "3.3.9",
     "open": "11.0.1"

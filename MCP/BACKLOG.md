@@ -1,61 +1,68 @@
 <!--
 1. Relative path: BACKLOG.md
 2. Description: The "don't you dare forget" ledger for SwISD, tracking completed and pending architectural milestones.
-3. Expects: Continuous updates as phases are conquered and new domains are defined.
+3. Expects: Continuous updates as milestones are conquered and new layers are defined.
 4. Provides: A single source of truth for the project's current state, locked decisions, and strategic roadmap.
 5. SPDX-License-Identifier: MPL-2.0
 6. Copyright (c) 2026 Homahuki GmbH
 -->
-SwISD BACKLOG
+
+# SwISD BACKLOG
+
 The "don't you dare forget" ledger. Split by where the work lives.
 Section 1 = the central app (GitHub). Section 2 = the Raspberry Pi delivery machine. Section 3 = the Marketing Site.
 
-🔒 Locked Decisions (Reference)
-- **Repo:** Public, open-source, releases signed.
-- **Release channels:** Single track.
-- **Supervisor:** Pinned in image; only the App is OTA-updated.
-- **Rollback:** Lightweight 60s heartbeat watchdog + revert; swarm heals organically.
-- **Fleet:** ≤30 devices, <10 Raspis. Stagger window tuned small.
-- **OS patches:** `unattended-upgrades` enabled.
-- **Crypto:** Ed25519 control-plane (reuse libp2p peer keys) + HMAC-SHA256 data-plane (noise-handshake keys) + SHA-256/BLAKE3 for Merkle integrity.
-- **CRDTs:** Custom, Merkle-DAG structured. Reputation decay computed strictly at read time.
-- **Architecture:** Capability-Aware, Polymorphic Render Swarm. Blind ingress, targeted egress, stateless agents, polite ingestion.
-- **Domain C Stack:** Svelte 5 (Runes/Snippets) + SvelteKit 2 Node adapter + TailwindCSS. The SvelteKit server is the BFF and the only process allowed to touch the headless SwISD core.
-- **Conductor Cockpit Bridge:** The headless core is initialized once as a server-side singleton, injected into `event.locals`, and exposed to the browser only through strict DTO-typed API routes. No core internals leak to the client. No `any`.
-- **Genesis Bootstrap Protocol:** Conductor acts as the fallback hotspot (`SwISD-Genesis`). Pis connect if no known network is found, allowing zero-internet, out-of-box swarm formation.
-- **Cryptographic Trust Boundary:** Network proximity (mDNS/Genesis WiFi) is purely advisory. Peers must be explicitly accepted via the Cockpit's `TrustRegistry` before participating in the swarm.
-- **Data Purity:** Zero `Buffer` bloat in ingestion pipelines (`Uint8Array` strictly enforced). Identity serialization uses Hex strings to prevent JSON `number[]` bloat.
-- **Model Download Approval Gate:** No model may be downloaded from an external source (HuggingFace or otherwise) without explicit Conductor operator approval. Metadata (size, file count) MUST be fetched and displayed in a confirmation modal BEFORE download begins. Tier 2 P2P chunk seeding within the swarm is exempt (model was already approved at Tier 1 ingress).
-- **Domain C Design System (The Single-Source Doctrine):** Visual language is governed by `layout.css` (theme tokens + regime folder), `components/ui` (primitives), and the typed theme registry (`lib/theme.ts`). Feature components NEVER invent new visual atoms and NEVER apply raw styles. "No UI element stands alone."
-- **Topology Layout Doctrine:** Deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts). No force-directed physics/jitter for fleet ≤30.
-- **Cross-Swarm Memory:** Worker Pis remain beautifully dumb and stateless across swarms. Only the Conductor (Domain C BFF/LocalStorage) remembers historical peer assignments.
-- **Datavis Architecture:** D3 used strictly as a headless math engine (`d3-scale`). Svelte renders SVG. No styled graph frameworks (vis-network, Cytoscape). New `cockpit/src/lib/components/datavis/` folder strictly separated from `components/ui/`.
-- **Telemetry Transport:** WebSockets rejected for telemetry. SSE used for high-frequency streams alongside snapshot polling. Client-side interpolation for Pulse smoothness.
-- **StatusPill Semantic Vocabulary & Domain Adapters:** Primitives speak semantics (`'live' | 'warn' | 'accent' | 'idle'`), features speak domain. Domain states are mapped to primitive vocabulary via pure adapter functions in `lib/adapters/` (promoted to a shared module on second use). Primitives never learn swarm concepts.
-- **Pin Store Doctrine:** Prolonged-control pins live in a shared reactive store (`lib/pins.svelte.ts`) built on module-level `$state`, persisted per-device under `swisd-pins` in localStorage. Max 8 pins with FIFO eviction. The store is the single source of truth consumed by both the map (focus/grey-out) and the sidebar. Worker Pis never learn about pins.
-- **Scenario Replay Doctrine:** Replay injects at the core `ObservabilitySource` boundary, never at the BFF DTO layer — the cockpit runs its real DTO pipelines over deterministic scenario state. Fixtures live in the headless core (`src/observability/scenarios.ts`), typed against domain types (hex peer IDs, `ExecutorSignature`, trust states). Zero randomness; deterministic keyframes only.
-- **Replay Activation Gate:** Triple-gated — `SWISD_REPLAY=<scenario-id>` env var with dynamic import in the core, cockpit control surfaces (`/api/scenario`, `/dev/replay`) behind `import.meta.env.DEV`, and a mandatory `source: 'live' | 'replay'` snapshot discriminator surfaced as a REPLAY badge in the shell. No runtime toggle in production builds.
-- **Replay Time Model:** Keyframe channels over scenario time — linear interpolation for continuous channels (`loadScore`), step semantics for discrete channels (presence, trust, task state). Snapshot polling samples the timeline; scenarios loop with a hard snap at t=0.
-- **Replay Trust Mutations:** The scenario harness owns both the observability surface and the trust surface, so `/api/peers` approvals in replay visibly promote ghosts out of the limbo orbit. Ghosts inject at the `TrustRegistry` layer — mDNS is transport, replay skips transport.
-- **Peer Telemetry DTO Completion:** `ObservabilityPeerInfo` carries `loadScore: number | null` and `capabilities: readonly ExecutorSignature[] | null`. `buildSwarmTopology()` maps source values instead of hardcoding `null`; the gossiped Control Ledger wires these live when it lands.
-- **Marketing Site Filter/Sort Pattern:** Multi-value filters use `MultiSelect` (string array contract, `$bindable`). Single-value sort uses `SegmentedControl` (compact variant). Status line is always mounted with invisible clear-filters placeholder to prevent layout jumps. Sort fallback is alphabetical on year-ties.
+## 🔒 Locked Decisions (Reference)
 
-SECTION 1 — THE APP (GitHub: `swisd`)
+- Repo: Public, open-source, releases signed.
+- Release channels: Single track.
+- Supervisor: Pinned in image; only the App is OTA-updated.
+- Rollback: Lightweight 60s heartbeat watchdog + revert; swarm heals organically.
+- Fleet: ≤30 devices, <10 Raspis. Stagger window tuned small.
+- OS patches: `unattended-upgrades` enabled.
+- Crypto: Ed25519 control-plane (reuse libp2p peer keys) + HMAC-SHA256 data-plane (noise-handshake keys) + SHA-256/BLAKE3 for Merkle integrity + Argon2id (pure-JS `@noble/hashes`, zero native deps) for Sovereignty Layer secret hashing.
+- CRDTs: Custom, Merkle-DAG structured. Reputation decay computed strictly at read time.
+- Architecture: Capability-Aware, Polymorphic Render Swarm. Blind ingress, targeted egress, stateless agents, polite ingestion.
+- Conductor Stack: Svelte 5 (Runes/Snippets) + SvelteKit 2 Node adapter + TailwindCSS. The SvelteKit server is the BFF and the only process allowed to touch the headless SwISD core.
+- Conductor Cockpit Bridge: The headless core is initialized once as a server-side singleton, injected into `event.locals`, and exposed to the browser only through strict DTO-typed API routes. No core internals leak to the client. No `any`.
+- Genesis Bootstrap Protocol: Conductor acts as the fallback hotspot (`SwISD-Genesis`). Pis connect if no known network is found, allowing zero-internet, out-of-box swarm formation.
+- Cryptographic Trust Boundary: Network proximity (mDNS/Genesis WiFi) is purely advisory. Peers must be explicitly accepted via the Cockpit's `TrustRegistry` before participating in the swarm.
+- Keystone Doctrine (The Sovereignty Layer): Exactly one operator-designated node holds the Ownership Ledger (swarm name, conductor device whitelist, per-peer policy, recovery hash). The keystone is an app-layer role inside the OTA-updated app — never the pinned supervisor. It is the issuer, not the gatekeeper: nodes verify keystone-signed whitelists offline, so enrolled conductors keep working while the keystone is cold. It holds ownership; its workload participation is policy-governed by the ledger field `keystoneWorkload: 'forbidden' | 'allowed'` (default `forbidden`): when forbidden it never routes tasks, never sees payloads, never gates execution; when allowed it behaves like any other worker node. The keystone is designated by the operator at founding and may be transferred to another node while healthy via a signed transfer event; swarm liveness never depends on it. The keystone is not a Diplomat; the roles never merge.
+- Cross-Swarm Memory (amended): Worker Pis remain beautifully dumb and stateless across swarms; only the Conductor remembers historical peer assignments. Narrow, enumerated exceptions to worker statelessness: (1) a fixed-size bond anchor (the keystone's Ed25519 public key) in each worker's `state/`; (2) the single designated keystone holds the Ownership Ledger; (3) trusted peers may hold one signed, read-only ledger backup blob, never mutated locally. Nothing else.
+- Conductor Device Identity & Authority: Every conductor device generates its own Ed25519 identity on first run. Swarm authority is membership in the keystone-signed conductor whitelist — never a password. Enrollment requires countersignature by an existing whitelisted device, or the recovery phrase. Cockpit session passwords (if enabled) are Argon2id-hashed UI convenience only: they unlock the screen, never the swarm.
+- Node Policy Layer (Locked/Open): Per-node policy `locked | open` layers on top of the TrustRegistry's `pending/trusted/rejected` states; there are no public nodes. Open nodes accept (re-)bonding; locked nodes verify every command against the current signed conductor whitelist and refuse foreign conductors. Complements the Cryptographic Trust Boundary: the conductor chooses which peers may join the swarm; the bond ensures each node obeys only its own conductor.
+- Ownership Recovery & Succession Doctrine: The recovery phrase is 128-bit entropy, displayed once at swarm founding, stored only as an Argon2id hash in the ledger, rate-limited (5 attempts/hour, persisted across restarts), and every attempt is logged. On keystone death: primary succession is a pre-registered successor key — signed into the ledger while the sitting keystone is healthy — issuing a succession event; the fallback is proof of the recovery phrase against the hash in any cached signed ledger copy. Ledger revisions are monotonic; stale-revision replays, including a resurrected former keystone, are rejected (downgrade protection). Floor: keystone dead + no backup + phrase lost = full wipe and re-found the swarm. No external service participates in recovery — no SMTP, no cloud.
+- Data Purity: Zero `Buffer` bloat in ingestion pipelines (`Uint8Array` strictly enforced). Identity serialization uses Hex strings to prevent JSON `number[]` bloat.
+- Model Download Approval Gate: No model may be downloaded from an external source (HuggingFace or otherwise) without explicit Conductor operator approval. Metadata (size, file count) MUST be fetched and displayed in a confirmation modal BEFORE download begins. Tier 2 P2P chunk seeding within the swarm is exempt (model was already approved at Tier 1 ingress).
+- Design System (The Single-Source Doctrine): Visual language is governed by `layout.css` (theme tokens + regime folder), `components/ui` (primitives), and the typed theme registry (`lib/theme.ts`). Feature components NEVER invent new visual atoms and NEVER apply raw styles. "No UI element stands alone."
+- Topology Layout Doctrine: Deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts). No force-directed physics/jitter for fleet ≤30.
+- Datavis Architecture: D3 used strictly as a headless math engine (`d3-scale`). Svelte renders SVG. No styled graph frameworks (vis-network, Cytoscape). New `cockpit/src/lib/components/datavis/` folder strictly separated from `components/ui/`.
+- Telemetry Transport: WebSockets rejected for telemetry. SSE used for high-frequency streams alongside snapshot polling. Client-side interpolation for Pulse smoothness.
+- StatusPill Semantic Vocabulary & Adapters: Primitives speak semantics (`'live' | 'warn' | 'accent' | 'idle'`), features speak domain. Domain states are mapped to primitive vocabulary via pure adapter functions in `lib/adapters/` (promoted to a shared module on second use). Primitives never learn swarm concepts.
+- Pin Store Doctrine: Prolonged-control pins live in a shared reactive store (`lib/pins.svelte.ts`) built on module-level `$state`, persisted per-device under `swisd-pins` in localStorage. Max 8 pins with FIFO eviction. The store is the single source of truth consumed by both the map (focus/grey-out) and the sidebar. Worker Pis never learn about pins.
+- Scenario Replay Doctrine: Replay injects at the core `ObservabilitySource` boundary, never at the BFF DTO layer — the cockpit runs its real DTO pipelines over deterministic scenario state. Fixtures live in the headless core (`src/observability/scenarios.ts`), typed against domain types (hex peer IDs, `ExecutorSignature`, trust states). Zero randomness; deterministic keyframes only.
+- Replay Activation Gate: Triple-gated — `SWISD_REPLAY=<scenario-id>` env var with dynamic import in the core, cockpit control surfaces (`/api/scenario`, `/dev/replay`) behind `import.meta.env.DEV`, and a mandatory `source: 'live' | 'replay'` snapshot discriminator surfaced as a REPLAY badge in the shell. No runtime toggle in production builds.
+- Replay Time Model: Keyframe channels over scenario time — linear interpolation for continuous channels (`loadScore`), step semantics for discrete channels (presence, trust, task state). Snapshot polling samples the timeline; scenarios loop with a hard snap at t=0.
+- Replay Trust Mutations: The scenario harness owns both the observability surface and the trust surface, so `/api/peers` approvals in replay visibly promote ghosts out of the limbo orbit. Ghosts inject at the `TrustRegistry` layer — mDNS is transport, replay skips transport.
+- Peer Telemetry DTO Completion: `ObservabilityPeerInfo` carries `loadScore: number | null` and `capabilities: readonly ExecutorSignature[] | null`. `buildSwarmTopology()` maps source values instead of hardcoding `null`; the gossiped Control Ledger wires these live when it lands.
+- Marketing Site Filter/Sort Pattern: Multi-value filters use `MultiSelect` (string array contract, `$bindable`). Single-value sort uses `SegmentedControl` (compact variant). Status line is always mounted with invisible clear-filters placeholder to prevent layout jumps. Sort fallback is alphabetical on year-ties.
 
-P0 — Foundation (do first, zero behavioral risk)
+## SECTION 1 — THE APP (GitHub: `swisd`)
+
+### P0 — Foundation (do first, zero behavioral risk)
 - [x] File restructure — barrel-enforced. One `index.ts` per module; import only via barrels.
 - [x] Max one-step import depth. Kill every `../../a/b/c`.
 - [x] Centralized files: `src/utils.ts`, `src/types.ts`, `src/types.d.ts`, `src/errors.ts`.
 - [x] Type safety purge foundation. Remove all `as any`. Align `@libp2p/*` versions. Enforce `strictNullChecks`, `noImplicitAny`, `eslint-plugin-no-any` (build-failing).
 - [x] Configuration substrate. Strict USB provision schema validation and loader (`src/config/`).
-- [x] Cryptographic primitives. Native Node.js Ed25519 (control) and HMAC-SHA256 (data) with zero third-party bloat.
+- [x] Cryptographic primitives. Native Node.js Ed25519 (control) and HMAC-SHA256 (data) with zero third-party bloat. Sovereignty Layer KDF exception: Argon2id via pure-JS `@noble/hashes`.
 - [x] De-centralize the architecture. Remove the elected Gate/coordinator; refactor to the blind model.
 - [x] Critical bug fixes: `peerIdFromString` mock → real `@libp2p/peer-id` import; `require('os')` → ESM `import { cpus }`; graceful shutdown stubbed in `src/index.ts`.
 - [x] KokoroManager singleton. Inject one instance; stop re-instantiating per task.
 - [x] Monorepo build isolation & compiler corset: Root `tsconfig.json` locked to `src/` (excludes SvelteKit apps), `skipLibCheck` enabled, strict ESM `.js` extensions enforced across all core barrels. Headless core compiles cleanly to `dist/`.
 - [x] Admin server ghost import eradicated: Fixed `src/admin/server.ts` to correctly import `buildSwarmSnapshot` from the observability barrel, narrowing `unknown` strictly in catch blocks.
 
-P1 — Core decentralized substrate
+### P1 — Core decentralized substrate
 - [x] Custom CRDTs (Merkle-DAG structured) interfaces: OR-Set, LWW-Register, G-Set, OR-Map mapped to swarm state.
 - [x] Reputation correctness. Move decay from write-time to read-time. Store signed `(success, latency, timestamp)` events. (Implemented `ReputationLog`, wired egress emission, gossip validation, and anti-entropy sync)
 - [x] Blind propagation + Probabilistic TTL via Bloom Filters (loop prevention).
@@ -67,7 +74,7 @@ P1 — Core decentralized substrate
 - [x] Direct Egress Tunnel. Implement libp2p stream protocol (`/swisd/egress/1.0.0`) for peers to push results directly to the Conductor.
 - [x] Immediate preemption & Error routing. Dual-mechanism implementation: (1) Hive Mind: `TaskHistoryEvent` (`preempted` / `failed`) gossiped to swarm for organic reassignment. (2) Ruthless Stopwatch: `TaskLifecycleManager` enforces `deadlineMs` fallback, guaranteeing no orphaned tasks violate reliability directives.
 
-P2 — Performance & data
+### P2 — Performance & data
 - [x] Edge backpressure. Token bucket + load shedding + load score (0–1). If load > 0.8: reject new tasks + reduce gossip. (Implemented `LoadMonitor` and token bucket throttling in `src/performance/`)
 - [x] Health via `@libp2p/ping` + load score. Replace the custom "MEOW" healthcheck. (Implemented `PeerHealthMonitor` in `src/network/health.ts`)
 - [x] Merkle-DAG anti-entropy sync foundation. Root-hash exchange; `reconcileDap` fetches only missing/modified branches.
@@ -77,13 +84,13 @@ P2 — Performance & data
 - [ ] Hybrid vector DB sync. Probability race: gossip embeddings vs. direct push.
 - [x] P2P model distribution foundation. `ChunkLocationLedger` and `buildChunkRoutingTable` for parallel micro-torrent downloads.
 
-P3 — Advanced
+### P3 — Advanced
 - [ ] Diplomat election + inter-swarm routing (sole cross-swarm bridge).
 - [ ] Update Gossip Protocol (app-level coordination): Messages, deterministic stagger, downgrade protection, P2P bundle seeding.
-- [x] Admin / observability endpoint. Headless, strict JSON API server. Legacy Vanilla JS GUI incinerated; Domain C Svelte cockpit is the sole operator interface.
+- [x] Admin / observability endpoint. Headless, strict JSON API server. Legacy Vanilla JS GUI incinerated; the Svelte cockpit is the sole operator interface.
 - [x] Dual-Audience API Boundary. `SwISDClient` exposed as the public `npm` API, wrapping the headless engine and optional GUI.
 
-P4 — Model Distribution & Heavy Payloads (The New Frontier)
+### P4 — Model Distribution & Heavy Payloads (The New Frontier)
 - [x] Model Manifest CRDT: Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger. (Added `ModelRegistryCRDT` to `src/crdt/structures.ts` and expanded `ModelManifest` schema)
 - [x] Persistent Model Library: CRDT-backed `ModelRegistry` persisted to `<deliveryRoot>/state/`, growing organically without hardcoded lists.
 - [x] Streaming Download Pipeline & SSE Bridge: `ModelDownloader` with real-time progress telemetry streamed to the BFF.
@@ -101,18 +108,18 @@ P4 — Model Distribution & Heavy Payloads (The New Frontier)
 - [ ] P2P Chunk Seeding: Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
 - [ ] Storage Watermarks & Eviction: Implement LRU eviction policy when `/opt/swisd/models/` exceeds configured disk watermark.
 
-P5 — User Experience & The Conductor Cockpit (Domain C)
+### P5 — User Experience & The Conductor Cockpit
 
-Architecture & Bridge
-- [x] Domain C Phase 1 — Conductor bridge: Svelte 5 + SvelteKit 2 Node adapter BFF scaffold, strict TypeScript ESM, TailwindCSS, barrel imports, max one-step import depth, and 4-point file headers.
-- [x] Domain C Phase 1 — Core injection: Headless SwISD core singleton is initialized server-side and injected into `event.locals` via `src/hooks.server.ts`.
-- [x] Domain C Phase 1 — Snapshot API: `GET /api/snapshot` returns a strictly typed `SwarmSnapshot` DTO from the core.
-- [x] Domain C Phase 1 — Rune dashboard shell: `src/routes/+layout.svelte` and `src/routes/+page.svelte` consume the snapshot using Svelte 5 `$state` and `$derived`.
+#### Architecture & Bridge
+- [x] Conductor bridge: Svelte 5 + SvelteKit 2 Node adapter BFF scaffold, strict TypeScript ESM, TailwindCSS, barrel imports, max one-step import depth, and strict file headers.
+- [x] Core injection: Headless SwISD core singleton is initialized server-side and injected into `event.locals` via `src/hooks.server.ts`.
+- [x] Snapshot API: `GET /api/snapshot` returns a strictly typed `SwarmSnapshot` DTO from the core.
+- [x] Rune dashboard shell: `src/routes/+layout.svelte` and `src/routes/+page.svelte` consume the snapshot using Svelte 5 `$state` and `$derived`.
 - [x] BFF Topology DTO: `SwarmTopologyDTO` in BFF to aggregate remote peer load scores and `CapabilityManifests`. (Implemented `buildSwarmTopology()` in `cockpit/src/lib/server/topology.ts` with `GET /api/topology` route. Currently wires `null` for remote load/capabilities until gossiped Control Ledger is connected.)
 - [ ] SSE promotion: Event streams (task lifecycle, trust changes, downloads) alongside snapshot polling; client-side interpolation for Pulse smoothness.
 
-Design System & Datavis
-- [x] Domain C Design System (The Single-Source Doctrine): Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
+#### Design System & Datavis
+- [x] Design System (The Single-Source Doctrine): Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
 - [x] CSS Architecture (Cascade Layer Doctrine): All custom CSS lives in `@layer base` or `@layer components`; unlayered styles forbidden. Borders are theme opinions (transparent by default).
 - [x] Multi-Theme Regimes (Theme Folder Doctrine): N-theme system via `lib/themes/*.css` with a CSS barrel (`index.css`), a typed registry (`lib/theme.ts`), a shared reactive store (`lib/theme.svelte.ts`), zero-flash bootstrap in `app.html`, and a live-preview gallery at `/settings`. Current regimes: Midnight Violet, Lavender Daylight, Cyberdeck (legacy), Ultraviolet.
 - [x] Per-device theme persistence: `swisd-theme` and `swisd-theme-dark` localStorage keys; shell quick-flip restores last dark regime.
@@ -123,23 +130,23 @@ Design System & Datavis
 - [x] Multi-capability encoding: Dominant fill + ring-segment bezel on nodes implemented in `SwarmNode.svelte`. (Striped encoding for expanded cards/modals deferred until modal deep-dive is built.)
 - [x] Tabs primitive: WAI-ARIA compliant `Tabs.svelte` with `$bindable()`, `{#snippet}` content, and arrow-key navigation. Promoted to `components/ui/`.
 - [x] Badge primitive: Compact numeric counter chip in `components/ui/Badge.svelte`. Token-themed, `aria-hidden`, renders nothing at zero, caps at `99+`. Promoted before first use per "No UI element stands alone."
-- [x] Domain adapters module: `lib/adapters/` with barrel + `trust.ts` (`trustToStatus`). Promoted to a shared module on second appearance (StageView + SwarmSidebar). Encodes the Domain Adapter Doctrine.
+- [x] Adapters module: `lib/adapters/` with barrel + `trust.ts` (`trustToStatus`). Promoted to a shared module on second appearance (StageView + SwarmSidebar). Encodes the Adapter Doctrine.
 
-Topology & Layout
+#### Topology & Layout
 - [x] Topology Canvas: Deterministic orbital layout (Conductor center, trust-ring orbits, limbo orbit for ghosts). SVG rendering fed by D3 `scaleLinear`. (Implemented `computeOrbitalLayout()` with strict config validation, `defaultOrbitalConfig()` proportional radii, and full a11y: `role="button"`, `tabindex`, `aria-label`, keyboard handlers on all nodes.)
 - [ ] Zero-Peer State (Genesis Visual): Grey overlay with endless spinner ('searching...') and greyed-out data fields. Cockpit "wakes up" and glows upon first connection. (Ships in the Scenario Replay pass; driven by the `genesis` fixture.)
 - [x] Scenario Replay Mode: Fixture-driven snapshot sequences via `observability/devSource.ts` source selection to test cockpit visuals (bottleneck, churn, ghost influx) without a physical fleet. Replay injects at the core `ObservabilitySource` boundary; the BFF runs its real DTO pipeline over scenario state.
-- [x] Scenario fixtures (`src/observability/scenarios.ts`): Six keyframed scenarios — healthy mesh, bottleneck, churn, ghost influx, stalled pipeline, genesis. Deterministic, zero randomness, loop with hard snap at t=0.
-- [x] Replay engine (`src/observability/scenarioEngine.ts`): Implements `ObservabilitySource`. Scenario clock + speed control; linear interpolation for continuous channels, step semantics for discrete channels; event cues feed the event ring.
-- [x] Peer telemetry completion: Extend `ObservabilityPeerInfo` with `loadScore` + `capabilities`; `buildSwarmTopology()` maps source values instead of hardcoding `null`.
-- [x] Stateful trust in replay: Scenario harness owns the trust surface so `/api/peers` approvals promote ghosts out of the limbo orbit. Ghosts inject at the `TrustRegistry` layer.
-- [x] Activation gate: `SWISD_REPLAY=<scenario-id>` env var + dynamic import; cockpit controls (`/api/scenario`, `/dev/replay`) behind `import.meta.env.DEV`.
-- [x] REPLAY badge: Snapshot DTO `source: 'live' | 'replay'` discriminator rendered in the shell via existing primitives (`warn` semantics). Operators never mistake replay for live telemetry.
-- [x] Control deck (`/dev/replay`): Composes existing primitives only — `Tabs` for scenario selection, `Button` + `Icon` transport, typed speed cycle. No new visual atoms, no `Select`/`Slider` primitives.
-- [x] Load domain adapter: `lib/adapters/load.ts` (`loadToStatus`: loadScore → `idle` / `throttled` / `shedding`) — second adapter, promoted per doctrine.
+  - [x] Scenario fixtures (`src/observability/scenarios.ts`): Six keyframed scenarios — healthy mesh, bottleneck, churn, ghost influx, stalled pipeline, genesis. Deterministic, zero randomness, loop with hard snap at t=0.
+  - [x] Replay engine (`src/observability/scenarioEngine.ts`): Implements `ObservabilitySource`. Scenario clock + speed control; linear interpolation for continuous channels, step semantics for discrete channels; event cues feed the event ring.
+  - [x] Peer telemetry completion: Extend `ObservabilityPeerInfo` with `loadScore` + `capabilities`; `buildSwarmTopology()` maps source values instead of hardcoding `null`.
+  - [x] Stateful trust in replay: Scenario harness owns the trust surface so `/api/peers` approvals promote ghosts out of the limbo orbit. Ghosts inject at the `TrustRegistry` layer.
+  - [x] Activation gate: `SWISD_REPLAY=<scenario-id>` env var + dynamic import; cockpit controls (`/api/scenario`, `/dev/replay`) behind `import.meta.env.DEV`.
+  - [x] REPLAY badge: Snapshot DTO `source: 'live' | 'replay'` discriminator rendered in the shell via existing primitives (`warn` semantics). Operators never mistake replay for live telemetry.
+  - [x] Control deck (`/dev/replay`): Composes existing primitives only — `Tabs` for scenario selection, `Button` + `Icon` transport, typed speed cycle. No new visual atoms, no `Select`/`Slider` primitives.
+  - [x] Load adapter: `lib/adapters/load.ts` (`loadToStatus`: loadScore → `idle` / `throttled` / `shedding`) — second adapter, promoted per doctrine.
 
-Cockpit Views & Interaction
-- [x] Modern Dashboard UI: Replaced legacy vanilla JS `dashboardHtml.ts` with compiled Svelte 5 Domain C Cockpit.
+#### Cockpit Views & Interaction
+- [x] Modern Dashboard UI: Replaced legacy vanilla JS `dashboardHtml.ts` with compiled Svelte 5 Conductor Cockpit.
 - [x] Real-time model distribution progress and node health.
 - [x] Live peer churn, load score, and executor capability panels.
 - [ ] Cryptographic verification indicators hidden behind operator-friendly status states.
@@ -153,8 +160,9 @@ Cockpit Views & Interaction
 - [ ] Swarm Pulse & Masonry Grid: Global state indicator and expandable peer cards for deep telemetry visualization.
 - [ ] Model Library UI: Compact download states with micro-progress rings and live SSE telemetry.
 
-Discovery & Provisioning
+#### Discovery & Provisioning
 - [x] mDNS Auto-Discovery: Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.
+- [x] mDNS Service-Name Entropy Fix: Service names derived from the high-entropy tail of the peer ID (`slice(-8)`), eliminating collisions between fresh-identity Pis on the same network.
 - [x] Conductor discovery of local swarm nodes (Core broadcasts via `bonjour-service`, BFF listens and exposes `GET /api/discovery`).
 - [x] UI surface for discovered nodes and setup status (`DiscoveryPanel.svelte` with Svelte 5 runes).
 - [x] Genesis Bootstrap Protocol & Trust Registry:
@@ -168,12 +176,23 @@ Discovery & Provisioning
 - [x] Drag-and-Drop Ingestion: Build Conductor-side CLI/UI wrapper to ingest local `.gguf` files, chunk them, and seed them to the swarm without browser memory limits.
   - [x] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
   - [x] Streaming chunking into the Polymorphic Ingestion Engine.
-- [ ] Manifest generating and swarm seeding progress visualization.
+  - [ ] Manifest generation and swarm seeding progress visualization.
 
-Deferred Logic
+### P6 — Ownership & The Keystone (The Sovereignty Layer)
+- [x] Ownership Ledger schema (`src/ownership/schema.ts`): swarm name, conductor device whitelist, per-peer policy, recovery hash, monotonic revision; hex-serialized per Data Purity; signed by the keystone's Ed25519 key; persisted atomically to `state/`. (Shipped: adds `keystoneWorkload` policy, rotation events (`transfer` / `succession`), canonical deterministic signing serialization, and the shared strict `assertOwnershipLedger` parser used by keystone and anchor alike.)
+- [x] Keystone role (`src/ownership/keystone.ts`): operator designation, ledger custody, whitelist revision signing, conductor device enrollment, signed backup blob emission to trusted peers. (Shipped: founding ceremony with one-time 128-bit phrase, enrollment via countersign or recovery phrase, successor pre-registration, policy + workload revisions, signed transfer ceremony to a designated node, persisted restart-proof rate limiting, atomic `state/ownership/` persistence, exact-byte backup emission.)
+- [ ] Conductor device identity (`cockpit/src/lib/server/conductorIdentity.ts`): per-device Ed25519 identity, enrollment flow (countersign by an existing whitelisted device, or recovery phrase), whitelist caching.
+- [x] Worker bond anchor (`src/ownership/anchor.ts`): persist the keystone public key in `state/`, cache the signed whitelist, verify command signatures, enforce locked/open policy. (Shipped: bonding ceremony gated by `open` policy, offline verification, monotonic revisions with downgrade rejection, bond rotation on signed transfer/succession events, exact-byte backup blob custody, corrupt-state-fails-loud contract.)
+- [ ] Succession ceremony (`src/ownership/succession.ts`): successor-key pre-registration, succession events, revision monotonicity and downgrade rejection, recovery-phrase fallback. (Anchor-side rotation verification already shipped; the ceremony driver and attempt logging land here.)
+- [x] Peer-side ledger backups: signed read-only blobs on trusted peers; cockpit keeps its own copy in its state directory. (Keystone emission + worker anchor custody shipped with exact-byte fidelity; the cockpit-side copy lands with conductor device identity.)
+- [x] Recovery phrase lifecycle: 128-bit generation, one-time display, Argon2id hashing, rate-limited verification (5/hour), event-ring logging of every attempt. (Generation, Argon2id hashing, and restart-proof persisted rate limiting shipped in the keystone; event-ring logging ships with succession; the one-time display ships with the founding modal.)
+- [ ] Cockpit keystone-loss observability: explicit "keystone lost — control plane frozen" shell state with surfaced recovery options; never silent failure. (Includes a manual readiness ping on top of `PeerHealthMonitor`'s 15s cadence: `cold` at 3 missed pings, `lost` at 10. Mutations freeze; execution never depends on the keystone — the banner must say exactly that.)
+- [ ] Optional cockpit session lock: Argon2id-hashed session password; UI convenience only, never swarm authority.
+
+#### Deferred Logic
 - [ ] Return-visit presentation logic: Badge count vs. dismiss-blocking modal priority rules for operator return. Needs urgency taxonomy.
 
-Deferred (App)
+#### Deferred (App)
 - [ ] Vector DB sharding (large swarms). Trigger: storage pressure / large swarm.
 - [ ] Elastic Capacity Allocation (watermark gossip consensus). Trigger: replication imbalance. (Foundation built in `src/storage/capacity.ts`).
 - [ ] Stateful Performance Orchestration. Conductor-side buffering, beat-keeping, and glitch-recovery for continuous live streams. Trigger: postmodern classical music performance requirements.
@@ -181,9 +200,9 @@ Deferred (App)
 - [ ] Multi-channel releases (beta/stable canary). Trigger: fleet growth / risky velocity.
 - [ ] Chaos testing harness. Trigger: pre-1.0 hardening.
 - [ ] Refine `TaskHistoryEvent.metadata` to a strict union of known metadata keys.
-- [ ] Advanced Conductor live telemetry transport. Complex bidirectional streams. Trigger: after Phase 1 SSE snapshot bridge proves stable.
+- [ ] Advanced Conductor live telemetry transport. Complex bidirectional streams. Trigger: after the SSE snapshot bridge proves stable.
 
-Marketing Site (`site/`)
+### Marketing Site (`site/`)
 - [x] Global Shell & Primitives: Promoted TopNav and Footer to global primitives in `+layout.svelte`. Cross-route anchor resolution implemented for in-page jumps from sub-routes.
 - [x] Roadmap Timeline & Modal: Built a vertical timeline with a continuous central spine, lime-filled progress propagation, and alternating leaves. Rich editorial modal (1/3:2/3 layout) with `flush` variant for edge-to-edge media.
 - [x] Asset & Content Barrels: Centralized image imports via `site/src/lib/assets/index.ts` and roadmap data via `site/src/lib/content/roadmap.ts`.
@@ -199,18 +218,19 @@ Marketing Site (`site/`)
 - [x] Case Studies Archive (`/case-studies`): Filterable and sortable grid composing `MultiSelect` (Industry, Modalities), `FilterChip` (Year), and `SegmentedControl` (Sort: A–Z default, Newest, Oldest). Always-mounted status line with invisible clear-filters placeholder prevents layout jumps. Stable sort with alphabetical fallback on year-ties.
 - [ ] Whitepapers Hub (`/research`): Build the scientific knowledge hub for CRDT proofs, Merkle-DAG integrity, and cryptographic primitives.
 
-SECTION 2 — THE RASPBERRY PIS (image & delivery)
+## SECTION 2 — THE RASPBERRY PIS (image & delivery)
 
-P0 — The Image (clone-safe)
-- [ ] Base: Raspberry Pi OS Bookworm (NetworkManager, not legacy wpa_supplicant).
-- [x] Identity birth contract: `IdentityManager` implemented to generate and persist fresh Ed25519 peer identity to state partition, surviving all updates. (OS-level machine-id/SSH deferred to actual image build).
+### P0 — The Image (clone-safe)
+- [ ] Base: Raspberry Pi OS Bookworm (NetworkManager, not legacy wpa_supplicant). (Pragmatic Trixie deviation accepted for the test swarm; canon remains Bookworm.)
+- [x] Identity birth contract: `IdentityManager` implemented to generate and persist fresh Ed25519 peer identity to state partition, surviving all updates. (OS-level machine-id/SSH deferred to actual image build.) Proven on physical metal across reboots.
 - [x] Filesystem layout contract: `/opt/swisd/{releases, current, previous, state, supervisor, models}` defined and strictly enforced in local MVP. `state/` and `models/` strictly isolated from `releases/`.
-- [x] Embed Ed25519 PUBLIC key for release verification (Implemented in local supervisor key management).
+- [x] Embed Ed25519 PUBLIC key for release verification (Implemented in local supervisor key management and `scripts/install.sh`).
+- [x] One-Click Secure Installer (`scripts/install.sh`): cryptographically verified (SHA-256 + Ed25519) atomic deployment with version short-circuit, `previous` rollback preservation, and persistent admin token generation. Proven on a 3-node physical fleet.
 
-P0 — systemd services
-- [x] Service templates defined: `swisd-provision.service`, `swisd-supervisor.service`, `swisd-app.service` with strict isolation (`ProtectSystem=strict`, `Restart=always`, pinned supervisor). `swisd-app.service` hardened with `ReadWritePaths` for `state/` and `models/`.
+### P0 — systemd services
+- [x] Service templates defined: `swisd-provision.service`, `swisd-supervisor.service`, `swisd-app.service` with strict isolation (`ProtectSystem=strict`, `Restart=always`, pinned supervisor). `swisd-app.service` hardened with `ReadWritePaths` for `state/` and `models/`, proven on metal with `/usr/bin/node` and persistent `EnvironmentFile=/opt/swisd/state/swisd.env` for the admin token.
 
-P1 — Supervisor (auto-update mechanics)
+### P1 — Supervisor (auto-update mechanics)
 - [x] Local Delivery MVP: Full local dry-run/live testing of artifact verification and atomic symlink swaps.
 - [x] Cryptographic Verification: SHA-256 + Ed25519 signature verification pipeline implemented (`verifier.ts`, `mockReleaseGenerator.ts`).
 - [x] Atomic Installer: `installer.ts` handles safe, atomic symlink promotion and rollback.
@@ -218,19 +238,19 @@ P1 — Supervisor (auto-update mechanics)
 - [ ] Periodic GitHub Releases check (`ETag` + jitter).
 - [ ] semver compare vs local `VERSION`.
 
-P1 — USB Provisioning (zero-touch, re-provisionable)
+### P1 — USB Provisioning (zero-touch, re-provisionable)
 - [x] Provisioning Contract: Strict `ProvisionConfig` schema validated. Idempotent application logic defined (`src/provision/apply.ts`).
 - [x] Idempotent Application: Checksum-verified application of `/swisd-provision.json` via `nmcli`.
 - [ ] Scan FAT32/exFAT sticks for `/swisd-provision.json`. (Pi-specific `udev` implementation).
 - [ ] Re-provisioning on stick insertion.
 
-P2 — Release & Signing Pipeline (GitHub Actions)
+### P2 — Release & Signing Pipeline (GitHub Actions)
 - [x] CI/CD Workflow: `.github/workflows/release.yml` triggers on `v*` tags or manual dispatch.
 - [x] Cryptographic Signing: `scripts/sign-release.ts` signs the tarball using `SWISD_SIGNING_KEY_DER_BASE64` from GitHub Secrets.
 - [x] Artifact Publishing: Automatically attaches `.tar.gz`, `.sha256`, and `.sig` to the GitHub Release.
 
-P2 — Swarm-managed update delivery
+### P2 — Swarm-managed update delivery
 - [ ] Soft single-checker, manifest gossip via Bloom-filter TTL, P2P bundle seeding, deterministic stagger scheduling.
 
-Deferred (Pi)
+#### Deferred (Pi)
 - [ ] Sign the USB provision file. Deep boot-level health gates. Private repo / token releases. Fleet > 30 scaling.

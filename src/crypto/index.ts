@@ -5,3 +5,5 @@
 
 export * from './hmac.js';
 export * from './ed25519.js';
+export * from './hex.js'
+export * from './argon2.js'

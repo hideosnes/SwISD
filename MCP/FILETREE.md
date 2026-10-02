@@ -6,11 +6,14 @@
 5. SPDX-License-Identifier: MPL-2.0
 6. Copyright (c) 2026 Homahuki GmbH
 -->
-SwISD Architectural Filetree
+
+# SwISD Architectural Filetree
+
 Legend: every folder is a module with an `index.ts` barrel; imports travel through barrels only, max one step deep.
 Files marked `⏳ planned` are locked backlog decisions that do not exist on disk yet.
 
-Core Application ( `src/` )
+## Core Application (`src/`)
+
 src/
 ├── admin/                 # Local HTTP JSON API for observability (Headless)
 │   ├── index.ts           # Barrel export
@@ -27,7 +30,9 @@ src/
 │   └── structures.ts      # OR-Set, LWW, G-Set, OR-Map interfaces (+ ModelRegistryCRDT)
 ├── crypto/                # Two-tier cryptographic primitives
 │   ├── index.ts           # Barrel export
+│   ├── argon2.ts          # Argon2id KDF wrapper (@noble/hashes; Sovereignty Layer secrets)
 │   ├── ed25519.ts         # Control-plane asymmetric keys
+│   ├── hex.ts             # Hex purity: 0x-branded encode/decode (Data Purity)
 │   └── hmac.ts            # Data-plane symmetric MACs
 ├── delivery/              # Atomic OTA updates & persistent identity
 │   ├── index.ts           # Barrel export
@@ -54,7 +59,7 @@ src/
 ├── network/               # libp2p, mDNS, and swarm routing
 │   ├── index.ts           # Barrel export
 │   ├── bloom.ts           # Probabilistic TTL & loop prevention
-│   ├── discovery.ts       # mDNS Bonjour broadcasting
+│   ├── discovery.ts       # mDNS Bonjour broadcasting (service names from peer-ID entropy tail)
 │   ├── health.ts          # @libp2p/ping based peer health monitor
 │   ├── libp2p.ts          # libp2p node factory & service wiring
 │   └── router/            # Gossip & Egress routing
@@ -70,9 +75,15 @@ src/
 │   ├── scenarios.ts       # Keyframed scenario fixtures + channel types
 │   ├── schema.ts          # Observability DTOs (peer loadScore/capabilities + replay source discriminator)
 │   └── snapshot.ts        # Immutable snapshot builder
+├── ownership/             # The Sovereignty Layer (keystone, bonding, succession)
+│   ├── index.ts           # Barrel export
+│   ├── anchor.ts          # Worker-side bond anchor, whitelist cache & command verification (bond rotation, downgrade rejection, backup blob custody)
+│   ├── keystone.ts        # Keystone role: ledger custody, enrollment, workload policy, transfer ceremony, backup emission
+│   ├── schema.ts          # OwnershipLedger, ConductorDevice, NodePolicy, rotation event types, canonical serialization
+│   └── succession.ts      # ⏳ planned — Succession ceremony, revision monotonicity, recovery-phrase fallback
 ├── peer/                  # Peer trust & membership
 │   ├── index.ts           # Barrel export
-│   └── trust.ts           # Cryptographic TrustRegistry (Pending/Trusted/Rejected)
+│   └── trust.ts           # Cryptographic TrustRegistry (Pending/Trusted/Rejected; locked/open policy layers on top)
 ├── performance/           # Edge backpressure & load shedding
 │   ├── index.ts           # Barrel export
 │   ├── load.ts            # LoadScore math & Token Bucket rate limiting
@@ -96,7 +107,8 @@ src/
 ├── types.ts               # Global shared types, interfaces, and type guards
 └── utils.ts               # Pure, side-effect-free utility functions
 
-Conductor Cockpit ( `cockpit/` )
+## Conductor Cockpit (`cockpit/`)
+
 cockpit/
 ├── src/
 │   ├── lib/
@@ -127,13 +139,15 @@ cockpit/
 │   │   │   ├── DiscoveryPanel.svelte      # mDNS node visualization
 │   │   │   ├── EngineRoomView.svelte      # Sysadmin-focused, task-centric telemetry view
 │   │   │   ├── FragmentReassembly.svelte  # ⏳ planned — per-chunk reassembly progress (ENGINE ROOM)
+│   │   │   ├── KeystoneLossBanner.svelte  # ⏳ planned — "keystone lost — control plane frozen" shell state
 │   │   │   ├── ModelDropZone.svelte       # Streaming drag-and-drop ingestion
 │   │   │   ├── PendingTrustPanel.svelte   # ⚠ transitional — superseded by CommandQueue, pending removal
 │   │   │   ├── ReplayControlModal.svelte  # Scenario replay transport controls
 │   │   │   ├── StageView.svelte           # Artist-focused, peer-centric masonry grid
 │   │   │   └── SwarmSidebar.svelte        # Pinned peers + scrollable event log (prolonged control)
-│   │   ├── adapters/                      # Client-side domain adapters (domain → primitive vocabulary)
+│   │   ├── adapters/                      # Client-side adapters (domain → primitive vocabulary)
 │   │   │   ├── index.ts                   # Barrel export for adapters
+│   │   │   ├── keystone.ts                # ⏳ planned — keystoneToStatus: keystone state → StatusPill vocabulary
 │   │   │   ├── load.ts                    # loadToStatus: loadScore → StatusPill vocabulary
 │   │   │   └── trust.ts                   # trustToStatus: TopologyTrustState → StatusPill Status
 │   │   ├── assets/                        # Static cockpit assets
@@ -158,7 +172,9 @@ cockpit/
 │   │   ├── pins.svelte.ts                 # Shared reactive pin store (prolonged control, localStorage)
 │   │   ├── server/
 │   │   │   ├── index.ts                   # Barrel export for BFF server modules
+│   │   │   ├── conductorIdentity.ts       # ⏳ planned — conductor device Ed25519 identity & enrollment client
 │   │   │   ├── discovery.ts               # BFF mDNS listener & TrustRegistry injector
+│   │   │   ├── sessionLock.ts             # ⏳ planned — UI-only Argon2id session lock (never swarm authority)
 │   │   │   └── topology.ts                # SwarmTopologyDTO aggregator & builder
 │   │   └── index.ts                       # Barrel export
 │   ├── routes/
@@ -171,8 +187,15 @@ cockpit/
 │   │   │   │   ├── library/+server.ts     # GET persistent model registry
 │   │   │   │   ├── request/+server.ts     # POST HF metadata fetch & nonce gen
 │   │   │   │   └── status/+server.ts      # GET SSE bridge for download progress
+│   │   │   ├── ownership/                 # ⏳ planned — Sovereignty ceremony endpoints
+│   │   │   │   ├── enroll/+server.ts      # POST conductor enrollment (countersign | recovery phrase)
+│   │   │   │   ├── found/+server.ts       # POST founding ceremony (returns recovery phrase once)
+│   │   │   │   ├── status/+server.ts      # GET keystone status DTO (live | cold | lost | unbonded)
+│   │   │   │   ├── succession/+server.ts  # POST succession event | recovery-phrase fallback
+│   │   │   │   └── transfer/+server.ts    # POST designate another node as keystone
 │   │   │   ├── peers/+server.ts           # GET/POST /api/peers
 │   │   │   ├── scenario/+server.ts        # GET/POST scenario control (DEV-only: play/pause/speed/select)
+│   │   │   ├── session/+server.ts         # ⏳ planned — UI-only lock/unlock (Argon2id)
 │   │   │   ├── snapshot/+server.ts        # GET /api/snapshot
 │   │   │   └── topology/+server.ts        # GET /api/topology (Aggregates SwarmTopologyDTO)
 │   │   ├── design/+page.svelte            # Living style guide & primitive gallery
@@ -187,9 +210,12 @@ cockpit/
 │   └── hooks.server.ts                    # BFF Bridge (Core injection & singleton init)
 └── vite.config.ts                         # SvelteKit 2 + Tailwind + Runes enforcement
 
-Datavisualisation & Maps (nested under `cockpit/src/lib/components/datavis/`)
+
+## Datavisualisation & Maps (nested under `cockpit/src/lib/components/datavis/`)
+
 D3 serves as a headless math engine only (`d3-scale`); Svelte owns every rendered SVG atom.
 No styled graph frameworks. Strict separation from `components/ui/`.
+
 cockpit/src/lib/components/datavis/
 ├── index.ts                        # Barrel export (sole import surface for feature code)
 ├── types.ts                        # Strict DTOs for datavis props (TopologyNode, TopologyEdge, ...)
@@ -207,9 +233,12 @@ cockpit/src/lib/components/datavis/
     ├── Sparkline.svelte            # STAGE / ENGINE ROOM drill-downs
     └── Gauge.svelte                # Load score visualization
 
-Marketing Site ( `site/` )
+## Marketing Site (`site/`)
+
 Isolated static marketing surface. Strict Svelte 5 Runes, a11y, and Tailwind v4 enforcement.
 Barrel rules apply: imports travel through barrels only, max one step deep.
+
+```text
 site/
 ├── vite.config.ts                  # Vite config with inline SvelteKit static adapter & Tailwind v4
 ├── src/
@@ -271,25 +300,30 @@ site/
 │   ├── app.d.ts
 │   └── app.html
 
-Tooling, CI & Delivery Assets (Root Level)
+## Tooling, CI & Delivery Assets (Root Level)
+
 .github/
 └── workflows/
     ├── deploy-site.yml          # Marketing site deployment workflow
     └── release.yml              # CI/CD: triggers on v* tags or manual dispatch
+
 scripts/
+├── install.sh                   # One-click secure installer/updater for worker Pis (crypto-verified, atomic)
 └── sign-release.ts              # Ed25519 tarball signing (SWISD_SIGNING_KEY_DER_BASE64 secret)
+
 systemd/                         # Service templates for the Pi delivery image
 ├── swisd-app.service            # Strict isolation, Restart=always, ReadWritePaths for state/models
 ├── swisd-provision.service      # One-shot USB provision application
 └── swisd-supervisor.service     # Pinned supervisor, decoupled watchdog
 
-Context & Standards (Root)
+## Context & Standards (Root)
+
 root/
 ├── BACKLOG.md             # Strategic roadmap & locked decisions
 ├── CRDT.md                # Mathematical foundation (Join-semilattices)
 ├── FILETREE.md            # Maps the whole project as reference
 ├── GUIDE.md               # Core philosophy & strict dev standards
-├── SVELTE.md              # Domain C Svelte 5, a11y, and CSS architecture standards
+├── SVELTE.md              # Svelte 5, a11y, and CSS architecture standards
 ├── package.json           # Dependencies (Node 22+, libp2p v3) & build scripts
 ├── tsconfig.json          # Root compiler config (corseted to src/, skipLibCheck, NodeNext ESM)
 └── dist/                  # (Generated) Compiled ESM output for the headless core (index.js)

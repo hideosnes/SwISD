@@ -1,10 +1,13 @@
-// 1. Relative path: src/delivery/identity.ts
-// 2. Description: Manages the persistent peer identity for the SwISD node, ensuring it survives release updates.
-// 3. Expects: The delivery root path to locate the immutable state directory.
-// 4. Provides: Lazy-loaded, persistent Ed25519 keypair management, generating a new identity only on first boot.
+/**
+ * 1. Relative path: src/delivery/identity.ts
+ * 2. Description: Manages the persistent peer identity for the SwISD node, ensuring it survives release updates.
+ * 3. Expects: The delivery root path to locate the immutable state directory.
+ * 4. Provides: Lazy-loaded, persistent Ed25519 keypair management, generating a new identity only on first boot.
+ */
 import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { generateEd25519KeyPair, type Ed25519KeyPair } from '../crypto/index.js';
+import { bytesToHex, hexToBytes, type HexString } from '../crypto/hex.js';
 import { DeliveryFilesystemError } from '../errors.js';
 
 export interface IdentityState {
@@ -12,25 +15,6 @@ export interface IdentityState {
   readonly publicKeyDer: Uint8Array;
   readonly privateKeyDer: Uint8Array;
   readonly createdAt: number;
-}
-
-function uint8ArrayToHex(bytes: Uint8Array): string {
-  let hex = '';
-  for (let i = 0; i < bytes.length; i++) {
-    const byte = bytes[i];
-    if (byte !== undefined) {
-      hex += byte.toString(16).padStart(2, '0');
-    }
-  }
-  return hex;
-}
-
-function hexToUint8Array(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-  }
-  return bytes;
 }
 
 export class IdentityManager {
@@ -46,7 +30,7 @@ export class IdentityManager {
   public async ensureStateDir(): Promise<void> {
     try {
       await mkdir(this.stateDir, { recursive: true });
-    } catch (error) {
+    } catch (error: unknown) {
       throw new DeliveryFilesystemError(`Failed to create state directory: ${this.stateDir}`, error);
     }
   }
@@ -64,8 +48,8 @@ export class IdentityManager {
       if (this.isValidIdentity(parsed)) {
         this.cachedIdentity = {
           peerId: parsed.peerId,
-          publicKeyDer: hexToUint8Array(parsed.publicKeyHex),
-          privateKeyDer: hexToUint8Array(parsed.privateKeyHex),
+          publicKeyDer: hexToBytes(parsed.publicKeyHex as HexString),
+          privateKeyDer: hexToBytes(parsed.privateKeyHex as HexString),
           createdAt: parsed.createdAt,
         };
         return this.cachedIdentity;
@@ -104,12 +88,12 @@ export class IdentityManager {
     try {
       const serializable = {
         peerId: identity.peerId,
-        publicKeyHex: uint8ArrayToHex(identity.publicKeyDer),
-        privateKeyHex: uint8ArrayToHex(identity.privateKeyDer),
+        publicKeyHex: bytesToHex(identity.publicKeyDer),
+        privateKeyHex: bytesToHex(identity.privateKeyDer),
         createdAt: identity.createdAt,
       };
       await writeFile(this.identityPath, JSON.stringify(serializable, null, 2), { encoding: 'utf-8' });
-    } catch (error) {
+    } catch (error: unknown) {
       throw new DeliveryFilesystemError(`Failed to persist peer identity to ${this.identityPath}`, error);
     }
   }

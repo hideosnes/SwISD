@@ -70,9 +70,15 @@ The operator-facing control surface is a separate architectural domain. It obser
 
 SwISD is designed to be spun up with minimal friction.
 
-Linux (Trixie Deb13):
+Debian ~13 (Trixie):
 ```
 curl -fsSL https://raw.githubusercontent.com/hideosnes/swisd/main/scripts/install.sh | sudo bash
+```
+```
+   systemctl status swisd-app --no-pager
+   journalctl -u swisd-app -n 30 --no-pager | grep -E "(identity|mDNS|Node started)"
+   readlink /opt/swisd/current # must print /opt/swisd/releases/0.1.0
+   ls -la /opt/swisd/state/ # fresh Ed25519 identity, owned by swisd
 ```
 
 ### Prerequisites

@@ -1,7 +1,11 @@
-// 1. Relative path: src/errors.ts
-// 2. Description: Centralized error texts and custom error classes for SwISD.
-// 3. Expects: String error codes and optional underlying cause typed as unknown.
-// 4. Provides: Type-safe, identifiable error classes for graceful degradation and logging.
+/**
+ * 1. Relative path: src/errors.ts
+ * 2. Description: Centralized error texts and custom error classes for SwISD.
+ * 3. Expects: String error codes and optional underlying cause typed as unknown.
+ * 4. Provides: Type-safe, identifiable error classes for graceful degradation and logging.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
+ */
 
 export type SwISDErrorCode =
   | 'ERR_CRYPTO_VERIFICATION_FAILED'
@@ -23,6 +27,16 @@ export type SwISDErrorCode =
   | 'ERR_MODEL_METADATA_FETCH'
   | 'ERR_MODEL_APPROVAL_INVALID'
   | 'ERR_MODEL_DOWNLOAD_FAILED'
+  | 'ERR_OWNERSHIP_STALE_REVISION'
+  | 'ERR_OWNERSHIP_RATE_LIMIT'
+  | 'ERR_OWNERSHIP_INVALID_COUNTERSIGN'
+  | 'ERR_OWNERSHIP_BOND_MISSING'
+  | 'ERR_OWNERSHIP_BOND_SEALED'
+  | 'ERR_OWNERSHIP_KEYSTONE_LOST'
+  | 'ERR_OWNERSHIP_RECOVERY_FAILED'
+  | 'ERR_OWNERSHIP_LEDGER_CORRUPT'
+  | 'ERR_OWNERSHIP_NOT_KEYSTONE'
+  | 'ERR_OWNERSHIP_ALREADY_FOUNDED'
   | 'ERR_UNKNOWN';
 
 export class SwISDError extends Error {
@@ -124,5 +138,93 @@ export class DeliveryFilesystemError extends SwISDError {
     super('ERR_DELIVERY_FILESYSTEM', message, cause);
     this.name = 'DeliveryFilesystemError';
     Object.setPrototypeOf(this, DeliveryFilesystemError.prototype);
+  }
+}
+
+export class StaleRevisionError extends SwISDError {
+  public readonly attemptedRevision: number;
+  public readonly currentRevision: number;
+
+  constructor(attemptedRevision: number, currentRevision: number) {
+    super('ERR_OWNERSHIP_STALE_REVISION', `Ledger downgrade rejected: attempted ${attemptedRevision}, current is ${currentRevision}`);
+    this.name = 'StaleRevisionError';
+    this.attemptedRevision = attemptedRevision;
+    this.currentRevision = currentRevision;
+    Object.setPrototypeOf(this, StaleRevisionError.prototype);
+  }
+}
+
+export class RateLimitError extends SwISDError {
+  public readonly retryAfterMs: number;
+
+  constructor(retryAfterMs: number, message: string = 'Recovery attempt rate limit exceeded') {
+    super('ERR_OWNERSHIP_RATE_LIMIT', message);
+    this.name = 'RateLimitError';
+    this.retryAfterMs = retryAfterMs;
+    Object.setPrototypeOf(this, RateLimitError.prototype);
+  }
+}
+
+export class InvalidCountersignError extends SwISDError {
+  constructor(message: string = 'Enrollment countersignature is invalid or from an unwhitelisted device') {
+    super('ERR_OWNERSHIP_INVALID_COUNTERSIGN', message);
+    this.name = 'InvalidCountersignError';
+    Object.setPrototypeOf(this, InvalidCountersignError.prototype);
+  }
+}
+
+export class BondMissingError extends SwISDError {
+  constructor(message: string = 'Worker bond anchor is missing; cannot verify offline whitelist') {
+    super('ERR_OWNERSHIP_BOND_MISSING', message);
+    this.name = 'BondMissingError';
+    Object.setPrototypeOf(this, BondMissingError.prototype);
+  }
+}
+
+export class BondSealedError extends SwISDError {
+  constructor(message: string = 'Node policy is locked; re-bonding refused until an operator unlocks the node') {
+    super('ERR_OWNERSHIP_BOND_SEALED', message);
+    this.name = 'BondSealedError';
+    Object.setPrototypeOf(this, BondSealedError.prototype);
+  }
+}
+
+export class KeystoneLostError extends SwISDError {
+  constructor(message: string = 'Keystone is lost and no recovery path is available; control plane frozen') {
+    super('ERR_OWNERSHIP_KEYSTONE_LOST', message);
+    this.name = 'KeystoneLostError';
+    Object.setPrototypeOf(this, KeystoneLostError.prototype);
+  }
+}
+
+export class RecoveryFailedError extends SwISDError {
+  constructor(message: string = 'Recovery phrase verification failed') {
+    super('ERR_OWNERSHIP_RECOVERY_FAILED', message);
+    this.name = 'RecoveryFailedError';
+    Object.setPrototypeOf(this, RecoveryFailedError.prototype);
+  }
+}
+
+export class LedgerCorruptError extends SwISDError {
+  constructor(message: string, cause?: unknown) {
+    super('ERR_OWNERSHIP_LEDGER_CORRUPT', message, cause);
+    this.name = 'LedgerCorruptError';
+    Object.setPrototypeOf(this, LedgerCorruptError.prototype);
+  }
+}
+
+export class NotKeystoneError extends SwISDError {
+  constructor(message: string = 'This node is not the active keystone') {
+    super('ERR_OWNERSHIP_NOT_KEYSTONE', message);
+    this.name = 'NotKeystoneError';
+    Object.setPrototypeOf(this, NotKeystoneError.prototype);
+  }
+}
+
+export class AlreadyFoundedError extends SwISDError {
+  constructor(message: string = 'Swarm is already founded on this node; re-founding requires a full wipe') {
+    super('ERR_OWNERSHIP_ALREADY_FOUNDED', message);
+    this.name = 'AlreadyFoundedError';
+    Object.setPrototypeOf(this, AlreadyFoundedError.prototype);
   }
 }
