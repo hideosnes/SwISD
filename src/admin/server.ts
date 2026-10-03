@@ -1,8 +1,8 @@
 /**
  * 1. Relative path: src/admin/server.ts
  * 2. Description: Local token-guarded HTTP JSON API for observability and headless fleet management.
- * 3. Expects: Admin server configuration, an observability source, an event bus, and the Updater.
- * 4. Provides: Read-only JSON endpoints and a secure mutation endpoint for system updates.
+ * 3. Expects: Admin server configuration, an observability source, an event bus, the IdentityManager, and the Updater.
+ * 4. Provides: Read-only JSON endpoints and secure mutation endpoints for system hostname updates and OTA updates.
  * 5. SPDX-License-Identifier: MPL-2.0
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
@@ -15,6 +15,7 @@ import {
   ObservabilityEventBus,
   ObservabilitySource,
 } from '../observability/index.js';
+import { IdentityManager } from '../delivery/index.js';
 import { Updater } from '../delivery/updater.js';
 
 export interface AdminServerConfig {
@@ -25,7 +26,9 @@ export interface AdminServerConfig {
   readonly enableCors: boolean;
   readonly source: ObservabilitySource;
   readonly eventBus: ObservabilityEventBus;
+  readonly identityManager: IdentityManager;
   readonly updater: Updater;
+  readonly onHostnameUpdate?: (newHostname: string) => Promise<void>;
 }
 
 export interface AdminServerHandle {
@@ -88,7 +91,7 @@ function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
 function validateAdminServerConfig(config: AdminServerConfig): void {
   if (!Number.isInteger(config.port) || config.port <= 0 || config.port > 65535) {
     throw new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Admin server port must be a valid TCP port.');
-.  }
+  } // <--- THE STRAY DOT IS GONE
   if (config.token.trim().length < 16) {
     throw new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Admin token must be at least 16 characters.');
   }
@@ -130,18 +133,52 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
         return;
       }
 
-      const isStateMutation = url.pathname === '/v1/system/update' && req.method === 'POST';
+      const isStateMutation = 
+        (url.pathname === '/v1/system/update' && req.method === 'POST') ||
+        (url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST'));
+
       if (req.method !== 'GET' && !isStateMutation) {
         sendJson(res, 405, { error: 'Method not allowed' });
         return;
       }
 
+      // --- OTA UPDATE ENDPOINT ---
       if (url.pathname === '/v1/system/update' && req.method === 'POST') {
         const result = await config.updater.executeUpdate();
         sendJson(res, 200, result);
         return;
       }
 
+      // --- HOSTNAME MUTATION ENDPOINT (RESTORED) ---
+      if (url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST')) {
+        const body = await readBody(req);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(body);
+        } catch {
+          sendJson(res, 400, { error: 'Invalid JSON body' });
+          return;
+        }
+        if (typeof parsed !== 'object' || parsed === null || typeof (parsed as Record<string, unknown>).hostname !== 'string') {
+          sendJson(res, 400, { error: 'Missing or invalid hostname in body' });
+          return;
+        }
+        const newHostname = (parsed as Record<string, unknown>).hostname as string;
+        if (newHostname.trim().length === 0) {
+          sendJson(res, 400, { error: 'Hostname cannot be empty' });
+          return;
+        }
+
+        await config.identityManager.setHostname(newHostname);
+        if (config.onHostnameUpdate) {
+          await config.onHostnameUpdate(newHostname);
+        }
+
+        sendJson(res, 200, { status: 'ok', hostname: newHostname });
+        return;
+      }
+
+      // --- READ-ONLY OBSERVABILITY ENDPOINTS ---
       if (url.pathname === '/v1/health') {
         const info = config.source.getProcessInfo();
         sendJson(res, 200, { status: 'ok', peerId: info.peerId, version: info.version, uptimeMs: info.uptimeMs });
