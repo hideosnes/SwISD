@@ -35,16 +35,17 @@
   function makePeer(overrides: Partial<TopologyPeerDTO>): TopologyPeerDTO {
     return {
       peerId: `0x${'0'.repeat(64)}`,
-      trustState: 'trusted',
-      discoveredAt: 0,
-      lastSeenAt: null,
-      source: 'replay',
-      capabilities: [],
-      loadScore: null,
-      activeTaskCount: null,
-      deviceType: 'unknown',
-      modalities: [],
-      ...overrides,
+      hostname: overrides.hostname ?? null,          // Explicitly null, never undefined
+      trustState: overrides.trustState ?? 'trusted',
+      presence: overrides.presence ?? 'online',      // Explicitly 'online', never undefined
+      discoveredAt: overrides.discoveredAt ?? Date.now(),
+      lastSeenAt: overrides.lastSeenAt ?? Date.now(),
+      source: overrides.source ?? 'replay',
+      capabilities: overrides.capabilities ?? [],
+      loadScore: overrides.loadScore ?? 0.5,
+      activeTaskCount: overrides.activeTaskCount ?? null,
+      deviceType: overrides.deviceType ?? 'unknown',
+      modalities: overrides.modalities ?? [],
     };
   }
 

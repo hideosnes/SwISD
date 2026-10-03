@@ -1,8 +1,8 @@
 /**
  * 1. Relative path: src/admin/server.ts
  * 2. Description: Local token-guarded HTTP JSON API for observability and headless fleet management.
- * 3. Expects: Admin server configuration, an observability source, an event bus, and the IdentityManager.
- * 4. Provides: Read-only JSON endpoints and a secure mutation endpoint for system hostname updates.
+ * 3. Expects: Admin server configuration, an observability source, an event bus, and the Updater.
+ * 4. Provides: Read-only JSON endpoints and a secure mutation endpoint for system updates.
  * 5. SPDX-License-Identifier: MPL-2.0
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
@@ -15,7 +15,7 @@ import {
   ObservabilityEventBus,
   ObservabilitySource,
 } from '../observability/index.js';
-import { IdentityManager } from '../delivery/index.js';
+import { Updater } from '../delivery/updater.js';
 
 export interface AdminServerConfig {
   readonly host: string;
@@ -25,8 +25,7 @@ export interface AdminServerConfig {
   readonly enableCors: boolean;
   readonly source: ObservabilitySource;
   readonly eventBus: ObservabilityEventBus;
-  readonly identityManager: IdentityManager;
-  readonly onHostnameUpdate?: (newHostname: string) => Promise<void>;
+  readonly updater: Updater;
 }
 
 export interface AdminServerHandle {
@@ -44,18 +43,14 @@ function isLoopbackHost(host: string): boolean {
 function safeTokenEqual(provided: string, expected: string): boolean {
   const left = new TextEncoder().encode(provided);
   const right = new TextEncoder().encode(expected);
-  if (left.length !== right.length) {
-    return false;
-  }
+  if (left.length !== right.length) return false;
   return timingSafeEqual(left, right);
 }
 
 function getBearerToken(req: IncomingMessage): string | null {
   const rawAuth = req.headers.authorization;
   const authHeader = Array.isArray(rawAuth) ? rawAuth[0] ?? '' : rawAuth ?? '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return null;
-  }
+  if (!authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.slice('Bearer '.length).trim();
   return token.length > 0 ? token : null;
 }
@@ -85,7 +80,7 @@ function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
   const allowedOrigin = origin.length > 0 ? origin : '*';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   res.setHeader('Access-Control-Max-Age', '600');
 }
@@ -93,7 +88,7 @@ function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
 function validateAdminServerConfig(config: AdminServerConfig): void {
   if (!Number.isInteger(config.port) || config.port <= 0 || config.port > 65535) {
     throw new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Admin server port must be a valid TCP port.');
-  }
+.  }
   if (config.token.trim().length < 16) {
     throw new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Admin token must be at least 16 characters.');
   }
@@ -116,9 +111,7 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
 
-      if (config.enableCors) {
-        setCorsHeaders(req, res);
-      }
+      if (config.enableCors) setCorsHeaders(req, res);
 
       if (req.method === 'OPTIONS') {
         res.writeHead(204);
@@ -137,54 +130,26 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
         return;
       }
 
-      const isStateMutation = url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST');
+      const isStateMutation = url.pathname === '/v1/system/update' && req.method === 'POST';
       if (req.method !== 'GET' && !isStateMutation) {
         sendJson(res, 405, { error: 'Method not allowed' });
         return;
       }
 
-      if (url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST')) {
-        const body = await readBody(req);
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(body);
-        } catch {
-          sendJson(res, 400, { error: 'Invalid JSON body' });
-          return;
-        }
-        if (typeof parsed !== 'object' || parsed === null || typeof (parsed as Record<string, unknown>).hostname !== 'string') {
-          sendJson(res, 400, { error: 'Missing or invalid hostname in body' });
-          return;
-        }
-        const newHostname = (parsed as Record<string, unknown>).hostname as string;
-        if (newHostname.trim().length === 0) {
-          sendJson(res, 400, { error: 'Hostname cannot be empty' });
-          return;
-        }
-
-        await config.identityManager.setHostname(newHostname);
-        if (config.onHostnameUpdate) {
-          await config.onHostnameUpdate(newHostname);
-        }
-
-        sendJson(res, 200, { status: 'ok', hostname: newHostname });
+      if (url.pathname === '/v1/system/update' && req.method === 'POST') {
+        const result = await config.updater.executeUpdate();
+        sendJson(res, 200, result);
         return;
       }
 
       if (url.pathname === '/v1/health') {
         const info = config.source.getProcessInfo();
-        sendJson(res, 200, {
-          status: 'ok',
-          peerId: info.peerId,
-          version: info.version,
-          uptimeMs: info.uptimeMs,
-        });
+        sendJson(res, 200, { status: 'ok', peerId: info.peerId, version: info.version, uptimeMs: info.uptimeMs });
         return;
       }
 
       if (url.pathname === '/v1/snapshot') {
-        const snapshot = buildSwarmSnapshot(config.source, config.eventBus);
-        sendJson(res, 200, snapshot);
+        sendJson(res, 200, buildSwarmSnapshot(config.source, config.eventBus));
         return;
       }
 
@@ -192,21 +157,12 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
         const afterParam = url.searchParams.get('after') ?? '0';
         const afterParsed = Number.parseInt(afterParam, 10);
         const afterSafe = Number.isInteger(afterParsed) && afterParsed >= 0 ? afterParsed : 0;
-
         const limitParam = url.searchParams.get('limit') ?? '100';
         const limitParsed = Number.parseInt(limitParam, 10);
-        const limitSafe = Number.isInteger(limitParsed) && limitParsed > 0
-          ? Math.min(limitParsed, 500)
-          : 100;
-
+        const limitSafe = Number.isInteger(limitParsed) && limitParsed > 0 ? Math.min(limitParsed, 500) : 100;
         const events = config.eventBus.since(afterSafe, limitSafe);
         const last = events.length > 0 ? events[events.length - 1] : undefined;
-        const nextAfter = last ? last.sequence : afterSafe;
-
-        sendJson(res, 200, {
-          events,
-          nextAfter,
-        });
+        sendJson(res, 200, { events, nextAfter: last ? last.sequence : afterSafe });
         return;
       }
 
@@ -217,11 +173,7 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
 
       sendJson(res, 404, { error: 'Unknown observability route' });
     } catch (error: unknown) {
-      const message = error instanceof SwISDError
-        ? error.message
-        : error instanceof Error 
-          ? error.message 
-          : 'Internal observability server error';
+      const message = error instanceof SwISDError ? error.message : error instanceof Error ? error.message : 'Internal server error';
       sendJson(res, 500, { error: message });
     }
   };
@@ -231,9 +183,7 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
       validateAdminServerConfig(config);
       await new Promise<void>((resolve, reject) => {
         const srv = createServer(handleRequest);
-        const onError = (err: Error): void => {
-          reject(new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Failed to start admin server.', err));
-        };
+        const onError = (err: Error): void => reject(new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Failed to start admin server.', err));
         srv.once('error', onError);
         srv.listen(config.port, config.host, () => {
           srv.removeListener('error', onError);
@@ -244,18 +194,12 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
     },
     async stop(): Promise<void> {
       await new Promise<void>((resolve, reject) => {
-        if (!server) {
-          resolve();
-          return;
-        }
+        if (!server) { resolve(); return; }
         const activeServer = server as Server & { closeAllConnections?: () => void };
         activeServer.closeAllConnections?.();
         activeServer.close((err?: Error) => {
-          if (err) {
-            reject(new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Failed to close admin server.', err));
-            return;
-          }
-          resolve();
+          if (err) reject(new SwISDError('ERR_ADMIN_SERVER_FAILED', 'Failed to close admin server.', err));
+          else resolve();
         });
       });
       server = undefined;

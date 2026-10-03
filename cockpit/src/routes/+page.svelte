@@ -171,8 +171,8 @@
         {#snippet content(tabId: string)}
           {#if tabId === 'stage' && topology}
             <StageView {topology} />
-          {:else if tabId === 'engine' && snapshot}
-            <EngineRoomView {snapshot} />
+          {:else if tabId === 'engine' && snapshot && topology}
+            <EngineRoomView {snapshot} {topology} />
           {/if}
         {/snippet}
       </Tabs>
