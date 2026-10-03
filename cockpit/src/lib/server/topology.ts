@@ -1,14 +1,20 @@
-// 1. Relative path: cockpit/src/lib/server/topology.ts
-// 2. Description: BFF-owned DTO contract and pure builder for the swarm topology graph.
-// 3. Expects: Plain cockpit-owned input records from the core ObservabilitySource.
-// 4. Provides: SwarmTopologyDTO contract with device type and modality encoding.
+/**
+ * 1. Relative path: cockpit/src/lib/server/topology.ts
+ * 2. Description: BFF-owned DTO contract and pure builder for the swarm topology graph.
+ * 3. Expects: Plain cockpit-owned input records from the core ObservabilitySource and mDNS discovery map.
+ * 4. Provides: SwarmTopologyDTO contract with device type, modality encoding, friendly hostnames, and liveness state.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
+ */
 
 import type { DeviceType, ModalityCode } from '$lib/components/datavis/types.js';
 
 export type TopologyTrustState = 'pending' | 'trusted' | 'rejected';
+export type TopologyPresenceState = 'online' | 'offline';
 
 export interface TopologyPeerInput {
   readonly peerId: string;
+  readonly hostname: string | null;
   readonly trustState: TopologyTrustState;
   readonly discoveredAt: number;
   readonly lastSeenAt: number | null;
@@ -28,7 +34,9 @@ export interface TopologyBuildInput {
 
 export interface TopologyPeerDTO {
   readonly peerId: string;
+  readonly hostname: string | null;
   readonly trustState: TopologyTrustState;
+  readonly presence: TopologyPresenceState;
   readonly discoveredAt: number;
   readonly lastSeenAt: number | null;
   readonly source: string;
@@ -44,6 +52,7 @@ export interface SwarmTopologyDTO {
   readonly conductorPeerId: string;
   readonly swarmSize: number;
   readonly ghostCount: number;
+  readonly offlineCount: number;
   readonly peers: ReadonlyArray<TopologyPeerDTO>;
 }
 
@@ -87,26 +96,41 @@ export function buildSwarmTopology(input: TopologyBuildInput): SwarmTopologyDTO 
     }
   }
 
+  const now = input.generatedAt;
   const peers: ReadonlyArray<TopologyPeerDTO> = [...deduped.values()]
-    .map((peer): TopologyPeerDTO => ({
-      peerId: peer.peerId,
-      trustState: peer.trustState,
-      discoveredAt: peer.discoveredAt,
-      lastSeenAt: peer.lastSeenAt,
-      source: peer.source,
-      capabilities: [...peer.capabilities],
-      loadScore: sanitizeLoadScore(peer.loadScore),
-      activeTaskCount: sanitizeCount(peer.activeTaskCount),
-      deviceType: peer.deviceType,
-      modalities: [...peer.modalities],
-    }))
+    .map((peer): TopologyPeerDTO => {
+      // Determine liveness:
+      // - Trusted peers are assumed online (prevents false negatives when mDNS is quiet).
+      // - Pending peers must have recent mDNS activity (< 60s) to be considered online.
+      const isTrusted = peer.trustState === 'trusted';
+      const hasRecentMdns = peer.lastSeenAt !== null && (now - peer.lastSeenAt) < 60_000;
+      const isOnline = isTrusted || hasRecentMdns;
+      const presence: TopologyPresenceState = isOnline ? 'online' : 'offline';
+
+      return {
+        peerId: peer.peerId,
+        hostname: peer.hostname,
+        trustState: peer.trustState,
+        presence,
+        discoveredAt: peer.discoveredAt,
+        lastSeenAt: peer.lastSeenAt,
+        source: peer.source,
+        capabilities: [...peer.capabilities],
+        loadScore: sanitizeLoadScore(peer.loadScore),
+        activeTaskCount: sanitizeCount(peer.activeTaskCount),
+        deviceType: peer.deviceType,
+        modalities: [...peer.modalities],
+      };
+    })
     .sort(comparePeerId);
 
   let swarmSize = 0;
   let ghostCount = 0;
+  let offlineCount = 0;
   for (const peer of peers) {
-    if (peer.trustState === 'trusted') swarmSize += 1;
+    if (peer.trustState === 'trusted' && peer.presence === 'online') swarmSize += 1;
     else if (peer.trustState === 'pending') ghostCount += 1;
+    if (peer.presence === 'offline') offlineCount += 1;
   }
 
   return {
@@ -114,6 +138,7 @@ export function buildSwarmTopology(input: TopologyBuildInput): SwarmTopologyDTO 
     conductorPeerId: input.conductorPeerId,
     swarmSize,
     ghostCount,
+    offlineCount,
     peers,
   };
 }

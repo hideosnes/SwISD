@@ -3,6 +3,8 @@
 2. Description: Operator action queue. Composes ui/Drawer to surface decisions that need a human hand — trust approvals today; WiFi setup and model approvals tomorrow.
 3. Expects: Pending peer DTOs, drawer state, busy indicator, and decision callbacks owned by the route.
 4. Provides: A right-edge actionable drawer with keyboard-accessible approve/reject actions and an honest empty state.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
   import type { TopologyPeerDTO } from '$lib/server/index.js';
@@ -41,7 +43,14 @@
         {#each pendingPeers as peer (peer.peerId)}
           <li class="queue__item">
             <div class="queue__item-head">
-              <span class="mono queue__peer">{peer.peerId.slice(0, 12)}</span>
+              <div class="queue__peer-identity">
+                <span class="queue__peer-name">
+                  {peer.hostname && peer.hostname !== 'unknown' ? peer.hostname : peer.peerId.slice(0, 12)}
+                </span>
+                {#if peer.hostname && peer.hostname !== 'unknown'}
+                  <span class="queue__peer-id mono">{peer.peerId.slice(0, 8)}...</span>
+                {/if}
+              </div>
               <StatusPill status="warn" label="pending" />
             </div>
             <dl class="queue__meta">
@@ -78,7 +87,7 @@
     }
     .queue__subtitle {
       font-size: 0.875rem;
-      color: var(--text-muted, var(--text));
+      color: var(--text-2);
     }
     .queue__list {
       list-style: none;
@@ -102,9 +111,18 @@
       justify-content: space-between;
       gap: 0.5rem;
     }
-    .queue__peer {
+    .queue__peer-identity {
+      display: flex;
+      flex-direction: column;
+    }
+    .queue__peer-name {
       font-size: 0.875rem;
-      color: var(--text);
+      font-weight: 600;
+      color: var(--text-1);
+    }
+    .queue__peer-id {
+      font-size: 0.75rem;
+      color: var(--text-3);
     }
     .queue__meta {
       margin: 0;
@@ -119,11 +137,11 @@
       gap: 0.5rem;
     }
     .queue__meta-row dt {
-      color: var(--text-muted, var(--text));
+      color: var(--text-2);
     }
     .queue__meta-row dd {
       margin: 0;
-      color: var(--text);
+      color: var(--text-1);
     }
     .queue__actions {
       display: flex;

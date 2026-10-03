@@ -2,7 +2,9 @@
 1. Relative path: cockpit/src/routes/design/+page.svelte
 2. Description: Living design-system bench for the Conductor Cockpit (Cyberdeck theme).
 3. Expects: The UI primitive barrel at $lib/components/ui, layout.css tokens loaded globally, and the datavis barrel for live node specimens.
-4. Provides: A visual-verification page exercising every UI primitive in isolation, plus swarm-node specimens rendered by the production orbital pipeline.
+4. Provides: A visual-verification page exercising every UI primitive in isolation, plus swarm-node specimens rendered by the production orbital pipeline, including live ping rings.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 
 <script lang="ts">
@@ -23,7 +25,6 @@
     EmptyState
   } from '$lib/components/ui';
 
-  // Type-only import: erased at compile time, keeps the BFF mDNS listener out of the client bundle.
   import type { SwarmTopologyDTO } from '$lib/server/index.js';
   import {
     GhostNode,
@@ -51,13 +52,11 @@
 
   function startSimulation(initial: number): void {
     clearSimulation();
-
     progress = Math.max(0, Math.min(100, initial));
     busy = true;
 
     intervalId = setInterval(() => {
       progress = Math.min(100, progress + 8);
-
       if (progress >= 100) {
         busy = false;
         clearSimulation();
@@ -74,22 +73,25 @@
     startSimulation(0);
   }
 
-  // --- Swarm node specimens: real orbital math, real node components, zero illustration ---
   const BENCH_W = 480;
   const BENCH_H = 360;
   const CONDUCTOR_ID = `0x${'c'.repeat(64)}`;
+  const now = Date.now();
 
   const benchTopology: SwarmTopologyDTO = {
-    generatedAt: 0,
+    generatedAt: now,
     conductorPeerId: CONDUCTOR_ID,
     swarmSize: 3,
     ghostCount: 2,
+    offlineCount: 0,
     peers: [
       {
         peerId: `0x${'a'.repeat(64)}`,
+        hostname: 'raspi-p5-01',
+        presence: 'online',
         trustState: 'trusted',
-        discoveredAt: 0,
-        lastSeenAt: null,
+        discoveredAt: now - 10000,
+        lastSeenAt: now - 10000, // 10s ago -> ~83% ping ring
         source: 'replay',
         capabilities: ['llama-cpp'],
         loadScore: 0.15,
@@ -99,9 +101,11 @@
       },
       {
         peerId: `0x${'b'.repeat(64)}`,
+        hostname: 'linux-node-02',
+        presence: 'online',
         trustState: 'trusted',
-        discoveredAt: 0,
-        lastSeenAt: null,
+        discoveredAt: now - 45000,
+        lastSeenAt: now - 45000, // 45s ago -> ~25% ping ring
         source: 'replay',
         capabilities: ['stable-diffusion'],
         loadScore: 0.5,
@@ -111,9 +115,11 @@
       },
       {
         peerId: `0x${'d'.repeat(64)}`,
+        hostname: 'windows-pc-03',
+        presence: 'online',
         trustState: 'trusted',
-        discoveredAt: 0,
-        lastSeenAt: null,
+        discoveredAt: now - 5000,
+        lastSeenAt: now - 5000, // 5s ago -> ~92% ping ring
         source: 'replay',
         capabilities: ['llama-cpp', 'stable-diffusion', 'whisper-cpp'],
         loadScore: 0.9,
@@ -123,9 +129,11 @@
       },
       {
         peerId: `0x${'e'.repeat(64)}`,
+        hostname: null,
+        presence: 'offline',
         trustState: 'pending',
-        discoveredAt: 0,
-        lastSeenAt: null,
+        discoveredAt: now - 120000,
+        lastSeenAt: now - 120000, // 2m ago -> 0% ping ring (offline)
         source: 'replay',
         capabilities: [],
         loadScore: null,
@@ -135,8 +143,10 @@
       },
       {
         peerId: `0x${'f'.repeat(64)}`,
+        hostname: null,
+        presence: 'offline',
         trustState: 'pending',
-        discoveredAt: 0,
+        discoveredAt: now - 180000,
         lastSeenAt: null,
         source: 'replay',
         capabilities: [],
@@ -153,13 +163,14 @@
     defaultOrbitalConfig(BENCH_W, BENCH_H)
   );
 
-  // --- Legend specimens: isolated, display-sized renders of each node state ---
   const loadLowSpecimen = {
     peer: {
       peerId: `0x${'1'.repeat(64)}`,
+      hostname: 'raspi-p5-04',
+      presence: 'online',
       trustState: 'trusted',
-      discoveredAt: 0,
-      lastSeenAt: null,
+      discoveredAt: now - 15000,
+      lastSeenAt: now - 15000,
       source: 'replay',
       capabilities: ['llama-cpp'],
       loadScore: 0.15,
@@ -176,9 +187,11 @@
   const loadHighSpecimen = {
     peer: {
       peerId: `0x${'2'.repeat(64)}`,
+      hostname: 'raspi-p5-05',
+      presence: 'online',
       trustState: 'trusted',
-      discoveredAt: 0,
-      lastSeenAt: null,
+      discoveredAt: now - 30000,
+      lastSeenAt: now - 30000,
       source: 'replay',
       capabilities: ['llama-cpp'],
       loadScore: 0.9,
@@ -195,9 +208,11 @@
   const bezelSpecimen = {
     peer: {
       peerId: `0x${'3'.repeat(64)}`,
+      hostname: 'windows-pc-06',
+      presence: 'online',
       trustState: 'trusted',
-      discoveredAt: 0,
-      lastSeenAt: null,
+      discoveredAt: now - 20000,
+      lastSeenAt: now - 20000,
       source: 'replay',
       capabilities: ['llama-cpp', 'stable-diffusion', 'whisper-cpp'],
       loadScore: 0.5,
@@ -214,9 +229,11 @@
   const ghostSpecimen = {
     peer: {
       peerId: `0x${'4'.repeat(64)}`,
+      hostname: null,
+      presence: 'offline',
       trustState: 'pending',
-      discoveredAt: 0,
-      lastSeenAt: null,
+      discoveredAt: now - 90000,
+      lastSeenAt: now - 90000,
       source: 'replay',
       capabilities: [],
       loadScore: null,
@@ -238,7 +255,6 @@
 </script>
 
 <PageShell>
-  <!-- HEADER -->
   <header class="border-b border-border pb-6 pt-2">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-xl font-bold tracking-tight text-text-1">
@@ -458,11 +474,10 @@
       </div>
     </Panel>
 
-    <!-- Swarm Node States: the real rendering path, not an illustration -->
     <Panel index="12" title="Swarm Node States">
       <p class="mb-3 text-sm text-text-2">
         Live specimens rendered by the production orbital pipeline — computeOrbitalLayout positioning
-        SwarmNode and GhostNode over a deterministic fixture topology.
+        SwarmNode and GhostNode over a deterministic fixture topology, showcasing the counter-clockwise ping ring.
       </p>
 
       <div class="rounded-sm border border-border bg-bg p-3">
@@ -470,7 +485,7 @@
           viewBox="0 0 {BENCH_W} {BENCH_H}"
           class="node-bench-canvas"
           role="img"
-          aria-label="Swarm node state specimens: trusted peers on the trust ring with load-scaled radii and capability bezels, pending ghosts docked on the limbo orbit"
+          aria-label="Swarm node state specimens: trusted peers on the trust ring with load-scaled radii, capability bezels, and ping rings, pending ghosts docked on the limbo orbit"
         >
           {#each benchLayout.rings as ring (ring.kind)}
             <TrustRing {ring} />
@@ -491,7 +506,6 @@
         </svg>
       </div>
 
-      <!-- Visual legend: every encoding grounded in a rendered specimen -->
       <h3 class="mt-6 mb-3 font-mono text-xs font-bold uppercase tracking-widest text-text-3">
         Legend — rendered specimens
       </h3>
@@ -502,17 +516,17 @@
             viewBox="0 0 168 84"
             class="node-bench-specimen"
             role="img"
-            aria-label="Load-scaled radii: a small trusted node at load 0.15 beside a large trusted node at load 0.9"
+            aria-label="Load-scaled radii and ping rings: a small trusted node at load 0.15 beside a large trusted node at load 0.9"
           >
             <SwarmNode peer={loadLowSpecimen} />
             <SwarmNode peer={loadHighSpecimen} />
           </svg>
           <div class="flex min-w-0 flex-1 flex-col gap-1">
             <span class="font-mono text-xs font-bold uppercase tracking-widest text-text-1">
-              Radius → load score
+              Radius → load · Ring → liveness
             </span>
             <span class="text-sm text-text-2">
-              Node radius tracks loadScore through the orbital scale. The harder a Pi works, the larger it looms on the ring.
+              Node radius tracks loadScore. The green ping ring shrinks counter-clockwise from 6 o'clock as time since last ping increases.
             </span>
           </div>
         </div>
@@ -620,7 +634,6 @@
   </div>
 </PageShell>
 
-<!-- APPROVAL GATE MODAL -->
 <Modal
   open={modalOpen}
   title="Approve download"
@@ -657,7 +670,6 @@
   {/snippet}
 </Modal>
 
-<!-- ACTION QUEUE DRAWER -->
 <Drawer
   open={drawerOpen}
   title="Action Queue"

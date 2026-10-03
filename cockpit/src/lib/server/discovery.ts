@@ -27,8 +27,17 @@ const discoveredNodes = new Map<string, DiscoveredNode>();
 function extractTxtString(txt: unknown, key: string): string {
   if (typeof txt !== 'object' || txt === null) return 'unknown';
   const val = (txt as Record<string, unknown>)[key];
+  
   if (typeof val === 'string') return val;
   if (val instanceof Buffer) return val.toString('utf-8');
+  
+  // bonjour-service sometimes returns arrays for TXT values
+  if (Array.isArray(val) && val.length > 0) {
+    const first = val[0];
+    if (typeof first === 'string') return first;
+    if (first instanceof Buffer) return first.toString('utf-8');
+  }
+  
   return 'unknown';
 }
 
@@ -43,6 +52,9 @@ export function startCockpitDiscovery(trustRegistry: TrustRegistry): void {
     if (peerId === 'unknown') return;
 
     const hostname = extractTxtString(service.txt, 'hostname');
+    
+    // DEBUG: Log the raw TXT record to see exactly what bonjour-service is parsing
+    console.log(`[Cockpit BFF] Discovered ${peerId} | hostname extracted: "${hostname}" | raw txt:`, service.txt);
 
     // CRITICAL: Register the peer in the core's trust registry as PENDING
     trustRegistry.discoverPeer(peerId, 'mdns');
@@ -63,11 +75,12 @@ export function startCockpitDiscovery(trustRegistry: TrustRegistry): void {
   const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [id, node] of discoveredNodes) {
-      if (now - node.lastSeen > 60000) {
+      // Extended to 5 minutes (300,000ms) to prevent trusted nodes from vanishing
+      if (now - node.lastSeen > 300000) {
         discoveredNodes.delete(id);
       }
     }
-  }, 30000);
+  }, 60000); // Check every minute
   cleanupTimer.unref();
 }
 

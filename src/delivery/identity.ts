@@ -1,17 +1,21 @@
 /**
  * 1. Relative path: src/delivery/identity.ts
- * 2. Description: Manages the persistent peer identity for the SwISD node, ensuring it survives release updates.
+ * 2. Description: Manages the persistent peer identity and hostname for the SwISD node, ensuring it survives release updates.
  * 3. Expects: The delivery root path to locate the immutable state directory.
- * 4. Provides: Lazy-loaded, persistent Ed25519 keypair management, generating a new identity only on first boot.
+ * 4. Provides: Lazy-loaded, persistent Ed25519 keypair management and hostname persistence.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
  */
 import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
+import { hostname as osHostname } from 'node:os';
 import { generateEd25519KeyPair, type Ed25519KeyPair } from '../crypto/index.js';
 import { bytesToHex, hexToBytes, type HexString } from '../crypto/hex.js';
 import { DeliveryFilesystemError } from '../errors.js';
 
 export interface IdentityState {
   readonly peerId: string;
+  readonly hostname: string;
   readonly publicKeyDer: Uint8Array;
   readonly privateKeyDer: Uint8Array;
   readonly createdAt: number;
@@ -48,6 +52,7 @@ export class IdentityManager {
       if (this.isValidIdentity(parsed)) {
         this.cachedIdentity = {
           peerId: parsed.peerId,
+          hostname: parsed.hostname || osHostname(), // Fallback for legacy identities
           publicKeyDer: hexToBytes(parsed.publicKeyHex as HexString),
           privateKeyDer: hexToBytes(parsed.privateKeyHex as HexString),
           createdAt: parsed.createdAt,
@@ -60,8 +65,10 @@ export class IdentityManager {
 
     // First-boot identity creation
     const keyPair = generateEd25519KeyPair();
+    const envHostname = process.env.SWISD_HOSTNAME;
     const newIdentity: IdentityState = {
       peerId: `swisd-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`,
+      hostname: envHostname || osHostname(),
       publicKeyDer: keyPair.publicKey,
       privateKeyDer: keyPair.privateKey,
       createdAt: Date.now(),
@@ -69,11 +76,11 @@ export class IdentityManager {
 
     await this.saveIdentity(newIdentity);
     this.cachedIdentity = newIdentity;
-    console.log('[Identity] Generated new first-boot peer identity:', newIdentity.peerId);
+    console.log('[Identity] Generated new first-boot peer identity:', newIdentity.peerId, 'hostname:', newIdentity.hostname);
     return newIdentity;
   }
 
-  private isValidIdentity(data: unknown): data is { peerId: string; publicKeyHex: string; privateKeyHex: string; createdAt: number } {
+  private isValidIdentity(data: unknown): data is { peerId: string; hostname?: string; publicKeyHex: string; privateKeyHex: string; createdAt: number } {
     if (typeof data !== 'object' || data === null) return false;
     const obj = data as Record<string, unknown>;
     return (
@@ -88,6 +95,7 @@ export class IdentityManager {
     try {
       const serializable = {
         peerId: identity.peerId,
+        hostname: identity.hostname,
         publicKeyHex: bytesToHex(identity.publicKeyDer),
         privateKeyHex: bytesToHex(identity.privateKeyDer),
         createdAt: identity.createdAt,
@@ -96,5 +104,22 @@ export class IdentityManager {
     } catch (error: unknown) {
       throw new DeliveryFilesystemError(`Failed to persist peer identity to ${this.identityPath}`, error);
     }
+  }
+
+  public async setHostname(newHostname: string): Promise<void> {
+    if (!this.cachedIdentity) {
+      throw new DeliveryFilesystemError('Identity not initialized');
+    }
+    const updated: IdentityState = {
+      ...this.cachedIdentity,
+      hostname: newHostname,
+    };
+    await this.saveIdentity(updated);
+    this.cachedIdentity = updated;
+    console.log('[Identity] Updated hostname to:', newHostname);
+  }
+
+  public getHostname(): string {
+    return this.cachedIdentity?.hostname || osHostname();
   }
 }

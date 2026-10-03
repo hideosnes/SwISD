@@ -1,9 +1,11 @@
-// 1. Relative path: src/admin/server.ts
-// 2. Description: Local token-guarded HTTP JSON API for observability and headless fleet management.
-// 3. Expects: Admin server configuration, an observability source, and an event bus.
-// 4. Provides: Read-only JSON endpoints for the SvelteKit Conductor Cockpit and local integrations.
-// 5. SPDX-License-Identifier: MPL-2.0
-// 6. Copyright (c) 2026 Homahuki GmbH
+/**
+ * 1. Relative path: src/admin/server.ts
+ * 2. Description: Local token-guarded HTTP JSON API for observability and headless fleet management.
+ * 3. Expects: Admin server configuration, an observability source, an event bus, and the IdentityManager.
+ * 4. Provides: Read-only JSON endpoints and a secure mutation endpoint for system hostname updates.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
+ */
 
 import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
@@ -13,6 +15,7 @@ import {
   ObservabilityEventBus,
   ObservabilitySource,
 } from '../observability/index.js';
+import { IdentityManager } from '../delivery/index.js';
 
 export interface AdminServerConfig {
   readonly host: string;
@@ -22,6 +25,8 @@ export interface AdminServerConfig {
   readonly enableCors: boolean;
   readonly source: ObservabilitySource;
   readonly eventBus: ObservabilityEventBus;
+  readonly identityManager: IdentityManager;
+  readonly onHostnameUpdate?: (newHostname: string) => Promise<void>;
 }
 
 export interface AdminServerHandle {
@@ -55,6 +60,15 @@ function getBearerToken(req: IncomingMessage): string | null {
   return token.length > 0 ? token : null;
 }
 
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
 function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {
   const payload = JSON.stringify(body);
   res.writeHead(statusCode, {
@@ -71,8 +85,8 @@ function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
   const allowedOrigin = origin.length > 0 ? origin : '*';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   res.setHeader('Access-Control-Max-Age', '600');
 }
 
@@ -123,8 +137,37 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
         return;
       }
 
-      if (req.method !== 'GET') {
+      const isStateMutation = url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST');
+      if (req.method !== 'GET' && !isStateMutation) {
         sendJson(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+
+      if (url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST')) {
+        const body = await readBody(req);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(body);
+        } catch {
+          sendJson(res, 400, { error: 'Invalid JSON body' });
+          return;
+        }
+        if (typeof parsed !== 'object' || parsed === null || typeof (parsed as Record<string, unknown>).hostname !== 'string') {
+          sendJson(res, 400, { error: 'Missing or invalid hostname in body' });
+          return;
+        }
+        const newHostname = (parsed as Record<string, unknown>).hostname as string;
+        if (newHostname.trim().length === 0) {
+          sendJson(res, 400, { error: 'Hostname cannot be empty' });
+          return;
+        }
+
+        await config.identityManager.setHostname(newHostname);
+        if (config.onHostnameUpdate) {
+          await config.onHostnameUpdate(newHostname);
+        }
+
+        sendJson(res, 200, { status: 'ok', hostname: newHostname });
         return;
       }
 

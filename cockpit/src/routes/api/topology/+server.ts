@@ -2,7 +2,7 @@
  * 1. Relative path: cockpit/src/routes/api/topology/+server.ts
  * 2. Description: BFF API route that aggregates the core's local observability, trust registry, and mDNS discovery into a SwarmTopologyDTO.
  * 3. Expects: GET request from the Conductor Cockpit client.
- * 4. Provides: Strict SwarmTopologyDTO JSON response with device type, modality encoding, and friendly hostnames.
+ * 4. Provides: Strict SwarmTopologyDTO JSON response with device type, modality encoding, friendly hostnames, and liveness state.
  * 5. SPDX-License-Identifier: MPL-2.0
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
@@ -16,23 +16,40 @@ export const GET: RequestHandler = async ({ locals }) => {
   const peerInfos = locals.coreSource.getPeerInfo();
   const discovered = getDiscoveredNodes();
   
-  // Map discovered nodes to a lookup for friendly hostnames
-  const hostnameMap = new Map(discovered.map(n => [n.peerId, n.hostname]));
+  // Map discovered nodes to a lookup for friendly hostnames and lastSeen timestamps
+  const discoveryMap = new Map(discovered.map(n => [n.peerId, { hostname: n.hostname, lastSeen: n.lastSeen }]));
 
-  const peers: ReadonlyArray<TopologyPeerInput> = peerInfos.map((p) => ({
-    peerId: p.peerId,
-    hostname: hostnameMap.get(p.peerId) ?? null,
-    trustState: p.trustState,
-    discoveredAt: p.discoveredAt,
-    lastSeenAt: p.trustedAt,
-    source: p.source,
-    // ExecutorSignature is a branded string in the core; cast safely to string array for the DTO
-    capabilities: (p.capabilities ?? []) as unknown as ReadonlyArray<string>,
-    loadScore: p.loadScore,
-    activeTaskCount: null,
-    deviceType: p.deviceType,
-    modalities: p.modalities,
-  }));
+  const peers: ReadonlyArray<TopologyPeerInput> = peerInfos.map((p) => {
+    const discovery = discoveryMap.get(p.peerId);
+    
+    // Liveness logic:
+    // 1. Local node (conductor) is always online (it doesn't mDNS to itself).
+    // 2. Remote node with mDNS discovery: use mDNS lastSeen.
+    // 3. Remote trusted node without mDNS: fall back to trustedAt (trust implies recent liveness).
+    // 4. Remote pending node without mDNS: null (offline).
+    let lastSeenAt: number | null = null;
+    if (p.peerId === processInfo.peerId) {
+      lastSeenAt = Date.now(); // Local node is always online
+    } else if (discovery?.lastSeen) {
+      lastSeenAt = discovery.lastSeen;
+    } else if (p.trustState === 'trusted' && p.trustedAt !== null) {
+      lastSeenAt = p.trustedAt; // Pragmatic fallback: trust implies liveness
+    }
+
+    return {
+      peerId: p.peerId,
+      hostname: discovery?.hostname ?? null,
+      trustState: p.trustState,
+      discoveredAt: p.discoveredAt,
+      lastSeenAt,
+      source: p.source,
+      capabilities: (p.capabilities ?? []) as unknown as ReadonlyArray<string>,
+      loadScore: p.loadScore,
+      activeTaskCount: null,
+      deviceType: p.deviceType,
+      modalities: p.modalities,
+    };
+  });
 
   const dto = buildSwarmTopology({
     generatedAt: Date.now(),

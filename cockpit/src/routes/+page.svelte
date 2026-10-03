@@ -21,6 +21,7 @@
   import ReplayControlModal from '$lib/components/ReplayControlModal.svelte';
   import FoundingModal from '$lib/components/FoundingModal.svelte';
   import RecoveryPhraseDisplay from '$lib/components/RecoveryPhraseDisplay.svelte';
+  import NodeDetailModal from '$lib/components/NodeDetailModal.svelte';
   
   let snapshot = $state<SwarmSnapshot | null>(null);
   let topology = $state<SwarmTopologyDTO | null>(null);
@@ -92,14 +93,6 @@
     } finally {
       busyPeerId = null;
     }
-  }
-
-  function handleTogglePin(): void {
-    if (selectedPeerId !== null) togglePin(selectedPeerId);
-  }
-
-  function closePeerModal(): void {
-    selectedPeerId = null;
   }
 
   $effect(() => {
@@ -198,17 +191,11 @@
     <EmptyState title="Connecting to swarm..." icon="swarm" />
   {/if}
 
-  {#if selectedPeerId}
-    <Modal open={true} onclose={closePeerModal} title="Peer Telemetry">
-      <p>Deep dive for peer: <span class="mono" style="color: var(--accent);">{selectedPeerId.slice(0, 12)}...</span></p>
-      <div class="mt-6 flex justify-end gap-2">
-        <Button onclick={handleTogglePin}>
-          {isPinned(selectedPeerId) ? 'Unpin' : 'Pin'}
-        </Button>
-        <Button onclick={closePeerModal}>Close</Button>
-      </div>
-    </Modal>
-  {/if}
+  <NodeDetailModal 
+    open={selectedPeerId !== null} 
+    peer={topology?.peers.find(p => p.peerId === selectedPeerId) ?? null} 
+    onclose={() => selectedPeerId = null} 
+  />
 
   <CommandQueue
     open={queueOpen}

@@ -1,12 +1,15 @@
 <!--
 1. Relative path: cockpit/src/lib/components/datavis/topology/SwarmNode.svelte
-2. Description: Renders a trusted swarm peer as a layered interactive SVG node — stress arc, modality cake, and a viewBox-corrected device icon cropped by a green cover ring.
-3. Expects: A LaidOutPeer model with position, radius, device type, modalities, and load score.
-4. Provides: A clickable, accessible SVG group with device icon, modality cake, and stress arc.
+2. Description: Renders a trusted swarm peer as a layered interactive SVG node — stress arc, modality cake, device icon, friendly hostname label, and a CCW ping liveness ring.
+3. Expects: A LaidOutPeer model with position, radius, device type, modalities, load score, hostname, and presence state.
+4. Provides: A clickable, accessible SVG group with device icon, modality cake, stress arc, ping ring, and text label.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
   import type { LaidOutPeer, DeviceType, ModalityCode } from '../types.js';
   import { modalityToColor, loadToStressColor, stressArcPath } from './layout.js';
+  import { peerOverrideStore } from '$lib/peerOverrides.svelte.js';
 
   import raspiIcon from '$lib/assets/icons/device-raspi.svg?raw';
   import arduinoIcon from '$lib/assets/icons/device-arduino.svg?raw';
@@ -17,31 +20,14 @@
   import appleIcon from '$lib/assets/icons/device-apple.svg?raw';
   import unknownIcon from '$lib/assets/icons/device-unknown.svg?raw';
 
-  // ════════════════════════════════════════════════════════════════
-  //  ICON TUNING HANDLES — turn these dials, save, refresh /design
-  // ════════════════════════════════════════════════════════════════
-  // Side length of the icon's bounding box, as a fraction of nodeRadius.
   const ICON_BOX_RATIO = 1.2;
-
-  // Radius of the backing well disc, as a fraction of nodeRadius.
   const ICON_WELL_RATIO = 0.9;
-
-  // Radius of the GREEN CROP LINE, as a fraction of the well radius.
-  // Lower = tighter crop + thicker green band.
   const ICON_CLIP_RATIO = 0.75;
-
-  // Uniform multiplier on ALL icon geometry. 1.0 = mathematically correct.
   const ICON_GLOBAL_SCALE = 1.0;
 
-  // ── THE WINDOWS DIAL ────────────────────────────────────────────
-  // PER-DEVICE icon size multipliers — "name the size, case by case."
-  // Optical correction for square logos: Windows' 2x2 grid needs to be
-  // drawn smaller than round logos to look balanced in the circle.
-  // Start at 0.75; dial between 0.7 and 0.8 until it sits right.
   const ICON_SIZE_BY_DEVICE: Partial<Record<DeviceType, number>> = {
     windows: 0.75,
   };
-  // ════════════════════════════════════════════════════════════════
 
   interface IconViewBox {
     readonly minX: number;
@@ -72,13 +58,29 @@
   }
 
   function buildCropRingPath(innerRadius: number, outerRadius: number): string {
-    // Two concentric full circles in one path. With fill-rule="evenodd" the
-    // band between them fills; the center stays hollow so the icon shows.
     const circle = (r: number): string =>
       `M ${-r} 0 ` +
       `a ${r} ${r} 0 1 0 ${r * 2} 0 ` +
       `a ${r} ${r} 0 1 0 ${-r * 2} 0 Z`;
     return `${circle(outerRadius)} ${circle(innerRadius)}`;
+  }
+
+  function pingArcPath(cx: number, cy: number, radius: number, progress: number): string {
+    if (progress <= 0.01) return '';
+    if (progress >= 0.99) {
+      return `M ${cx} ${cy - radius} A ${radius} ${radius} 0 1 1 ${cx} ${cy + radius} A ${radius} ${radius} 0 1 1 ${cx} ${cy - radius}`;
+    }
+    const startAngle = Math.PI / 2; // 6 o'clock
+    const endAngle = startAngle - (progress * 2 * Math.PI); // Counter-clockwise
+    
+    const x1 = cx + radius * Math.cos(startAngle);
+    const y1 = cy + radius * Math.sin(startAngle);
+    const x2 = cx + radius * Math.cos(endAngle);
+    const y2 = cy + radius * Math.sin(endAngle);
+    
+    const largeArc = progress > 0.5 ? 1 : 0;
+    // sweep-flag = 0 for counter-clockwise
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2}`;
   }
 
   let {
@@ -102,18 +104,22 @@
     unknown: unknownIcon,
   };
 
-  const label = $derived(`Peer ${peer.peer.peerId.slice(0, 8)} - Load: ${peer.peer.loadScore ?? 'Unknown'}`);
+  // Apply operator overrides
+  const override = $derived(peerOverrideStore.getOverride(peer.peer.peerId));
+  const displayName = $derived(override?.name ?? (peer.peer.hostname && peer.peer.hostname !== 'unknown' ? peer.peer.hostname : peer.peer.peerId.slice(0, 12)));
+  const displayIconType = $derived(override?.icon ?? peer.peer.deviceType);
+  const subId = $derived(override?.name && peer.peer.hostname !== 'unknown' ? peer.peer.peerId.slice(0, 8) + '...' : '');
 
-  const deviceIcon = $derived(deviceIconMap[peer.peer.deviceType]);
+  const isOffline = $derived(peer.peer.presence === 'offline');
+  const label = $derived(`${displayName}${isOffline ? ' (offline)' : ''} - Load: ${peer.peer.loadScore ?? 'Unknown'}`);
 
-  // Per-device size override, falling back to the global multiplier.
-  const deviceSizeMultiplier = $derived(ICON_SIZE_BY_DEVICE[peer.peer.deviceType] ?? 1.0);
+  const deviceIcon = $derived(deviceIconMap[displayIconType]);
+  const deviceSizeMultiplier = $derived(ICON_SIZE_BY_DEVICE[displayIconType] ?? 1.0);
 
   const iconBox = $derived(peer.nodeRadius * ICON_BOX_RATIO * ICON_GLOBAL_SCALE * deviceSizeMultiplier);
   const iconWellRadius = $derived(peer.nodeRadius * ICON_WELL_RATIO * ICON_GLOBAL_SCALE);
   const iconClipRadius = $derived(iconWellRadius * ICON_CLIP_RATIO);
 
-  // Green COVER RING — thickness halved, anchored at the crop line.
   const cropRingOuter = $derived(iconClipRadius + (iconWellRadius - iconClipRadius) / 2);
   const cropRingPath = $derived(buildCropRingPath(iconClipRadius, cropRingOuter));
 
@@ -158,37 +164,47 @@
       ? stressArcPath(0, 0, peer.nodeRadius + 6, peer.peer.loadScore)
       : ''
   );
+
+  // Ping ring logic: 60 seconds full circle, shrinks CCW from 6 o'clock
+  const now = $derived(Date.now());
+  const lastSeen = $derived(peer.peer.lastSeenAt ?? peer.peer.discoveredAt);
+  const ageMs = $derived(now - lastSeen);
+  const pingProgress = $derived(Math.max(0, 1 - (ageMs / 60000))); // 60s threshold
+  const pingRadius = $derived(peer.nodeRadius + 4);
+  const pingPath = $derived(pingArcPath(0, 0, pingRadius, pingProgress));
 </script>
 
 <g
   transform="translate({peer.position.x}, {peer.position.y})"
   class="topology-node"
+  class:topology-node--offline={isOffline}
   role="button"
   tabindex="0"
   aria-label={label}
   {onclick}
   {onkeydown}
 >
-  <!-- Layer 1 (outermost): Stress arc -->
+  <!-- Layer 0: Ping Liveness Ring (Counter-clockwise from 6 o'clock) -->
+  {#if pingPath}
+    <path d={pingPath} class="topology-node__ping-ring" style="opacity: {pingProgress}" />
+  {/if}
+
   {#if stressPath}
     <path d={stressPath} class="topology-node__stress-arc" style="stroke: {stressColor}" />
   {/if}
 
-  <!-- Layer 2: Modality cake -->
   <g class="topology-node__cake">
     {#each modalitySlices() as slice}
       <path
         d={modalitySlicePath(0, 0, peer.nodeRadius, slice.startAngle, slice.endAngle)}
         class="topology-node__cake-slice"
-        style="fill: {slice.color}"
+        style="_fill: {slice.color}"
       />
     {/each}
   </g>
 
-  <!-- Layer 3: Icon well — backing disc -->
   <circle class="topology-node__icon-well" r={iconWellRadius} />
 
-  <!-- Layer 4: Device icon -->
   <g
     class="topology-node__icon"
     transform={iconGeometry.transform}
@@ -197,12 +213,30 @@
     {@html iconGeometry.body}
   </g>
 
-  <!-- Layer 5 (topmost): Green COVER RING — crops the icon -->
   <path
     class="topology-node__icon-clip"
     d={cropRingPath}
     fill-rule="evenodd"
   />
+
+  <text 
+    y={peer.nodeRadius + 14} 
+    text-anchor="middle" 
+    class="topology-node__label-primary"
+    aria-hidden="true"
+  >
+    {displayName}
+  </text>
+  {#if subId}
+    <text 
+      y={peer.nodeRadius + 26} 
+      text-anchor="middle" 
+      class="topology-node__label-secondary"
+      aria-hidden="true"
+    >
+      {subId}
+    </text>
+  {/if}
 </g>
 
 <style>
@@ -210,9 +244,22 @@
     .topology-node {
       cursor: pointer;
       outline: none;
+      transition: opacity 0.3s ease, filter 0.3s ease;
     }
-    .topology-node:focus-visible .topology-node__stress-arc {
+    .topology-node:focus-visible .topology-node__stress-arc,
+    .topology-node:focus-visible .topology-node__ping-ring {
       stroke-width: 3px;
+    }
+    .topology-node--offline {
+      opacity: 0.4;
+      filter: grayscale(80%);
+    }
+    .topology-node__ping-ring {
+      fill: none;
+      stroke: var(--live);
+      stroke-width: 2px;
+      stroke-linecap: round;
+      transition: opacity 0.5s ease;
     }
     .topology-node__stress-arc {
       fill: none;
@@ -230,7 +277,6 @@
     .topology-node__icon-well {
       fill: var(--bg);
     }
-    /* Solid #00ff00 crop band — explicit operator override, not themed. */
     .topology-node__icon-clip {
       fill: #00ff00;
       pointer-events: none;
@@ -245,6 +291,21 @@
     .topology-node__icon :global(rect),
     .topology-node__icon :global(polygon) {
       fill: currentColor;
+    }
+    .topology-node__label-primary {
+      fill: var(--text-1);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-ui);
+      pointer-events: none;
+      user-select: none;
+    }
+    .topology-node__label-secondary {
+      fill: var(--text-3);
+      font-size: 9px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+      user-select: none;
     }
   }
 </style>

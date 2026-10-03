@@ -74,6 +74,8 @@ Debian ~13 (Trixie):
 ```
 curl -fsSL https://raw.githubusercontent.com/hideosnes/swisd/main/scripts/install.sh | sudo bash
 ```
+You can use `-s -- --name my-unique-name` to add a cosmetic name to a node.
+
 ```
    systemctl status swisd-app --no-pager
    journalctl -u swisd-app -n 30 --no-pager | grep -E "(identity|mDNS|Node started)"
