@@ -1,7 +1,11 @@
-// 1. Relative path: src/observability/devSource.ts
-// 2. Description: Development observability source that integrates with the real supervisor status file and trust registry.
-// 3. Expects: Basic node identity metadata, an observability event bus, the delivery root path, and the trust registry.
-// 4. Provides: A typed ObservabilitySource that reads actual supervisor status and peer trust states synchronously.
+/**
+ * 1. Relative path: src/observability/devSource.ts
+ * 2. Description: Development observability source that integrates with the real supervisor status file and trust registry.
+ * 3. Expects: Basic node identity metadata, an observability event bus, the delivery root path, and the trust registry.
+ * 4. Provides: A typed ObservabilitySource that reads actual supervisor status and peer trust states synchronously.
+ * 5. SPDX-License-Identifier: MPL-2.0
+ * 6. Copyright (c) 2026 Homahuki GmbH
+ */
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -94,12 +98,8 @@ export function createDevObservabilitySource(
   return {
     tick(): void {
       updateLoad();
-      eventBus.publish({
-        topic: 'observability',
-        level: 'info',
-        message: 'Observability heartbeat',
-        details: { loadScore },
-      });
+      // Heartbeat event publishing removed to prevent UI event-log spam.
+      // The load score is still updated and exposed via the snapshot DTO.
     },
 
     getProcessInfo(): ObservabilityProcessInfo {
@@ -175,8 +175,8 @@ export function createDevObservabilitySource(
         source: p.source === 'usb' ? 'manual' : (p.source as 'mdns' | 'genesis'),
         loadScore: null,
         capabilities: null,
-        deviceType: 'unknown', // Live mode: peers self-report, default to unknown
-        modalities: [], // Live mode: derived from loaded models (Phase B TODO)
+        deviceType: 'unknown',
+        modalities: [],
       }));
     },
   };

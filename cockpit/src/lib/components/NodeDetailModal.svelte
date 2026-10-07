@@ -9,7 +9,7 @@
 <script lang="ts">
   import type { TopologyPeerDTO } from '$lib/server/index.js';
   import type { DeviceType } from '$lib/components/datavis/types.js';
-  import { Modal, TextField, Button, Icon, StatusPill } from '$lib/components/ui/index.js';
+  import { Modal, TextField, Button, StatusPill } from '$lib/components/ui/index.js';
   import { peerOverrideStore } from '$lib/peerOverrides.svelte.js';
 
   import raspiIcon from '$lib/assets/icons/device-raspi.svg?raw';
@@ -46,9 +46,13 @@
   let pingStatus = $state<'idle' | 'success' | 'error'>('idle');
   let isRenaming = $state(false);
   let renameStatus = $state<'idle' | 'success' | 'error'>('idle');
+  
+  // Guard against the 2-second telemetry poll overwriting the form state
+  let lastOpenedPeerId = $state<string | null>(null);
 
   $effect(() => {
-    if (peer && open) {
+    if (open && peer && peer.peerId !== lastOpenedPeerId) {
+      lastOpenedPeerId = peer.peerId;
       const override = peerOverrideStore.getOverride(peer.peerId);
       customName = override?.name ?? peer.hostname ?? '';
       selectedIcon = override?.icon ?? peer.deviceType;
@@ -65,19 +69,29 @@
     });
   }
 
+// Inside NodeDetailModal.svelte, find the triggerRename function and update the fetch call:
+
   async function triggerRename(): Promise<void> {
     if (!peer || !customName.trim() || isRenaming) return;
     isRenaming = true;
     renameStatus = 'idle';
     try {
       const res = await fetch('/api/system/hostname', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostname: customName.trim() }),
+        body: JSON.stringify({ 
+          peerId: peer.peerId, // <-- ADD THIS
+          hostname: customName.trim() 
+        }),
       });
-      if (!res.ok) throw new Error('Rename failed');
+      
+      const data = await res.json() as { success: boolean; error?: string };
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Unknown rename error');
+      }
+      
       renameStatus = 'success';
-      // Optimistically update local override so UI reflects it instantly
       saveOverrides();
       setTimeout(() => { renameStatus = 'idle'; }, 2000);
     } catch (err) {
@@ -94,7 +108,13 @@
     pingStatus = 'idle';
     try {
       const res = await fetch(`/api/peers/${encodeURIComponent(peer.peerId)}/ping`, { method: 'POST' });
-      if (!res.ok) throw new Error('Ping failed');
+      
+      if (!res.ok) {
+        // Read the actual error text from the server to see exactly why it failed
+        const errText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errText}`);
+      }
+      
       pingStatus = 'success';
       setTimeout(() => { pingStatus = 'idle'; }, 2000);
     } catch (err) {
@@ -109,7 +129,6 @@
 <Modal {open} onclose={onclose} title={peer ? `Node Details: ${peer.peerId.slice(0, 8)}...` : 'Node Details'}>
   {#if peer}
     <div class="space-y-4">
-      <!-- Custom Name (Global Mutation) -->
       <div class="space-y-2">
         <TextField
           id="node-custom-name"
@@ -134,7 +153,6 @@
         {/if}
       </div>
 
-      <!-- Icon Selector -->
       <div>
         <div class="text-xs font-semibold uppercase tracking-wider text-text-2 mb-2">Local Display Icon</div>
         <div class="grid grid-cols-4 gap-2" role="group" aria-label="Device Icon selection">
@@ -154,7 +172,6 @@
         </div>
       </div>
 
-      <!-- Manual Ping -->
       <div class="flex items-center justify-between rounded-sm border border-border bg-bg p-3">
         <div class="flex flex-col">
           <span class="text-sm font-semibold text-text-1">Manual Liveness Check</span>
@@ -178,7 +195,6 @@
         </div>
       </div>
 
-      <!-- Raw Metadata -->
       <div class="rounded-sm border border-border bg-bg p-3 font-mono text-xs">
         <div class="flex justify-between py-1">
           <span class="text-text-3">Peer ID</span>
