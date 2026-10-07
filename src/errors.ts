@@ -37,6 +37,8 @@ export type SwISDErrorCode =
   | 'ERR_OWNERSHIP_LEDGER_CORRUPT'
   | 'ERR_OWNERSHIP_NOT_KEYSTONE'
   | 'ERR_OWNERSHIP_ALREADY_FOUNDED'
+  | 'ERR_PROVISION_PORTAL_BIND_FAILED'
+  | 'ERR_PROVISION_PORTAL_JOIN_FAILED'
   | 'ERR_UNKNOWN';
 
 export class SwISDError extends Error {
@@ -226,5 +228,13 @@ export class AlreadyFoundedError extends SwISDError {
     super('ERR_OWNERSHIP_ALREADY_FOUNDED', message);
     this.name = 'AlreadyFoundedError';
     Object.setPrototypeOf(this, AlreadyFoundedError.prototype);
+  }
+}
+
+export class ProvisionPortalError extends SwISDError {
+  constructor(message: string, cause?: unknown) {
+    super('ERR_PROVISION_PORTAL_BIND_FAILED', message, cause);
+    this.name = 'ProvisionPortalError';
+    Object.setPrototypeOf(this, ProvisionPortalError.prototype);
   }
 }

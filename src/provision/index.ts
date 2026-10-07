@@ -5,6 +5,5 @@
  * 4. Provides: Centralized access to provisioning agents and fallback AP logic.
  */
 
-// CLI scripts like apply.ts are self-executing entrypoints and do not export runtime modules.
-// Future modules (apFallback, captivePortal) will be exported here as they are built.
-export {};
+export * from './portal.js';
+export * from './schema.js';
