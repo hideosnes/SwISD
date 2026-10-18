@@ -1,6 +1,6 @@
 <!--
 1. Relative path: cockpit/src/routes/design/+page.svelte
-2. Description: Living design-system bench for the Conductor Cockpit (Cyberdeck theme).
+2. Description: Living design-system bench for the Conductor Cockpit.
 3. Expects: The UI primitive barrel at $lib/components/ui, layout.css tokens loaded globally, and the datavis barrel for live node specimens.
 4. Provides: A visual-verification page exercising every UI primitive in isolation, plus swarm-node specimens rendered by the production orbital pipeline, including live ping rings.
 5. SPDX-License-Identifier: MPL-2.0
@@ -20,6 +20,8 @@
     Modal,
     Drawer,
     TextField,
+    Select,
+    Toggle,
     Icon,
     Stat,
     EmptyState
@@ -40,6 +42,18 @@
   let progress = $state(64);
   let busy = $state(false);
   let peerName = $state('pi-alpha-04');
+
+  // Form Control Bench State
+  let benchSsid = $state('SwISD-Genesis');
+  let benchSecurity = $state('wpa2-psk');
+  let benchHidden = $state(false);
+  let benchTemp = $state(false);
+
+  const benchSecurityOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'wpa2-psk', label: 'WPA2 Personal' },
+    { value: 'wpa3-sae', label: 'WPA3 Personal' },
+    { value: 'open', label: 'Open (no password)' }
+  ];
 
   let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -91,7 +105,7 @@
         presence: 'online',
         trustState: 'trusted',
         discoveredAt: now - 10000,
-        lastSeenAt: now - 10000, // 10s ago -> ~83% ping ring
+        lastSeenAt: now - 10000,
         source: 'replay',
         capabilities: ['llama-cpp'],
         loadScore: 0.15,
@@ -105,7 +119,7 @@
         presence: 'online',
         trustState: 'trusted',
         discoveredAt: now - 45000,
-        lastSeenAt: now - 45000, // 45s ago -> ~25% ping ring
+        lastSeenAt: now - 45000,
         source: 'replay',
         capabilities: ['stable-diffusion'],
         loadScore: 0.5,
@@ -119,7 +133,7 @@
         presence: 'online',
         trustState: 'trusted',
         discoveredAt: now - 5000,
-        lastSeenAt: now - 5000, // 5s ago -> ~92% ping ring
+        lastSeenAt: now - 5000,
         source: 'replay',
         capabilities: ['llama-cpp', 'stable-diffusion', 'whisper-cpp'],
         loadScore: 0.9,
@@ -133,7 +147,7 @@
         presence: 'offline',
         trustState: 'pending',
         discoveredAt: now - 120000,
-        lastSeenAt: now - 120000, // 2m ago -> 0% ping ring (offline)
+        lastSeenAt: now - 120000,
         source: 'replay',
         capabilities: [],
         loadScore: null,
@@ -629,6 +643,48 @@
           <p class="text-xs text-text-3 mb-3">BFF telemetry lost.</p>
           <StatusPill status="warn" label="Error" />
         </div>
+      </div>
+    </Panel>
+
+    <Panel index="14" title="Form Controls (Atomic)">
+      <p class="mb-4 text-sm text-text-2">
+        Atomic form primitives. All controls drink the same surface-mass and typography tokens 
+        (11px uppercase labels, 13px mono input text, <code class="font-mono text-xs text-accent">--surface</code> backgrounds).
+      </p>
+
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div class="flex flex-col gap-5">
+          <TextField 
+            id="design-ssid" 
+            label="Network name (SSID)" 
+            bind:value={benchSsid} 
+          />
+          <Select 
+            id="design-security" 
+            label="Security" 
+            bind:value={benchSecurity} 
+            options={benchSecurityOptions} 
+          />
+        </div>
+        
+        <div class="flex flex-col gap-5">
+          <Toggle 
+            id="design-hidden" 
+            label="Hidden network" 
+            bind:checked={benchHidden} 
+          />
+          <Toggle 
+            id="design-temp" 
+            label="Temporary" 
+            description="Nodes forget these credentials on reboot." 
+            bind:checked={benchTemp} 
+          />
+        </div>
+      </div>
+      
+      <div class="mt-6 rounded-sm border border-border bg-bg p-4 font-mono text-xs text-text-3">
+        <span class="text-text-2">State:</span> 
+        ssid={benchSsid} | security={benchSecurity} | hidden={benchHidden} | temp={benchTemp}
       </div>
     </Panel>
   </div>

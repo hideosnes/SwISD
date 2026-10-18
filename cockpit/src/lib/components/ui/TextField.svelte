@@ -1,7 +1,11 @@
-<!-- 1. Relative path: cockpit/src/lib/components/ui/TextField.svelte
-     2. Description: Text input with label and helper text.
-     3. Expects: Label, value binding, and optional helper text.
-     4. Provides: A themed, accessible text field with stable ID generation. -->
+<!--
+1. Relative path: cockpit/src/lib/components/ui/TextField.svelte
+2. Description: Text input with label, optional leading icon, and helper text.
+3. Expects: Label, bindable value, and optional type/placeholder/helper/icon/id/oninput.
+4. Provides: A themed, accessible text field with stable ID generation that drinks the inherited --field-bg token.
+5. SPDX-License-Identifier: MPL-2.0
+6. Copyright (c) 2026 Homahuki GmbH
+-->
 
 <script lang="ts">
   type InputType = 'text' | 'email' | 'password' | 'search' | 'url';
@@ -28,7 +32,8 @@
     oninput,
   }: Props = $props();
 
-  const generatedId = $derived(propId ?? `field-${Math.random().toString(36).slice(2, 9)}`);
+  const generatedId = `field-${Math.random().toString(36).slice(2, 9)}`;
+  const finalId = $derived(propId ?? generatedId);
 
   function handleInput(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -38,13 +43,13 @@
 </script>
 
 <div class="field" class:field--search={icon === 'search'}>
-  <label for={generatedId}>{label}</label>
+  <label for={finalId}>{label}</label>
   <div class="field-input-wrap">
     {#if icon}
-      <span class="mi field-icon">{icon}</span>
+      <span class="mi field-icon" aria-hidden="true">{icon}</span>
     {/if}
     <input
-      id={generatedId}
+      id={finalId}
       {type}
       {placeholder}
       value={value}
@@ -78,7 +83,8 @@
   .field input {
     width: 100%;
     padding: 11px 14px;
-    background: var(--bg);
+    /* CHAMELEON: Drinks the inherited --field-bg. Medium on dark page, light in Panel. */
+    background: var(--field-bg);
     color: var(--text-1);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
@@ -94,7 +100,8 @@
   .field input:focus {
     outline: none;
     border-color: var(--accent-2);
-    box-shadow: 0 0 0 1px var(--accent-2), 0 0 16px rgba(0,255,200,.25);
+    box-shadow: 0 0 0 1px var(--accent-2),
+      0 0 16px color-mix(in srgb, var(--accent-2) 25%, transparent);
   }
 
   .field--search input {

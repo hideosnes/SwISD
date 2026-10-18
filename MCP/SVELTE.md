@@ -63,6 +63,7 @@ If a primitive needs visual variance, expose a strictly typed `$props()` variant
 
 7. Strict Accessibility (a11y) & Interactive Elements
 Svelte's a11y compiler warnings are treated as build-failing errors. We never use `<!-- svelte-ignore -->` directives to silence them. If the compiler complains, the code is wrong.
+- **Interactive ARIA Roles (`a11y_interactive_supports_focus`)**: Elements assigned interactive ARIA roles that are not natively focusable (e.g., `role="option"`, `role="menuitem"`, `role="tab"` inside custom implementations) MUST carry an explicit `tabindex`. For roving tabindex management (like custom listboxes), use `tabindex="-1"` and manage focus programmatically via `aria-activedescendant` or direct `.focus()` calls. Svelte's a11y compiler will fail the build if a `div` with an interactive role lacks a `tabindex`.
 
 - **Static Element Interactions (`a11y_no_static_element_interactions`):** Non-interactive elements (`<div>`, `<span>`, `<section>`, and SVG elements like `<g>`, `<rect>`, `<circle>`) MUST NOT have click handlers without an explicit ARIA `role` (e.g., `role="button"`). If an element is clickable, it should semantically be a `<button>`. For SVG datavis nodes where `<button>` is invalid, you must explicitly declare `role="button"`.
 - **Keyboard Parity (`a11y_click_events_have_key_events`):** Any visible element with an `onclick` handler MUST have a corresponding `onkeydown` handler that triggers the same action on `Enter` and `Space` keys. Mouse-only interactions are strictly forbidden.

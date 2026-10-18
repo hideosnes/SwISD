@@ -109,6 +109,12 @@
   --focus-ring-offset: 2px;
   --scrollbar-size: 10px;
   --scrollbar-thumb-border-width: 2px;
+
+  /* === SURFACE CONTRAST CASCADE === */
+  /* Default: field sits on dark page (--bg), so it becomes medium (--surface) */
+  --field-bg: var(--surface);
+  /* Bulletproof fallback: guarantees a "light" step up from --surface if a regime omits it */
+  --surface-2: color-mix(in srgb, var(--text-1) 8%, var(--surface));
 }
 
 /* === BASE (layered so utilities always win) === */
