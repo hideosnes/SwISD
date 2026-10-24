@@ -11,6 +11,7 @@ import type { ObservabilitySource, ObservabilityEventBus, ScenarioEngine } from 
 import type { TrustRegistry } from '$core/peer/index.js';
 import type { ModelRegistry, ApprovalGate, ModelDownloader, ModelManager } from '$core/models/index.js';
 import type { Keystone, BondAnchor } from '$core/ownership/index.js';
+import type { CredentialManager } from '$core/config/credentials.js';
 import type { ConductorIdentity } from '$lib/server/conductorIdentity.js';
 import type { SessionLock } from '$lib/server/sessionLock.js';
 
@@ -32,6 +33,9 @@ declare global {
       bondAnchor: BondAnchor;
       conductorIdentity: ConductorIdentity;
       sessionLock: SessionLock;
+      
+      // Credentials
+      credentialManager: CredentialManager;
     }
   }
 }

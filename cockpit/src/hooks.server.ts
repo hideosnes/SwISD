@@ -1,8 +1,8 @@
 /**
  * 1. Relative path: cockpit/src/hooks.server.ts
- * 2. Description: The BFF bridge. Initializes the headless SwISD core, TrustRegistry, Model machinery, and Sovereignty Layer on SvelteKit server startup.
+ * 2. Description: The BFF bridge. Initializes the headless SwISD core, TrustRegistry, Model machinery, Sovereignty Layer, and CredentialManager on SvelteKit server startup.
  * 3. Expects: SvelteKit's Handle hook invocation and environment variables.
- * 4. Provides: A globally available, initialized ObservabilitySource, EventBus, TrustRegistry, Model, Keystone, BondAnchor, ConductorIdentity, and SessionLock singletons via `event.locals`.
+ * 4. Provides: A globally available, initialized ObservabilitySource, EventBus, TrustRegistry, Model, Keystone, BondAnchor, ConductorIdentity, SessionLock, and CredentialManager singletons via `event.locals`.
  * 5. SPDX-License-Identifier: MPL-2.0
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
@@ -18,6 +18,7 @@ import {
 import { TrustRegistry } from '$core/peer/index.js';
 import { ModelRegistry, ApprovalGate, ModelDownloader, ModelManager } from '$core/models/index.js';
 import { Keystone, BondAnchor } from '$core/ownership/index.js';
+import { CredentialManager } from '$core/config/credentials.js';
 import { parsePeerRole } from '$core/utils.js';
 import { startCockpitDiscovery } from '$lib/server/discovery.js';
 import { ConductorIdentity } from '$lib/server/conductorIdentity.js';
@@ -50,6 +51,9 @@ await conductorIdentity.initialize();
 
 const sessionLock = new SessionLock(stateDir);
 await sessionLock.initialize();
+
+const credentialManager = new CredentialManager(stateDir);
+await credentialManager.initialize();
 
 if (isReplay && replayId) {
   const speed = parseFloat(process.env.SWISD_REPLAY_SPEED ?? '1');
@@ -84,7 +88,7 @@ const signPayload = async (payload: string): Promise<Uint8Array> => {
   return new Uint8Array(createHash('sha256').update(payload).digest());
 };
 
-const modelDownloader = new ModelDownloader(modelRegistry, deliveryRoot, signPayload);
+const modelDownloader = new ModelDownloader(modelRegistry, deliveryRoot, signPayload, credentialManager);
 const modelManager = new ModelManager(modelRegistry, deliveryRoot);
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -102,6 +106,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     bondAnchor,
     conductorIdentity,
     sessionLock,
+    credentialManager,
   };
 
   // Block all API routes if the session is locked (except the session unlock route itself)

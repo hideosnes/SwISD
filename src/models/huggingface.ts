@@ -1,7 +1,9 @@
 // 1. Relative path: src/models/huggingface.ts
 // 2. Description: HuggingFace metadata pre-fetcher. Queries the HF API for model size and file structure without downloading weights.
-// 3. Expects: A valid HuggingFace URL or repo ID, and optional HF_ACCESS_TOKEN in process.env.
+// 3. Expects: A valid HuggingFace URL or repo ID, and an optional HuggingFace access token for gated models.
 // 4. Provides: Strictly typed metadata to feed the Conductor Approval Gate modal.
+// 5. SPDX-License-Identifier: MPL-2.0
+// 6. Copyright (c) 2026 Homahuki GmbH
 
 import { SwISDError } from '../errors.js';
 
@@ -44,7 +46,7 @@ export function sanitizeModelId(repoId: string): string {
   return repoId.replace(/\//g, '--');
 }
 
-export async function fetchHuggingFaceMetadata(urlOrRepoId: string): Promise<HuggingFaceMetadata> {
+export async function fetchHuggingFaceMetadata(urlOrRepoId: string, accessToken?: string): Promise<HuggingFaceMetadata> {
   const repoId = parseHuggingFaceUrl(urlOrRepoId);
   const sanitizedModelId = sanitizeModelId(repoId);
   
@@ -54,16 +56,16 @@ export async function fetchHuggingFaceMetadata(urlOrRepoId: string): Promise<Hug
     'Accept': 'application/json',
   };
   
-  const token = process.env.HF_ACCESS_TOKEN;
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
   let response: Response;
   try {
     response = await fetch(apiUrl, { headers, signal: AbortSignal.timeout(10000) });
-  } catch (error) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Failed to reach HuggingFace API for ${repoId}`, error);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Failed to reach HuggingFace API for ${repoId}: ${errMsg}`, error);
   }
 
   if (response.status === 404) {
@@ -71,7 +73,7 @@ export async function fetchHuggingFaceMetadata(urlOrRepoId: string): Promise<Hug
   }
   
   if (response.status === 401 || response.status === 403) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Access denied to ${repoId}. Check HF_ACCESS_TOKEN for gated models.`);
+    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Access denied to ${repoId}. A valid HuggingFace token may be required for gated models.`);
   }
 
   if (!response.ok) {

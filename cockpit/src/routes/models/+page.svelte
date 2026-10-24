@@ -15,11 +15,15 @@
   let showApprovalModal = $state(false);
 </script>
 
-<div class="space-y-6">
-  <h1 class="text-3xl font-bold text-fuchsia-400">Model Distribution</h1>
-  <p class="text-slate-400">Ingest heavy AI payloads directly into the swarm's local cache. Files are streamed, chunked, and Merkle-verified without consuming browser memory.</p>
+<div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-2">
+    <h1 class="text-3xl font-bold text-text-1">Model Distribution</h1>
+    <p class="text-sm text-text-2 max-w-prose">
+      Ingest heavy AI payloads directly into the swarm's local cache. Files are streamed, chunked, and Merkle-verified without consuming browser memory.
+    </p>
+  </div>
   
-  <div class="action-buttons">
+  <div class="flex gap-4">
     <Button variant="primary" icon="cloud_download" onclick={() => showApprovalModal = true}>
       Request from HuggingFace
     </Button>
@@ -32,13 +36,3 @@
   open={showApprovalModal}
   onclose={() => showApprovalModal = false}
 />
-
-<style>
-  @layer components {
-    .action-buttons {
-      display: flex;
-      gap: var(--space-md);
-      margin-bottom: var(--space-lg);
-    }
-  }
-</style>

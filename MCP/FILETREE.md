@@ -39,7 +39,8 @@ src/
 ├── config/                      # Provisioning schema validation and loader.
 │   ├── index.ts                 # Barrel export for config modules.
 │   ├── loader.ts                # Loads and validates USB provision or env fallback.
-│   └── schema.ts                # Strict ProvisionConfig types and runtime guards.
+│   ├── schema.ts                # Strict ProvisionConfig types and runtime guards.
+│   └── credentials.ts           # CredentialManager for secure storage and validation of external API tokens.
 │
 ├── crdt/                        # CRDT engine and domain CRDT definitions.
 │   ├── index.ts                 # Barrel export for CRDT modules.
@@ -74,10 +75,10 @@ src/
 ├── models/                      # Model distribution and approval pipeline.
 │   ├── index.ts                 # Barrel export for model modules.
 │   ├── approval.ts              # ApprovalGate — operator approval workflow for new models.
-│   ├── downloader.ts            # ModelDownloader — HTTP/S3 model fetching with progress tracking.
-│   ├── huggingface.ts           # HuggingFace API metadata pre-fetch and ingress.
+│   ├── downloader.ts            # ModelDownloader — HTTP/S3 model fetching with progress tracking and CredentialManager injection.
+│   ├── huggingface.ts           # HuggingFace API metadata pre-fetch and ingress (token-injected).
 │   ├── ingest.ts                # Polymorphic ingestion, chunking, and Merkle verification.
-│   ├── manager.ts               # ModelManager — load/unload lifecycle and memory accounting.
+│   ├── manager.ts               # ModelManager — RAII lifecycle, promise deduplication, active-task protection, and storage watermarks.
 │   ├── registry.ts              # ModelRegistry — model metadata catalog.
 │   └── schema.ts                # ModelManifest and chunk map schemas.
 │
@@ -236,6 +237,9 @@ cockpit/
 │       ├── +page.svelte         # Home page. Dashboard with topology, telemetry, panels.
 │       │
 │       ├── api/                 # BFF API routes. All responses are strictly typed.
+│       │   ├── credentials/
+│       │   │   └── huggingface/
+│       │   │       └── +server.ts # GET/POST /api/credentials/huggingface — Validate and persist HF token.
 │       │   ├── discovery/
 │       │   │   └── +server.ts   # GET /api/discovery — Discovered nodes from mDNS.
 │       │   ├── models/
@@ -285,7 +289,7 @@ cockpit/
 │       ├── models/
 │       │   └── +page.svelte     # Models page. Catalog, approval, download status.
 │       └── settings/
-│           └── +page.svelte     # Settings page. Per-device theme persistence, display options.
+│           └── +page.svelte     # Settings page. Per-device theme persistence, display options, and secure credential management.
 ```
 
 ### `site/` — Marketing / Documentation Site

@@ -90,20 +90,20 @@ P3 — Advanced
 P4 — Model Distribution & Heavy Payloads (The New Frontier)
 [x] Model Manifest CRDT: Define `ModelManifest` (Merkle root, required capability, chunk map) in the Control Ledger. (Added `ModelRegistryCRDT` to `src/crdt/structures.ts` and expanded `ModelManifest` schema)
 [x] Persistent Model Library: CRDT-backed `ModelRegistry` persisted to `<deliveryRoot>/state/`, growing organically without hardcoded lists.
-[x] Streaming Download Pipeline & SSE Bridge: `ModelDownloader` with real-time progress telemetry streamed to the BFF.
+[x] Streaming Download Pipeline & SSE Bridge: `ModelDownloader` with real-time progress telemetry streamed to the BFF, now injected with `CredentialManager` for token-authenticated fetches.
 [x] Approval Gate Backend: `ApprovalGate` with one-time nonces. Hard-blocks silent background downloads; requires explicit operator confirmation.
-[ ] HuggingFace Model Ingress (Tier 1 UI): Model-agnostic mechanism to register a HuggingFace model URL.
-[x] Metadata pre-fetch: Query HuggingFace API for model size/siblings before download begins. (Implemented in `src/models/huggingface.ts`)
-[ ] Approval modal in Conductor Cockpit: "This model is X GB across Y files. Download and store locally?" with explicit Approve / Cancel actions.
-[ ] Offline degradation: If the HuggingFace API is unreachable, the modal MUST display "Size unknown — metadata unavailable" and require a second, explicit risk acknowledgment before proceeding.
+[x] HuggingFace Model Ingress (Tier 1 UI): Model-agnostic mechanism to register a HuggingFace model URL, including secure credential management in the Conductor Cockpit.
+[x] Metadata pre-fetch: Query HuggingFace API for model size/siblings before download begins, with token injection from secure local storage. (Implemented in `src/models/huggingface.ts`)
+[x] Approval modal in Conductor Cockpit: "This model is X GB across Y files. Download and store locally?" with explicit Approve / Cancel actions.
+[x] Offline degradation: If the HuggingFace API is unreachable, the modal displays "Size unknown — metadata unavailable" and requires a second, explicit risk acknowledgment before proceeding.
 [x] Local Model Manager Foundation: `src/models/ingest.ts` streams, chunks, and Merkle-verifies heavy payloads. (Identity serialization optimized to Hex strings).
-[ ] Model Lifecycle Manager (QoL): Generic, model-agnostic lifecycle manager in `src/models/manager.ts` encapsulating lazy initialization, local validation, and disposal.
-[ ] Lazy initialization: Load model pipelines on-demand, not at startup.
-[ ] `checkModelExistsLocally()`: Validate critical model files exist and are readable before loading.
-[ ] `dispose()`: Clean teardown of loaded pipelines to free edge-device memory.
-[ ] Local Model Manager (LRU): Build eviction logic for `/opt/swisd/models/`.
+[x] Model Lifecycle Manager (QoL): `src/models/manager.ts` encapsulates RAII-style acquisition, promise deduplication, active-task eviction protection, and ruthless storage watermark enforcement.
+[x] Lazy initialization: Load model pipelines on-demand via `acquire()`/`release()` handles, not at startup.
+[x] `checkModelExistsLocally()`: Validate critical model files (all chunks) exist and are readable before loading.
+[x] `dispose()`: Clean teardown of loaded pipelines; explicitly throws if `activeTasks > 0` to prevent execution murder.
+[x] Local Model Manager (LRU): Eviction logic for `/opt/swisd/models/` that strictly targets idle models.
+[x] Storage Watermarks & Eviction: `enforceStorageWatermark()` checks disk usage and evicts the oldest idle model if >90% full.
 [ ] P2P Chunk Seeding: Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
-[ ] Storage Watermarks & Eviction: Implement LRU eviction policy when `/opt/swisd/models/` exceeds configured disk watermark.
 
 P5 — User Experience & The Conductor Cockpit
 Architecture & Bridge
@@ -121,7 +121,7 @@ Design System & Datavis
 [x] Per-device theme persistence: `swisd-theme` and `swisd-theme-dark` localStorage keys; shell quick-flip restores last dark regime.
 [x] Local Font Embedding: Fonts bundled locally via Vite (`@fontsource/*`) to guarantee UI resilience and offline operation on edge devices.
 [x] `/design` Route (Visual Contract): A living style guide and primitive gallery to ensure coherent visual design across the dashboard.
-[x] `/settings` Route (Per-device configuration): Theme gallery with token-scoped live previews and regime quick-flip.
+[x] `/settings` Route (Per-device configuration): Theme gallery with token-scoped live previews, regime quick-flip, and secure HuggingFace credential management.
 [x]  `datavis/`  module scaffolding: Strict separation from  `components/ui/` . D3 math modules ( `layout.ts` ) + Svelte SVG rendering ( `TopologyCanvas` ,  `SwarmNode` ,  `GhostNode` ,  `TrustRing` ). No styled graph frameworks. (Full orbital layout engine with deterministic positioning, ResizeObserver-driven responsive sizing, and D3  `scaleLinear`  for load-to-radius mapping.)
 [x] Multi-capability encoding: Dominant fill + ring-segment bezel on nodes implemented in `SwarmNode.svelte`. (Striped encoding for expanded cards/modals deferred until modal deep-dive is built.)
 [x] Tabs primitive: WAI-ARIA compliant `Tabs.svelte` with `$bindable()`, `{#snippet}` content, and arrow-key navigation. Promoted to `components/ui/`.

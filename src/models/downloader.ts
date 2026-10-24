@@ -1,13 +1,16 @@
 // 1. Relative path: src/models/downloader.ts
 // 2. Description: Streaming download pipeline for HuggingFace models.
-// 3. Expects: Approved repo IDs, file selections, and a signing function.
+// 3. Expects: Approved repo IDs, file selections, a signing function, and a CredentialManager.
 // 4. Provides: Background downloading with progress telemetry and Merkle-verified ingestion.
+// 5. SPDX-License-Identifier: MPL-2.0
+// 6. Copyright (c) 2026 Homahuki GmbH
 
 import { EventEmitter } from 'node:events';
 import type { ModelRegistry } from './registry.js';
 import { ingestModelStream } from './ingest.js';
 import type { ModelFile } from './schema.js';
 import { SwISDError } from '../errors.js';
+import type { CredentialManager } from '../config/credentials.js';
 
 export interface DownloadProgress {
   readonly modelId: string;
@@ -24,7 +27,8 @@ export class ModelDownloader extends EventEmitter {
   constructor(
     private readonly registry: ModelRegistry,
     private readonly deliveryRoot: string,
-    private readonly signPayload: (payload: string) => Promise<Uint8Array>
+    private readonly signPayload: (payload: string) => Promise<Uint8Array>,
+    private readonly credentialManager: CredentialManager
   ) {
     super();
   }
@@ -37,6 +41,11 @@ export class ModelDownloader extends EventEmitter {
     const modelId = repoId.replace(/\//g, '--');
     if (this.activeDownloads.has(modelId)) {
       throw new SwISDError('ERR_MODEL_DOWNLOAD_FAILED', 'Download already in progress');
+    }
+
+    if (selectedFiles.length === 0) {
+      this.emitProgress(modelId, 0, 0, 0, 'failed', 'Blind download not supported: No files specified. Metadata fetch likely failed.');
+      return;
     }
 
     const controller = new AbortController();
@@ -59,8 +68,8 @@ export class ModelDownloader extends EventEmitter {
 
       await this.registry.add(manifest);
       this.emitProgress(modelId, totalBytes, totalBytes, 0, 'completed');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       this.emitProgress(modelId, 0, totalBytes, 0, 'failed', msg);
     } finally {
       this.activeDownloads.delete(modelId);
@@ -88,9 +97,15 @@ export class ModelDownloader extends EventEmitter {
     let lastTime = Date.now();
     let lastBytes = 0;
 
+    const token = this.credentialManager.getHuggingFaceToken();
+    const headers: Record<string, string> = { 'Accept': 'application/octet-stream' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     for (const file of files) {
       const url = `https://huggingface.co/${repoId}/resolve/main/${file.path}`;
-      const response = await fetch(url, { signal, headers: { 'Accept': 'application/octet-stream' } });
+      const response = await fetch(url, { signal, headers });
       
       if (!response.body) {
         throw new SwISDError('ERR_MODEL_DOWNLOAD_FAILED', `No body for ${file.path}`);
