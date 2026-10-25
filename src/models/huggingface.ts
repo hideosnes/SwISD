@@ -1,13 +1,11 @@
 // 1. Relative path: src/models/huggingface.ts
-// 2. Description: HuggingFace metadata pre-fetcher. Queries the HF API for model size and file structure without downloading weights.
-// 3. Expects: A valid HuggingFace URL or repo ID, and an optional HuggingFace access token for gated models.
-// 4. Provides: Strictly typed metadata to feed the Conductor Approval Gate modal.
+// 2. Description: HuggingFace API metadata pre-fetch and ingress logic with robust URL parsing and strict error narrowing.
+// 3. Expects: A valid HuggingFace repository URL or ID, and an optional auth token.
+// 4. Provides: Strictly typed HuggingFaceMetadata and safe, encoded URL fetching.
 // 5. SPDX-License-Identifier: MPL-2.0
 // 6. Copyright (c) 2026 Homahuki GmbH
 
-import { SwISDError } from '../errors.js';
-
-export interface HuggingFaceFileMetadata {
+export interface HuggingFaceFile {
   readonly rfilename: string;
   readonly sizeBytes: number | null;
 }
@@ -17,116 +15,85 @@ export interface HuggingFaceMetadata {
   readonly sanitizedModelId: string;
   readonly pipelineTag: string | null;
   readonly tags: ReadonlyArray<string>;
-  readonly files: ReadonlyArray<HuggingFaceFileMetadata>;
+  readonly files: ReadonlyArray<HuggingFaceFile>;
   readonly totalSizeBytes: number;
   readonly isSizeAccurate: boolean;
 }
 
-export function parseHuggingFaceUrl(urlOrRepoId: string): string {
-  try {
-    const parsed = new URL(urlOrRepoId);
-    if (parsed.hostname === 'huggingface.co' || parsed.hostname.endsWith('.huggingface.co')) {
-      const pathSegments = parsed.pathname.split('/').filter(Boolean);
-      if (pathSegments.length >= 2) {
-        return `${pathSegments[0]}/${pathSegments[1]}`;
-      }
-    }
-  } catch {
-    // Not a valid URL, assume it's already a repo ID
+/**
+ * Parses a HuggingFace URL or raw repo ID into a clean, validated repo ID.
+ * Strips trailing slashes and validates the "owner/repo" format.
+ */
+export function parseHuggingFaceUrl(input: string): string {
+  const trimmed = input.trim();
+  
+  // Match standard HF URLs: https://huggingface.co/owner/repo or hf.co/owner/repo
+  const urlMatch = trimmed.match(/(?:huggingface\.co|hf\.co)\/([^\/\s]+\/[^\/\s]+)/);
+  if (urlMatch && urlMatch[1]) {
+    return urlMatch[1].replace(/\/+$/, '');
   }
-
-  const segments = urlOrRepoId.split('/').filter(Boolean);
-  if (segments.length !== 2) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Invalid HuggingFace repo ID or URL: ${urlOrRepoId}`);
+  
+  // If it's already a repo ID (e.g., "owner/repo"), validate and clean it
+  const idMatch = trimmed.match(/^([^\/\s]+\/[^\/\s]+)$/);
+  if (idMatch && idMatch[1]) {
+    return idMatch[1].replace(/\/+$/, '');
   }
-  return `${segments[0]}/${segments[1]}`;
+  
+  throw new Error('Invalid HuggingFace URL or repository ID. Expected format: "owner/repo" or "https://huggingface.co/owner/repo"');
 }
 
 export function sanitizeModelId(repoId: string): string {
-  return repoId.replace(/\//g, '--');
+  return repoId.replace(/\//g, '--').replace(/[^a-zA-Z0-9\-_.]/g, '');
 }
 
-export async function fetchHuggingFaceMetadata(urlOrRepoId: string, accessToken?: string): Promise<HuggingFaceMetadata> {
-  const repoId = parseHuggingFaceUrl(urlOrRepoId);
-  const sanitizedModelId = sanitizeModelId(repoId);
+export async function fetchHuggingFaceMetadata(
+  input: string,
+  token?: string
+): Promise<HuggingFaceMetadata> {
+  const repoId = parseHuggingFaceUrl(input);
   
-  const apiUrl = `https://huggingface.co/api/models/${encodeURIComponent(repoId)}`;
-  
-  const headers: Record<string, string> = {
+  const headers: HeadersInit = {
     'Accept': 'application/json',
+    // HuggingFace aggressively blocks default Node.js fetch agents. We must identify ourselves.
+    'User-Agent': 'SwISD-Model-Ingest/1.0 (https://github.com/homahuki/swisd)',
   };
   
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
+  if (token && token.trim().length > 0) {
+    headers['Authorization'] = `Bearer ${token.trim()}`;
   }
 
-  let response: Response;
-  try {
-    response = await fetch(apiUrl, { headers, signal: AbortSignal.timeout(10000) });
-  } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Failed to reach HuggingFace API for ${repoId}: ${errMsg}`, error);
-  }
-
-  if (response.status === 404) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Model ${repoId} not found on HuggingFace`);
-  }
+  // CRITICAL: The HuggingFace API expects the literal slash in the URL path.
+  // Do NOT use encodeURIComponent here, or the API will reject the "%2F" as an invalid repo name.
+  const modelUrl = `https://huggingface.co/api/models/${repoId}`;
   
-  if (response.status === 401 || response.status === 403) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `Access denied to ${repoId}. A valid HuggingFace token may be required for gated models.`);
-  }
-
-  if (!response.ok) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', `HuggingFace API returned status ${response.status} for ${repoId}`);
-  }
-
-  const data = await response.json() as unknown;
-  return parseHfApiResponse(data, repoId, sanitizedModelId);
-}
-
-function parseHfApiResponse(data: unknown, repoId: string, sanitizedModelId: string): HuggingFaceMetadata {
-  if (typeof data !== 'object' || data === null) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', 'Invalid JSON response from HuggingFace API');
-  }
-
-  const obj = data as Record<string, unknown>;
+  const modelResponse = await fetch(modelUrl, { headers });
   
-  const siblings = obj.siblings;
-  if (!Array.isArray(siblings)) {
-    throw new SwISDError('ERR_MODEL_METADATA_FETCH', 'Missing siblings array in HuggingFace API response');
+  if (!modelResponse.ok) {
+    // Narrow unknown: extract the exact error payload from HuggingFace to eliminate guesswork
+    const errorText = await modelResponse.text().catch(() => 'Unknown error');
+    throw new Error(`HuggingFace API returned status ${modelResponse.status} for ${repoId}: ${errorText}`);
   }
 
-  const files: HuggingFaceFileMetadata[] = [];
-  let totalSizeBytes = 0;
-  let isSizeAccurate = true;
+  const modelData = (await modelResponse.json()) as {
+    id: string;
+    pipeline_tag?: string | null;
+    tags?: string[];
+    siblings?: { rfilename: string; size?: number }[];
+  };
 
-  for (const sibling of siblings) {
-    if (typeof sibling !== 'object' || sibling === null) continue;
-    const sib = sibling as Record<string, unknown>;
-    
-    const rfilename = sib.rfilename;
-    if (typeof rfilename !== 'string') continue;
+  const files: HuggingFaceFile[] = (modelData.siblings || []).map((sibling) => ({
+    rfilename: sibling.rfilename,
+    sizeBytes: sibling.size ?? null,
+  }));
 
-    let sizeBytes: number | null = null;
-    if (typeof sib.size === 'number' && Number.isFinite(sib.size)) {
-      sizeBytes = sib.size;
-      totalSizeBytes += sizeBytes;
-    } else {
-      // If any file is missing a size, the total is inaccurate (UI will show "Size unknown")
-      isSizeAccurate = false;
-    }
-
-    files.push({ rfilename, sizeBytes });
-  }
-
-  const pipelineTag = typeof obj.pipeline_tag === 'string' ? obj.pipeline_tag : null;
-  const tags = Array.isArray(obj.tags) ? obj.tags.filter((t): t is string => typeof t === 'string') : [];
+  const totalSizeBytes = files.reduce((sum, file) => sum + (file.sizeBytes ?? 0), 0);
+  const isSizeAccurate = files.length > 0 && files.every((file) => file.sizeBytes !== null);
 
   return {
-    repoId,
-    sanitizedModelId,
-    pipelineTag,
-    tags,
+    repoId: modelData.id || repoId,
+    sanitizedModelId: sanitizeModelId(modelData.id || repoId),
+    pipelineTag: modelData.pipeline_tag ?? null,
+    tags: modelData.tags ?? [],
     files,
     totalSizeBytes,
     isSizeAccurate,

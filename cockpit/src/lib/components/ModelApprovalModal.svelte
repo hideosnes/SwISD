@@ -1,8 +1,8 @@
 <!--
 1. Relative path: cockpit/src/lib/components/ModelApprovalModal.svelte
-2. Description: Modal dialog for requesting and approving HuggingFace model downloads with offline degradation.
+2. Description: Modal dialog for requesting and approving HuggingFace model downloads with intelligent variant grouping and offline degradation.
 3. Expects: Open state, onclose callback, and optional initial URL.
-4. Provides: A gated approval flow with metadata preview, capability selection, and risk acknowledgment.
+4. Provides: A gated approval flow with metadata preview, intelligent variant selection, and risk acknowledgment.
 5. SPDX-License-Identifier: MPL-2.0
 6. Copyright (c) 2026 Homahuki GmbH
 -->
@@ -25,15 +25,9 @@
     readonly isSizeAccurate: boolean;
   }
 
-  interface ModelFileDto {
-    readonly path: string;
-    readonly sizeBytes: number;
-    readonly isRequired: boolean;
-  }
-
   interface RequestResponseDto {
     readonly metadata: HuggingFaceMetadataDto;
-    readonly filteredFiles: ReadonlyArray<ModelFileDto>;
+    readonly filteredFiles: ReadonlyArray<{ path: string; sizeBytes: number; isRequired: boolean }>;
     readonly nonce: string;
     readonly degraded: boolean;
   }
@@ -54,7 +48,7 @@
 
   let url = $state('');
   let metadata = $state<HuggingFaceMetadataDto | null>(null);
-  let selectedFiles = $state<ReadonlyArray<string>>([]);
+  let selectedVariants = $state<ReadonlyArray<string>>([]);
   let requiredCapability = $state<Capability>('inference');
   let nonce = $state<string | null>(null);
   
@@ -64,6 +58,98 @@
   let loading = $state(false);
   let error = $state<string | null>(null);
   let submitting = $state(false);
+
+  interface ModelVariant {
+    readonly name: string;
+    readonly description: string;
+    readonly recommended: boolean;
+    readonly files: ReadonlyArray<HuggingFaceFileDto>;
+    readonly totalSizeBytes: number;
+  }
+
+  let variants = $state<ReadonlyArray<ModelVariant>>([]);
+  let supportingFiles = $state<ReadonlyArray<HuggingFaceFileDto>>([]);
+
+  const SUPPORTING_FILE_PATTERNS = [
+    /^config\.json$/i,
+    /^generation_config\.json$/i,
+    /^tokenizer\.json$/i,
+    /^tokenizer_config\.json$/i,
+    /^special_tokens_map\.json$/i,
+    /^added_tokens\.json$/i,
+    /^merges\.txt$/i,
+    /^vocab\.json$/i,
+    /^\.gitattributes$/i,
+    /^README\.md$/i
+  ];
+
+  const KNOWN_QUANTS = [
+    'IQ1_S', 'IQ1_M', 'IQ2_XXS', 'IQ2_XS', 'IQ2_S', 'IQ2_M', 'Q2_K',
+    'IQ3_XXS', 'IQ3_XS', 'IQ3_S', 'IQ3_M', 'Q3_K_S', 'Q3_K_M', 'Q3_K_L',
+    'IQ4_XS', 'IQ4_NL', 'Q4_K_S', 'Q4_K_M', 'Q4_K_L', 'Q4_0', 'Q4_1',
+    'Q5_K_S', 'Q5_K_M', 'Q5_K_L', 'Q5_0', 'Q5_1',
+    'Q6_K', 'Q8_0', 'F16', 'BF16', 'F32'
+  ];
+
+  function getQuantDescription(quant: string): { desc: string; recommended: boolean } {
+    if (quant.includes('Q4')) return { desc: 'Best balance of speed, size, and quality. Highly recommended for most users.', recommended: quant === 'Q4_K_M' || quant === 'Q4_K_S' };
+    if (quant.includes('Q5')) return { desc: 'Near-lossless quality. Slightly larger and slower than Q4. Great for high-fidelity tasks.', recommended: quant === 'Q5_K_M' };
+    if (quant.includes('Q3') || quant.includes('IQ3') || quant.includes('IQ2') || quant.includes('Q2')) return { desc: 'High compression. Noticeable quality loss. Only for severe memory constraints.', recommended: false };
+    if (quant.includes('Q6')) return { desc: 'Excellent quality. Marginal gains over Q5, but larger file size.', recommended: false };
+    if (quant.includes('Q8') || quant.includes('F16') || quant.includes('BF16') || quant.includes('F32')) return { desc: 'Near-original or unquantized quality. Maximum resource usage.', recommended: false };
+    if (quant.includes('IQ4')) return { desc: 'Advanced 4-bit quantization. Excellent quality-to-size ratio.', recommended: true };
+    return { desc: 'Standard model variant.', recommended: false };
+  }
+
+  function categorizeFiles(files: ReadonlyArray<HuggingFaceFileDto>): void {
+    const suppFiles: HuggingFaceFileDto[] = [];
+    const variantMap: Record<string, HuggingFaceFileDto[]> = {};
+
+    for (const file of files) {
+      const isSupporting = SUPPORTING_FILE_PATTERNS.some(pattern => pattern.test(file.rfilename));
+      if (isSupporting) {
+        suppFiles.push(file);
+        continue;
+      }
+
+      if (file.rfilename.toLowerCase().endsWith('.gguf')) {
+        let variantName = 'Default';
+        for (const q of KNOWN_QUANTS) {
+          if (file.rfilename.includes(q)) {
+            variantName = q;
+            break;
+          }
+        }
+        
+        let bucket = variantMap[variantName];
+        if (!bucket) {
+          bucket = [];
+          variantMap[variantName] = bucket;
+        }
+        bucket.push(file);
+      }
+    }
+
+    const parsedVariants = Object.entries(variantMap).map(([name, files]) => {
+      const totalSize = files.reduce((sum, f) => sum + (f.sizeBytes ?? 0), 0);
+      const { desc, recommended } = getQuantDescription(name);
+      return { name, files, totalSizeBytes: totalSize, description: desc, recommended };
+    });
+
+    parsedVariants.sort((a, b) => {
+      if (a.recommended && !b.recommended) return -1;
+      if (!a.recommended && b.recommended) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    variants = parsedVariants;
+    supportingFiles = suppFiles;
+    
+    const recommended = parsedVariants.find(v => v.recommended);
+    if (recommended) {
+      selectedVariants = [recommended.name];
+    }
+  }
 
   $effect(() => {
     if (open) {
@@ -75,7 +161,9 @@
     if (!open) {
       url = '';
       metadata = null;
-      selectedFiles = [];
+      selectedVariants = [];
+      variants = [];
+      supportingFiles = [];
       requiredCapability = 'inference';
       nonce = null;
       degraded = false;
@@ -85,6 +173,31 @@
       submitting = false;
     }
   });
+
+  const selectedFilesWithSize = $derived.by(() => {
+    if (selectedVariants.length === 0) return [];
+    const files: { path: string; sizeBytes: number }[] = [];
+    for (const f of supportingFiles) {
+      if (!files.find(x => x.path === f.rfilename)) {
+        files.push({ path: f.rfilename, sizeBytes: f.sizeBytes ?? 0 });
+      }
+    }
+    for (const variantName of selectedVariants) {
+      const variant = variants.find(v => v.name === variantName);
+      if (variant) {
+        for (const f of variant.files) {
+          if (!files.find(x => x.path === f.rfilename)) {
+            files.push({ path: f.rfilename, sizeBytes: f.sizeBytes ?? 0 });
+          }
+        }
+      }
+    }
+    return files;
+  });
+
+  const totalSelectedSize = $derived(
+    selectedFilesWithSize.reduce((sum, f) => sum + f.sizeBytes, 0)
+  );
 
   async function fetchMetadata(): Promise<void> {
     if (!url.trim()) {
@@ -109,9 +222,10 @@
 
       const data = (await response.json()) as RequestResponseDto;
       metadata = data.metadata;
-      selectedFiles = data.filteredFiles.map((f: ModelFileDto) => f.path);
       nonce = data.nonce;
       degraded = data.degraded;
+      
+      categorizeFiles(data.metadata.files);
       
       if (degraded) {
         error = 'Size unknown — metadata unavailable. HuggingFace API could not be reached.';
@@ -128,8 +242,8 @@
       error = 'Missing approval nonce';
       return;
     }
-    if (!degraded && selectedFiles.length === 0) {
-      error = 'Please select at least one file to download';
+    if (!degraded && selectedFilesWithSize.length === 0) {
+      error = 'Please select at least one model variant to download';
       return;
     }
     if (degraded && !riskAcknowledged) {
@@ -144,7 +258,11 @@
       const response = await fetch('/api/models/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nonce, requiredCapability })
+        body: JSON.stringify({ 
+          nonce, 
+          requiredCapability,
+          selectedFiles: selectedFilesWithSize
+        })
       });
 
       if (!response.ok) {
@@ -160,27 +278,19 @@
     }
   }
 
-  function toggleFile(path: string): void {
-    selectedFiles = selectedFiles.includes(path)
-      ? selectedFiles.filter((f: string) => f !== path)
-      : [...selectedFiles, path];
+  function toggleVariant(name: string): void {
+    selectedVariants = selectedVariants.includes(name)
+      ? selectedVariants.filter(v => v !== name)
+      : [...selectedVariants, name];
   }
 
   function selectAll(): void {
-    if (metadata) {
-      selectedFiles = metadata.files.map((f: HuggingFaceFileDto) => f.rfilename);
-    }
+    selectedVariants = variants.map(v => v.name);
   }
 
   function deselectAll(): void {
-    selectedFiles = [];
+    selectedVariants = [];
   }
-
-  const totalSize = $derived(
-    metadata?.files
-      .filter((f: HuggingFaceFileDto) => selectedFiles.includes(f.rfilename))
-      .reduce((sum: number, f: HuggingFaceFileDto) => sum + (f.sizeBytes ?? 0), 0) ?? 0
-  );
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -194,7 +304,7 @@
     !submitting && 
     nonce !== null && 
     (
-      (!degraded && metadata !== null && selectedFiles.length > 0) || 
+      (!degraded && selectedFilesWithSize.length > 0) || 
       (degraded && riskAcknowledged)
     )
   );
@@ -253,9 +363,9 @@
         <div class="flex justify-between items-start gap-4">
           <h4 class="text-base font-semibold text-text-1 m-0">{metadata.repoId}</h4>
           <div class="flex gap-2 shrink-0">
-            <span class="text-xs text-text-2 px-2 py-1 bg-[var(--surface-2)] rounded-xs">{metadata.files.length} files</span>
+            <span class="text-xs text-text-2 px-2 py-1 bg-[var(--surface-2)] rounded-xs">{variants.length} variants</span>
             <span class="text-xs text-text-2 px-2 py-1 bg-[var(--surface-2)] rounded-xs">
-              {metadata.isSizeAccurate ? formatBytes(totalSize) : 'Size unknown'} selected
+              {metadata.isSizeAccurate ? formatBytes(totalSelectedSize) : 'Size unknown'} selected
             </span>
           </div>
         </div>
@@ -265,26 +375,47 @@
           <button type="button" class="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-2)] bg-transparent border border-[var(--accent-2)] rounded-sm cursor-pointer hover:bg-[rgba(0,255,200,0.1)] transition-colors" onclick={deselectAll}>Deselect All</button>
         </div>
 
-        <fieldset class="flex flex-col gap-1 max-h-[300px] overflow-y-auto p-1 -m-1 border-0" aria-label="Model files">
-          {#each metadata.files as file (file.rfilename)}
-            <label class="flex items-center gap-4 px-3 py-2 rounded-xs cursor-pointer hover:bg-[var(--surface-2)] transition-colors">
-              <input
-                type="checkbox"
-                checked={selectedFiles.includes(file.rfilename)}
-                onchange={() => toggleFile(file.rfilename)}
-                class="w-4 h-4 cursor-pointer accent-[var(--accent)]"
-              />
-              <div class="flex justify-between items-center flex-1 gap-4">
-                <span class="font-mono text-xs text-text-1 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{file.rfilename}</span>
-                <span class="text-[11px] text-text-3 shrink-0">
-                  {file.sizeBytes != null ? formatBytes(file.sizeBytes) : '—'}
-                </span>
-              </div>
-            </label>
-          {/each}
-        </fieldset>
+        {#if variants.length === 0}
+          <div class="p-4 text-sm text-text-2 text-center border border-dashed border-[var(--border)] rounded-sm">
+            No GGUF model files found in this repository.
+          </div>
+        {:else}
+          <div class="flex flex-col gap-2 max-h-[300px] overflow-y-auto p-1 -m-1" role="group" aria-label="Model variants">
+            {#each variants as variant (variant.name)}
+              <label class="flex items-start gap-4 px-4 py-3 rounded-xs cursor-pointer hover:bg-[var(--surface-2)] transition-colors border border-transparent hover:border-[var(--border)]">
+                <input
+                  type="checkbox"
+                  checked={selectedVariants.includes(variant.name)}
+                  onchange={() => toggleVariant(variant.name)}
+                  class="w-4 h-4 mt-1 cursor-pointer accent-[var(--accent)]"
+                />
+                <div class="flex flex-col flex-1 gap-1">
+                  <div class="flex justify-between items-center">
+                    <span class="font-mono text-sm font-semibold text-text-1">{variant.name}</span>
+                    {#if variant.recommended}
+                      <StatusPill status="accent" label="Recommended" />
+                    {/if}
+                  </div>
+                  <p class="text-xs text-text-2">{variant.description}</p>
+                  <div class="flex items-center gap-3 text-[11px] text-text-3">
+                    <span>{variant.files.length} file{variant.files.length > 1 ? 's' : ''}</span>
+                    <span>•</span>
+                    <span>{formatBytes(variant.totalSizeBytes)}</span>
+                  </div>
+                </div>
+              </label>
+            {/each}
+          </div>
 
-        <fieldset class="flex flex-col gap-2 border-0 p-0 m-0" aria-label="Required capability">
+          <div class="pt-2 border-t border-[var(--border)]">
+            <p class="text-xs text-text-3 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+              Selecting a variant automatically includes all required supporting files (config, tokenizer, etc.).
+            </p>
+          </div>
+        {/if}
+
+        <fieldset class="flex flex-col gap-2 border-0 p-0 m-0 pt-2" aria-label="Required capability">
           <legend class="text-[11px] font-semibold tracking-widest uppercase text-text-2">Required Capability</legend>
           <div class="flex gap-4">
             {#each ['inference', 'embedding', 'vision'] as cap (cap)}

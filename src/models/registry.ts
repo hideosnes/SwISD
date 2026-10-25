@@ -1,7 +1,9 @@
 // 1. Relative path: src/models/registry.ts
 // 2. Description: Persistent, CRDT-backed registry for approved AI models.
 // 3. Expects: A delivery root path and signed ModelManifests.
-// 4. Provides: A strictly typed, append-only library that survives restarts.
+// 4. Provides: A strictly typed, append-only library that survives restarts, with safe removal.
+// 5. SPDX-License-Identifier: MPL-2.0
+// 6. Copyright (c) 2026 Homahuki GmbH
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -59,6 +61,12 @@ export class ModelRegistry {
   public async add(manifest: ModelManifest): Promise<void> {
     this.models.set(manifest.modelId, manifest);
     await this.persist();
+  }
+
+  public async remove(modelId: string): Promise<void> {
+    if (this.models.delete(modelId)) {
+      await this.persist();
+    }
   }
 
   public getAll(): ReadonlyArray<ModelManifest> {

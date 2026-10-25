@@ -51,11 +51,11 @@ export class ModelDownloader extends EventEmitter {
     const controller = new AbortController();
     this.activeDownloads.set(modelId, controller);
 
-    const totalBytes = selectedFiles.reduce((sum, f) => sum + f.sizeBytes, 0);
-    this.emitProgress(modelId, 0, totalBytes, 0, 'downloading');
+    const initialTotalBytes = selectedFiles.reduce((sum, f) => sum + f.sizeBytes, 0);
+    this.emitProgress(modelId, 0, initialTotalBytes, 0, 'downloading');
 
     try {
-      const combinedStream = this.createCombinedHfStream(repoId, selectedFiles, controller.signal, totalBytes);
+      const combinedStream = this.createCombinedHfStream(repoId, selectedFiles, controller.signal, initialTotalBytes);
       
       const manifest = await ingestModelStream({
         source: combinedStream,
@@ -67,10 +67,10 @@ export class ModelDownloader extends EventEmitter {
       });
 
       await this.registry.add(manifest);
-      this.emitProgress(modelId, totalBytes, totalBytes, 0, 'completed');
+      this.emitProgress(modelId, initialTotalBytes, initialTotalBytes, 0, 'completed');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.emitProgress(modelId, 0, totalBytes, 0, 'failed', msg);
+      this.emitProgress(modelId, 0, initialTotalBytes, 0, 'failed', msg);
     } finally {
       this.activeDownloads.delete(modelId);
     }
@@ -91,11 +91,12 @@ export class ModelDownloader extends EventEmitter {
     repoId: string,
     files: ReadonlyArray<ModelFile>,
     signal: AbortSignal,
-    totalBytes: number
+    initialTotalBytes: number
   ): AsyncIterable<Uint8Array> {
     let totalDownloaded = 0;
     let lastTime = Date.now();
     let lastBytes = 0;
+    let dynamicTotalBytes = initialTotalBytes;
 
     const token = this.credentialManager.getHuggingFaceToken();
     const headers: Record<string, string> = { 'Accept': 'application/octet-stream' };
@@ -107,8 +108,23 @@ export class ModelDownloader extends EventEmitter {
       const url = `https://huggingface.co/${repoId}/resolve/main/${file.path}`;
       const response = await fetch(url, { signal, headers });
       
+      if (!response.ok) {
+        throw new SwISDError('ERR_MODEL_DOWNLOAD_FAILED', `Failed to fetch ${file.path}: ${response.status} ${response.statusText}`);
+      }
+
       if (!response.body) {
         throw new SwISDError('ERR_MODEL_DOWNLOAD_FAILED', `No body for ${file.path}`);
+      }
+
+      // Self-correcting total: read Content-Length to fix the totalBytes: 0 blindness
+      const contentLength = response.headers.get('content-length');
+      const fileSize = contentLength ? parseInt(contentLength, 10) : file.sizeBytes;
+      
+      if (!isNaN(fileSize) && fileSize > 0) {
+        // If we started with 0 total bytes, or if actual files are larger than metadata suggested
+        if (dynamicTotalBytes < totalDownloaded + fileSize) {
+          dynamicTotalBytes = totalDownloaded + fileSize;
+        }
       }
 
       const reader = response.body.getReader();
@@ -123,7 +139,7 @@ export class ModelDownloader extends EventEmitter {
           const elapsed = now - lastTime;
           if (elapsed > 500) {
             const throughput = ((totalDownloaded - lastBytes) / elapsed) * 1000;
-            this.emitProgress(repoId.replace(/\//g, '--'), totalDownloaded, totalBytes, throughput, 'downloading');
+            this.emitProgress(repoId.replace(/\//g, '--'), totalDownloaded, dynamicTotalBytes, throughput, 'downloading');
             lastTime = now;
             lastBytes = totalDownloaded;
           }

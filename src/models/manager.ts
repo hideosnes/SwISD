@@ -14,18 +14,11 @@ import type { ModelRegistry } from './registry.js';
 import type { ModelManifest } from './schema.js';
 import { SwISDError } from '../errors.js';
 
-/**
- * The abstract contract for a loaded pipeline instance. 
- * Executors must implement this to be managed by the Model Manager.
- */
 export interface PipelineInstance {
   readonly modelId: string;
   dispose(): Promise<void> | void;
 }
 
-/**
- * Internal state tracking for LRU and concurrency protection.
- */
 interface PipelineState {
   readonly manifest: ModelManifest;
   readonly instance: PipelineInstance;
@@ -34,10 +27,6 @@ interface PipelineState {
   activeTasks: number;
 }
 
-/**
- * The RAII handle returned to callers. Guarantees safe release.
- * Callers must invoke `release()` when the pipeline is no longer needed.
- */
 export class PipelineHandle {
   constructor(
     private readonly manager: ModelManager,
@@ -47,24 +36,20 @@ export class PipelineHandle {
 
   public release(): void {
     this.manager.release(this.manifest.modelId);
-    Object.freeze(this); // Prevent further use after release
+    Object.freeze(this);
   }
 }
 
 export class ModelManager {
   private readonly pipelines = new Map<string, PipelineState>();
   private readonly loadingPromises = new Map<string, Promise<PipelineState>>();
-  private readonly STORAGE_WATERMARK_RATIO = 0.90; // 90% disk usage triggers eviction
+  private readonly STORAGE_WATERMARK_RATIO = 0.90;
 
   constructor(
     private readonly registry: ModelRegistry,
     private readonly deliveryRoot: string
   ) {}
 
-  /**
-   * Beautifully elegant local validation.
-   * Verifies not just the manifest, but the existence of every critical chunk.
-   */
   public async checkModelExistsLocally(modelId: string): Promise<boolean> {
     const manifest = this.registry.getById(modelId);
     if (!manifest) return false;
@@ -74,7 +59,6 @@ export class ModelManager {
 
     if (!existsSync(manifestPath)) return false;
 
-    // Ruthless verification: ensure all expected chunks exist on disk
     for (let i = 0; i < manifest.totalChunks; i++) {
       const chunkName = `chunk_${i.toString().padStart(4, '0')}.bin`;
       if (!existsSync(join(modelDir, chunkName))) {
@@ -85,17 +69,12 @@ export class ModelManager {
     return true;
   }
 
-  /**
-   * Acquires a pipeline handle. 
-   * Handles lazy initialization, promise deduplication, and active-task tracking.
-   */
   public async acquire(modelId: string): Promise<PipelineHandle> {
     const manifest = this.registry.getById(modelId);
     if (!manifest) {
       throw new SwISDError('ERR_MODEL_NOT_FOUND', `Model ${modelId} not in registry`);
     }
 
-    // 1. Check if already loaded
     const existing = this.pipelines.get(modelId);
     if (existing) {
       existing.activeTasks += 1;
@@ -103,7 +82,6 @@ export class ModelManager {
       return new PipelineHandle(this, manifest, existing.instance);
     }
 
-    // 2. Promise deduplication: if already loading, wait for it
     const existingLoad = this.loadingPromises.get(modelId);
     if (existingLoad) {
       const state = await existingLoad;
@@ -112,7 +90,6 @@ export class ModelManager {
       return new PipelineHandle(this, manifest, state.instance);
     }
 
-    // 3. Lazy initialization
     const loadPromise = this.loadPipeline(modelId, manifest);
     this.loadingPromises.set(modelId, loadPromise);
 
@@ -124,26 +101,18 @@ export class ModelManager {
     }
   }
 
-  /**
-   * Releases a pipeline handle. Decrements active tasks.
-   * If active tasks reach 0, the pipeline becomes eligible for LRU eviction.
-   */
   public release(modelId: string): void {
     const state = this.pipelines.get(modelId);
-    if (!state) return; // Already disposed or never loaded
+    if (!state) return;
 
     state.activeTasks -= 1;
     state.lastAccessed = Date.now();
 
     if (state.activeTasks <= 0) {
-      state.activeTasks = 0; // Clamp to prevent negative values from buggy releases
+      state.activeTasks = 0;
     }
   }
 
-  /**
-   * Explicitly disposes a pipeline. 
-   * Will throw if the pipeline is currently executing tasks (activeTasks > 0).
-   */
   public async dispose(modelId: string): Promise<void> {
     const state = this.pipelines.get(modelId);
     if (!state) return;
@@ -159,10 +128,36 @@ export class ModelManager {
     this.pipelines.delete(modelId);
   }
 
-  /**
-   * Enforces local storage watermarks. 
-   * If disk usage exceeds 90%, evicts the oldest IDLE model from disk.
-   */
+  public async deleteModel(modelId: string): Promise<void> {
+    const manifest = this.registry.getById(modelId);
+    if (!manifest) {
+      throw new SwISDError('ERR_MODEL_NOT_FOUND', `Model ${modelId} not found in registry`);
+    }
+
+    const state = this.pipelines.get(modelId);
+    if (state && state.activeTasks > 0) {
+      throw new SwISDError(
+        'ERR_MODEL_IN_USE', 
+        `Cannot delete model ${modelId}: ${state.activeTasks} active task(s) are currently executing.`
+      );
+    }
+
+    if (state) {
+      await state.instance.dispose();
+      this.pipelines.delete(modelId);
+    }
+
+    const modelDir = join(this.deliveryRoot, 'models', modelId);
+    try {
+      await rm(modelDir, { recursive: true, force: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new SwISDError('ERR_DELETION_FAILED', `Failed to delete model directory ${modelId}: ${msg}`, err);
+    }
+
+    await this.registry.remove(modelId);
+  }
+
   public async enforceStorageWatermark(): Promise<void> {
     let stats: import('node:fs').StatsFs;
     try {
@@ -175,7 +170,7 @@ export class ModelManager {
     const totalBytes = Number(stats.bsize) * Number(stats.blocks);
     const freeBytes = Number(stats.bsize) * Number(stats.bfree);
     
-    if (totalBytes === 0) return; // Safety fallback
+    if (totalBytes === 0) return;
 
     const usedBytes = totalBytes - freeBytes;
     const usageRatio = usedBytes / totalBytes;
@@ -185,20 +180,14 @@ export class ModelManager {
     }
   }
 
-  // --- Private Methods ---
-
   private async loadPipeline(modelId: string, manifest: ModelManifest): Promise<PipelineState> {
     if (!(await this.checkModelExistsLocally(modelId))) {
       throw new SwISDError('ERR_MODEL_CORRUPT', `Model ${modelId} is missing chunks on disk`);
     }
 
-    // TODO: Inject actual executor instantiation here based on manifest.requiredCapability.
-    // For now, we return a mock instance that satisfies the PipelineInstance contract.
     const instance: PipelineInstance = {
       modelId,
-      dispose: async () => {
-        // Actual framework teardown (e.g., tensor memory release) goes here
-      }
+      dispose: async () => {}
     };
 
     const state: PipelineState = {
@@ -206,7 +195,7 @@ export class ModelManager {
       instance,
       loadedAt: Date.now(),
       lastAccessed: Date.now(),
-      activeTasks: 1, // Acquire immediately increments this
+      activeTasks: 1,
     };
 
     this.pipelines.set(modelId, state);
@@ -216,7 +205,6 @@ export class ModelManager {
   private async evictOldestIdleModelFromDisk(): Promise<void> {
     const allModels = this.registry.getAll();
     
-    // Filter to ONLY idle models (not in memory, or in memory with activeTasks === 0)
     const idleModels = allModels.filter(m => {
       const state = this.pipelines.get(m.modelId);
       return !state || state.activeTasks === 0;
@@ -226,7 +214,6 @@ export class ModelManager {
       throw new SwISDError('ERR_STORAGE_FULL', 'Storage watermark breached, but all models are actively executing. Cannot evict.');
     }
 
-    // Sort by lastAccessed ascending (oldest first)
     idleModels.sort((a, b) => {
       const stateA = this.pipelines.get(a.modelId);
       const stateB = this.pipelines.get(b.modelId);
@@ -241,18 +228,14 @@ export class ModelManager {
     const modelDir = join(this.deliveryRoot, 'models', victim.modelId);
     
     try {
-      // 1. Remove from memory if present
       const state = this.pipelines.get(victim.modelId);
       if (state) {
         await state.instance.dispose();
         this.pipelines.delete(victim.modelId);
       }
 
-      // 2. Ruthlessly delete from disk
       await rm(modelDir, { recursive: true, force: true });
-
-      // Note: In a full CRDT setup, this would emit a tombstone to the ModelRegistryCRDT.
-      // For local registry management, the missing chunks will cause checkModelExistsLocally to fail next time.
+      await this.registry.remove(victim.modelId);
       
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
