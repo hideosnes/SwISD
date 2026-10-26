@@ -10,10 +10,10 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import './layout.css';
-  import { Icon, ThemeToggle } from '$lib/components/ui';
-  import { themeStore } from '$lib';
-  import SessionLockOverlay from '$lib/components/SessionLockOverlay.svelte';
-  import KeystoneLossBanner from '$lib/components/KeystoneLossBanner.svelte';
+  import { Icon, ThemeToggle } from '#lib/components/ui';
+  import { themeStore } from '#lib';
+  import SessionLockOverlay from '#lib/components/SessionLockOverlay.svelte';
+  import KeystoneLossBanner from '#lib/components/KeystoneLossBanner.svelte';
 
   let { children }: { children: Snippet } = $props();
 

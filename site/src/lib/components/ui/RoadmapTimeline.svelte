@@ -5,7 +5,7 @@
 4. Provides: Centered timeline; lime spine-fill propagating up through completed work into the current node; date-over-title leaves; modal-triggering circles and leaves.
 -->
 <script lang="ts">
-  import type { RoadmapEntry } from '$lib/content/roadmap';
+  import type { RoadmapEntry } from '#lib/content/roadmap';
 
   let {
     entries,

@@ -7,7 +7,7 @@
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
 
-import type { Handle } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 import {
 	ObservabilityEventBus,
 	createDevObservabilitySource,
@@ -29,9 +29,9 @@ import {
 import { Keystone, BondAnchor } from '$core/ownership/index.js';
 import { CredentialManager } from '$core/config/credentials.js';
 import { parsePeerRole } from '$core/utils.js';
-import { startCockpitDiscovery } from '$lib/server/discovery.js';
-import { ConductorIdentity } from '$lib/server/conductorIdentity.js';
-import { SessionLock } from '$lib/server/sessionLock.js';
+import { startCockpitDiscovery } from '#lib/server/discovery.js';
+import { ConductorIdentity } from '#lib/server/conductorIdentity.js';
+import { SessionLock } from '#lib/server/sessionLock.js';
 import { join } from 'node:path';
 
 const eventBus = new ObservabilityEventBus(500);
@@ -201,7 +201,8 @@ const downloadProgress = g.__swisd_downloadProgress;
 // --- END PROGRESS TELEMETRY ---
 
 export const handle: Handle = async ({ event, resolve }) => {
-	event.locals = {
+	// Kit 3 made event.locals read-only: populate via mutation, never reassign.
+	Object.assign(event.locals, {
 		coreSource,
 		eventBus,
 		trustRegistry,
@@ -221,7 +222,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		credentialManager,
 		peerId,
 		deliveryRoot
-	};
+	});
 
 	if (sessionLock.isLocked() && !event.url.pathname.startsWith('/api/session')) {
 		return new Response(JSON.stringify({ error: 'Session locked' }), {

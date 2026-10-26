@@ -9,7 +9,7 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { getDiscoveredNodes } from '$lib/server/index.js';
+import { getDiscoveredNodes } from '#lib/server/index.js';
 
 export const POST: RequestHandler = async ({ params }) => {
   const { peerId } = params;

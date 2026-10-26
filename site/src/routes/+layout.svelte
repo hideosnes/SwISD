@@ -6,9 +6,9 @@
 -->
 <script lang="ts">
   import './layout.css';
-  import favicon from '$lib/assets/favicon.ico';
-  import { TopNav, Footer } from '$lib/components/ui';
-  import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
+  import favicon from '#lib/assets/favicon.ico';
+  import { TopNav, Footer } from '#lib/components/ui';
+  import ToastContainer from '#lib/components/ui/ToastContainer.svelte';
   import { page } from '$app/state';
 
   let { children } = $props();

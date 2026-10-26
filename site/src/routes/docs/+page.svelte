@@ -5,7 +5,7 @@
 4. Provides: A placeholder documentation interface with empty filters and a coming soon disclaimer.
 -->
 <script lang="ts">
-  import { MultiSelect } from '$lib/components/ui';
+  import { MultiSelect } from '#lib/components/ui';
 </script>
 
 <svelte:head>

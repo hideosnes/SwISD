@@ -8,8 +8,8 @@
 -->
 
 <script lang="ts">
-  import { PageShell, Panel, ThemeToggle, Button, TextField, StatusPill } from '$lib/components/ui';
-  import { THEMES, themeStore } from '$lib';
+  import { PageShell, Panel, ThemeToggle, Button, TextField, StatusPill } from '#lib/components/ui';
+  import { THEMES, themeStore } from '#lib';
   
   let hfToken = $state('');
   let hfStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');

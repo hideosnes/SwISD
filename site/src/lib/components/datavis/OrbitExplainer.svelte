@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { Tabs } from '$lib/components/ui';
+  import { Tabs } from '#lib/components/ui';
   import type { Rundown, OrbitActorId } from './types';
   import { computeOrbitLayout, ORBIT_VIEWBOX } from './layout';
 

@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import type { PageData } from './$types';
-  import { MultiSelect } from '$lib/components/ui';
+  import { MultiSelect } from '#lib/components/ui';
 
   let { data }: { data: PageData } = $props();
   

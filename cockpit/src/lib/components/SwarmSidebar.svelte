@@ -6,10 +6,10 @@
 -->
 <script lang="ts">
   import type { ObservabilityEvent } from '$core/observability/index.js';
-  import type { TopologyPeerDTO } from '$lib/server/index.js';
-  import { Badge, EmptyState, StatusPill } from '$lib/components/ui/index.js';
-  import { trustToStatus } from '$lib/adapters/index.js';
-  import { getPinnedPeerIds, togglePin } from '$lib/pins.svelte.js';
+  import type { TopologyPeerDTO } from '#lib/server/index.js';
+  import { Badge, EmptyState, StatusPill } from '#lib/components/ui/index.js';
+  import { trustToStatus } from '#lib/adapters/index.js';
+  import { getPinnedPeerIds, togglePin } from '#lib/pins.svelte.js';
 
   interface Props {
     peers: ReadonlyArray<TopologyPeerDTO>;

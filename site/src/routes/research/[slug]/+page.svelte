@@ -6,8 +6,8 @@
 -->
 <script lang="ts">
   import type { PageData } from './$types';
-  import { StatsChart } from '$lib/components/datavis';
-  import { Arrow } from '$lib/components/ui';
+  import { StatsChart } from '#lib/components/datavis';
+  import { Arrow } from '#lib/components/ui';
 
   let { data }: { data: PageData } = $props();
   

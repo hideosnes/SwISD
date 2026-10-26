@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { SwarmTopologyDTO } from '$lib/server/index.js';
+  import type { SwarmTopologyDTO } from '#lib/server/index.js';
   
   // FIXED: Import layout functions from layout.js, and types from types.js
   import { computeOrbitalLayout, defaultOrbitalConfig } from './layout.js';

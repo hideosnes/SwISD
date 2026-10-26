@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { scaleLinear } from 'd3-scale';
-  import type { ChartDataPoint } from '$lib/content/schema';
+  import type { ChartDataPoint } from '#lib/content/schema';
 
   interface Props {
     data: ChartDataPoint[];

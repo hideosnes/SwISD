@@ -5,8 +5,8 @@
 4. Provides: An immersive, gradient-framed hero section followed by a strictly typed, interactive timeline.
 -->
 <script lang="ts">
-  import { RoadmapTimeline, RoadmapModal, Arrow } from '$lib/components/ui';
-  import { roadmapEntries, type RoadmapEntry } from '$lib/content/roadmap';
+  import { RoadmapTimeline, RoadmapModal, Arrow } from '#lib/components/ui';
+  import { roadmapEntries, type RoadmapEntry } from '#lib/content/roadmap';
 
   let selectedEntry = $state<RoadmapEntry | null>(null);
   let modalOpen = $state(false);

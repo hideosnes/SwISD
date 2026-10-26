@@ -9,7 +9,7 @@
 
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { getDiscoveredNodes } from '$lib/server/index.js';
+import { getDiscoveredNodes } from '#lib/server/index.js';
 
 interface UpdateRequestBody {
   readonly peerId?: string;

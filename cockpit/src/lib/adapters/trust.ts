@@ -3,8 +3,8 @@
 // 3. Expects: TopologyTrustState values from the BFF topology DTO.
 // 4. Provides: trustToStatus() returning the primitive's Status union.
 
-import type { TopologyTrustState } from '$lib/server/index.js';
-import type { Status } from '$lib/components/ui/index.js';
+import type { TopologyTrustState } from '#lib/server/index.js';
+import type { Status } from '#lib/components/ui/index.js';
 
 export function trustToStatus(state: TopologyTrustState): Status {
   switch (state) {

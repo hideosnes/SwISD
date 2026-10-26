@@ -8,20 +8,20 @@
 -->
 <script lang="ts">
   import type { SwarmSnapshot } from '$core/observability/index.js';
-  import type { SwarmTopologyDTO } from '$lib/server/index.js';
-  import { TopologyCanvas } from '$lib/components/datavis/index.js';
-  import { Badge, Button, Card, EmptyState, Modal, PageShell, Stat, StatusPill, Tabs, type TabDefinition } from '$lib/components/ui/index.js';
-  import { isPinned, togglePin } from '$lib/pins.svelte.js';
+  import type { SwarmTopologyDTO } from '#lib/server/index.js';
+  import { TopologyCanvas } from '#lib/components/datavis/index.js';
+  import { Badge, Button, Card, EmptyState, Modal, PageShell, Stat, StatusPill, Tabs, type TabDefinition } from '#lib/components/ui/index.js';
+  import { isPinned, togglePin } from '#lib/pins.svelte.js';
 
-  import DiscoveryPanel from '$lib/components/DiscoveryPanel.svelte';
-  import StageView from '$lib/components/StageView.svelte';
-  import EngineRoomView from '$lib/components/EngineRoomView.svelte';
-  import SwarmSidebar from '$lib/components/SwarmSidebar.svelte';
-  import CommandQueue from '$lib/components/CommandQueue.svelte';
-  import ReplayControlModal from '$lib/components/ReplayControlModal.svelte';
-  import FoundingModal from '$lib/components/FoundingModal.svelte';
-  import RecoveryPhraseDisplay from '$lib/components/RecoveryPhraseDisplay.svelte';
-  import NodeDetailModal from '$lib/components/NodeDetailModal.svelte';
+  import DiscoveryPanel from '#lib/components/DiscoveryPanel.svelte';
+  import StageView from '#lib/components/StageView.svelte';
+  import EngineRoomView from '#lib/components/EngineRoomView.svelte';
+  import SwarmSidebar from '#lib/components/SwarmSidebar.svelte';
+  import CommandQueue from '#lib/components/CommandQueue.svelte';
+  import ReplayControlModal from '#lib/components/ReplayControlModal.svelte';
+  import FoundingModal from '#lib/components/FoundingModal.svelte';
+  import RecoveryPhraseDisplay from '#lib/components/RecoveryPhraseDisplay.svelte';
+  import NodeDetailModal from '#lib/components/NodeDetailModal.svelte';
   
   let snapshot = $state<SwarmSnapshot | null>(null);
   let topology = $state<SwarmTopologyDTO | null>(null);

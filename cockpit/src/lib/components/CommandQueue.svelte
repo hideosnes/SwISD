@@ -7,8 +7,8 @@
 6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
-  import type { TopologyPeerDTO } from '$lib/server/index.js';
-  import { Button, Drawer, EmptyState, StatusPill } from '$lib/components/ui/index.js';
+  import type { TopologyPeerDTO } from '#lib/server/index.js';
+  import { Button, Drawer, EmptyState, StatusPill } from '#lib/components/ui/index.js';
 
   interface Props {
     open: boolean;

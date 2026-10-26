@@ -8,16 +8,16 @@
   import SwarmNode from './SwarmNode.svelte';
   import GhostNode from './GhostNode.svelte';
   import type { LaidOutPeer, DeviceType, OrbitalRingKind } from '../types.js';
-  import type { TopologyPeerDTO } from '$lib/server/topology.js';
+  import type { TopologyPeerDTO } from '#lib/server/topology.js';
 
-  import raspiIcon from '$lib/assets/icons/device-raspi.svg?raw';
-  import arduinoIcon from '$lib/assets/icons/device-arduino.svg?raw';
-  import androidIcon from '$lib/assets/icons/device-android.svg?raw';
-  import iosIcon from '$lib/assets/icons/device-ios.svg?raw';
-  import windowsIcon from '$lib/assets/icons/device-windows.svg?raw';
-  import linuxIcon from '$lib/assets/icons/device-linux.svg?raw';
-  import appleIcon from '$lib/assets/icons/device-apple.svg?raw';
-  import unknownIcon from '$lib/assets/icons/device-unknown.svg?raw';
+  import raspiIcon from '#lib/assets/icons/device-raspi.svg?raw';
+  import arduinoIcon from '#lib/assets/icons/device-arduino.svg?raw';
+  import androidIcon from '#lib/assets/icons/device-android.svg?raw';
+  import iosIcon from '#lib/assets/icons/device-ios.svg?raw';
+  import windowsIcon from '#lib/assets/icons/device-windows.svg?raw';
+  import linuxIcon from '#lib/assets/icons/device-linux.svg?raw';
+  import appleIcon from '#lib/assets/icons/device-apple.svg?raw';
+  import unknownIcon from '#lib/assets/icons/device-unknown.svg?raw';
 
   const SPECIMEN = 120;
 

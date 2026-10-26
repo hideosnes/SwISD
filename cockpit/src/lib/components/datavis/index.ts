@@ -16,7 +16,7 @@ export type {
   SwarmTopologyDTO,
   TopologyPeerDTO,
   TopologyTrustState,
-} from '$lib/server/index.js';
+} from '#lib/server/index.js';
 
 export { default as TopologyCanvas } from './topology/TopologyCanvas.svelte';
 export { default as SwarmNode } from './topology/SwarmNode.svelte';

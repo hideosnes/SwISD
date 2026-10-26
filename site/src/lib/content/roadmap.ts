@@ -4,7 +4,7 @@
  * 3. Expects: Strictly typed roadmap entries; lazy artwork pool from the assets barrel.
  * 4. Provides: The single source of truth for the project timeline plus random, lazy artwork resolution.
  */
-import { roadmapArtworkLoaders } from '$lib/assets';
+import { roadmapArtworkLoaders } from '#lib/assets';
 
 export type RoadmapStatus = 'done' | 'current' | 'open';
 export type RoadmapType = 'milestone' | 'step';

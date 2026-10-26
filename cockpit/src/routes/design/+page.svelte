@@ -25,17 +25,17 @@
     Icon,
     Stat,
     EmptyState
-  } from '$lib/components/ui';
+  } from '#lib/components/ui';
 
-  import type { SwarmTopologyDTO } from '$lib/server/index.js';
+  import type { SwarmTopologyDTO } from '#lib/server/index.js';
   import {
     GhostNode,
     SwarmNode,
     TrustRing,
     computeOrbitalLayout,
     defaultOrbitalConfig
-  } from '$lib/components/datavis';
-  import { TopologyAnatomyBench } from '$lib/components/datavis';
+  } from '#lib/components/datavis';
+  import { TopologyAnatomyBench } from '#lib/components/datavis';
 
   let modalOpen = $state(false);
   let drawerOpen = $state(false);

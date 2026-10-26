@@ -5,7 +5,7 @@
 4. Provides: Fixed-position rendering of all active toast notifications, strictly stacked vertically with proper spacing, guaranteed above the TopNav.
 -->
 <script lang="ts">
-	import { uiStore } from '$lib/stores/ui.svelte.js';
+	import { uiStore } from '#lib/stores/ui.svelte.js';
 	import Toast from './Toast.svelte';
 </script>
 

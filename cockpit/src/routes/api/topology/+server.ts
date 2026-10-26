@@ -9,7 +9,7 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { buildSwarmTopology, type TopologyPeerInput, getDiscoveredNodes } from '$lib/server/index.js';
+import { buildSwarmTopology, type TopologyPeerInput, getDiscoveredNodes } from '#lib/server/index.js';
 
 export const GET: RequestHandler = async ({ locals }) => {
   const processInfo = locals.coreSource.getProcessInfo();

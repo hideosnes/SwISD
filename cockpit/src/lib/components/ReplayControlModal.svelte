@@ -5,7 +5,7 @@
 4. Provides: A modal control surface to play, pause, and adjust speed of the replay engine.
 -->
 <script lang="ts">
-  import { Button, Modal, Tabs, type TabDefinition } from '$lib/components/ui/index.js';
+  import { Button, Modal, Tabs, type TabDefinition } from '#lib/components/ui/index.js';
 
   let { open, onclose }: { open: boolean; onclose: () => void } = $props();
 

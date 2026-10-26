@@ -7,7 +7,7 @@
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
 
-import type { DeviceType, ModalityCode } from '$lib/components/datavis/types.js';
+import type { DeviceType, ModalityCode } from '#lib/components/datavis/types.js';
 
 export type TopologyTrustState = 'pending' | 'trusted' | 'rejected';
 export type TopologyPresenceState = 'online' | 'offline';

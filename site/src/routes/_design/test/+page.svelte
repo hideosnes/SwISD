@@ -5,7 +5,7 @@
 4. Provides: A fully annotated, 1:1 structural clone of the knowledge detail page to inform styling decisions.
 -->
 <script lang="ts">
-  import { Arrow } from '$lib/components/ui';
+  import { Arrow } from '#lib/components/ui';
 
   const entry = {
     title: "Marketing Harm as Honesty: The Rhetorical Strategy of 'Uncensored' AI",

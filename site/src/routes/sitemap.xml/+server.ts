@@ -6,8 +6,8 @@
  * 5. SPDX-License-Identifier: MPL-2.0
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
-import { loadAllKnowledgeEntries } from '$lib/content/loader';
-import { cases } from '$lib/content/cases';
+import { loadAllKnowledgeEntries } from '#lib/content/loader';
+import { cases } from '#lib/content/cases';
 
 // Explicitly command the static adapter to prerender this standalone API endpoint
 export const prerender = true;

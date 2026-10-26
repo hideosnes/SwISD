@@ -9,15 +9,15 @@
     Arrow, Badge, Button, Card, CaseCard, CodeBlock, FilterChip, LogoGallery, 
     ManifestoList, Modal, MultiSelect, RoadmapModal, RoadmapTimeline, SegmentedControl, 
     SwarmCanvas, Tabs, Tag, TextField, type LogoGalleryGroup 
-  } from '$lib/components/ui';
-  import { OrbitExplainer, type Rundown } from '$lib/components/datavis';
-  import { roadmapEntries } from '$lib/content/roadmap';
-  import { cases } from '$lib/content/cases';
-  import { uiStore } from '$lib/stores/ui.svelte.js';
+  } from '#lib/components/ui';
+  import { OrbitExplainer, type Rundown } from '#lib/components/datavis';
+  import { roadmapEntries } from '#lib/content/roadmap';
+  import { cases } from '#lib/content/cases';
+  import { uiStore } from '#lib/stores/ui.svelte.js';
   import { 
     huggingfaceLogo, nodejsLogo, webgpuLogo, ffgLogo, hpcjuLogo, 
     stsbgLogo, kupfLogo, monochromLogo, swisdLogo 
-  } from '$lib/assets';
+  } from '#lib/assets';
 
   let isModalOpen = $state(false);
   let segmentedValue = $state<'dev' | 'exec'>('dev');

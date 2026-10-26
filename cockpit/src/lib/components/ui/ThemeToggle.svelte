@@ -6,7 +6,7 @@
 -->
 
 <script lang="ts">
-  import type { Regime } from '$lib';
+  import type { Regime } from '#lib';
 
   let {
     regime,

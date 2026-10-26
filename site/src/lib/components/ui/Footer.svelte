@@ -6,13 +6,13 @@
 -->
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import type { SubmitFunction } from '@sveltejs/kit';
+  import type { SubmitFunction } from '$app/forms';
   import Arrow from './Arrow.svelte';
   import Button from './Button.svelte';
   import Modal from './Modal.svelte';
-  import { swisdLogo } from '$lib/assets';
+  import { swisdLogo } from '#lib/assets';
   import { page } from '$app/state';
-  import { uiStore } from '$lib/stores/ui.svelte.js';
+  import { uiStore } from '#lib/stores/ui.svelte.js';
 
   const GITHUB = 'https://github.com/hideosnes/swisd';
   const HOMAHUKI = 'https://www.homahuki.eu';

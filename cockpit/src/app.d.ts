@@ -24,8 +24,8 @@ import type {
 } from '$core/models/index.js';
 import type { Keystone, BondAnchor } from '$core/ownership/index.js';
 import type { CredentialManager } from '$core/config/credentials.js';
-import type { ConductorIdentity } from '$lib/server/conductorIdentity.js';
-import type { SessionLock } from '$lib/server/sessionLock.js';
+import type { ConductorIdentity } from '#lib/server/conductorIdentity.js';
+import type { SessionLock } from '#lib/server/sessionLock.js';
 
 declare global {
 	namespace App {

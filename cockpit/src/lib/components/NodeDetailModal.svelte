@@ -7,19 +7,19 @@
 6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
-  import type { TopologyPeerDTO } from '$lib/server/index.js';
-  import type { DeviceType } from '$lib/components/datavis/types.js';
-  import { Modal, TextField, Button, StatusPill } from '$lib/components/ui/index.js';
-  import { peerOverrideStore } from '$lib/peerOverrides.svelte.js';
+  import type { TopologyPeerDTO } from '#lib/server/index.js';
+  import type { DeviceType } from '#lib/components/datavis/types.js';
+  import { Modal, TextField, Button, StatusPill } from '#lib/components/ui/index.js';
+  import { peerOverrideStore } from '#lib/peerOverrides.svelte.js';
 
-  import raspiIcon from '$lib/assets/icons/device-raspi.svg?raw';
-  import arduinoIcon from '$lib/assets/icons/device-arduino.svg?raw';
-  import androidIcon from '$lib/assets/icons/device-android.svg?raw';
-  import iosIcon from '$lib/assets/icons/device-ios.svg?raw';
-  import windowsIcon from '$lib/assets/icons/device-windows.svg?raw';
-  import linuxIcon from '$lib/assets/icons/device-linux.svg?raw';
-  import appleIcon from '$lib/assets/icons/device-apple.svg?raw';
-  import unknownIcon from '$lib/assets/icons/device-unknown.svg?raw';
+  import raspiIcon from '#lib/assets/icons/device-raspi.svg?raw';
+  import arduinoIcon from '#lib/assets/icons/device-arduino.svg?raw';
+  import androidIcon from '#lib/assets/icons/device-android.svg?raw';
+  import iosIcon from '#lib/assets/icons/device-ios.svg?raw';
+  import windowsIcon from '#lib/assets/icons/device-windows.svg?raw';
+  import linuxIcon from '#lib/assets/icons/device-linux.svg?raw';
+  import appleIcon from '#lib/assets/icons/device-apple.svg?raw';
+  import unknownIcon from '#lib/assets/icons/device-unknown.svg?raw';
 
   interface Props {
     open: boolean;

@@ -5,7 +5,7 @@
 4. Provides: A narrative-driven layout distinguishing the free open-source tier from Homahuki's enterprise collaboration offerings, including clear licensing terms.
 -->
 <script lang="ts">
-  import { Arrow, Button } from '$lib/components/ui';
+  import { Arrow, Button } from '#lib/components/ui';
 
   let showFullLicense = $state(false);
 </script>

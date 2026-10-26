@@ -8,10 +8,10 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Arrow, Button, LogoGallery, ManifestoList, Modal, SwarmCanvas, SegmentedControl, type LogoGalleryGroup } from '$lib/components/ui';
-  import { OrbitExplainer, type Rundown } from '$lib/components/datavis';
-  import { currentEntry } from '$lib/content/roadmap';
-  import { uiStore } from '$lib/stores/ui.svelte.js';
+  import { Arrow, Button, LogoGallery, ManifestoList, Modal, SwarmCanvas, SegmentedControl, type LogoGalleryGroup } from '#lib/components/ui';
+  import { OrbitExplainer, type Rundown } from '#lib/components/datavis';
+  import { currentEntry } from '#lib/content/roadmap';
+  import { uiStore } from '#lib/stores/ui.svelte.js';
   import { 
     huggingfaceLogo, 
     nodejsLogo, 
@@ -40,7 +40,7 @@
     swkLogo,
     klnoeLogo,
     ioebLogo
-  } from '$lib/assets';
+  } from '#lib/assets';
 
   let revealObserver: IntersectionObserver | null = null;
   let audience = $state<'dev' | 'exec'>('dev');

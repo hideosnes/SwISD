@@ -3,7 +3,7 @@
 // 3. Expects: A SwarmTopologyDTO from the BFF plus a viewport-sized OrbitalLayoutConfig.
 // 4. Provides: Strict prop and result types consumed by TopologyCanvas, SwarmNode, GhostNode, TrustRing, and ModalityLegend.
 
-import type { TopologyPeerDTO } from '$lib/server/topology.js';
+import type { TopologyPeerDTO } from '#lib/server/topology.js';
 
 export interface Point {
   readonly x: number;

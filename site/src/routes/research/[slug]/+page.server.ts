@@ -4,7 +4,7 @@
  * 3. Expects: SvelteKit PageServerLoad event with slug param.
  * 4. Provides: Full KnowledgeEntry DTO or throws 404.
  */
-import { loadKnowledgeEntryBySlug } from '$lib/content';
+import { loadKnowledgeEntryBySlug } from '#lib/content';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 

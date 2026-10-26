@@ -3,7 +3,7 @@
 // 3. Expects: A numeric load score (0-1) from the observability plane.
 // 4. Provides: Pure functions to translate domain load metrics into UI primitive statuses.
 
-import type { Status } from '$lib/components/ui/index.js';
+import type { Status } from '#lib/components/ui/index.js';
 
 export function loadToStatus(loadScore: number | null): Status {
   if (loadScore === null) return 'idle';

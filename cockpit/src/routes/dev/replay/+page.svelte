@@ -5,7 +5,7 @@
 4. Provides: A control surface to play, pause, and adjust speed of the replay tape recorder.
 -->
 <script lang="ts">
-  import { Button, Card, PageShell, Tabs, type TabDefinition } from '$lib/components/ui/index.js';
+  import { Button, Card, PageShell, Tabs, type TabDefinition } from '#lib/components/ui/index.js';
 
   let scenarios = $state<{ id: string; title: string }[]>([]);
   let activeTab = $state<string>('');

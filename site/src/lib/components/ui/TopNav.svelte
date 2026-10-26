@@ -6,8 +6,8 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Arrow } from '$lib/components/ui';
-  import { swisdLogo } from '$lib/assets';
+  import { Arrow } from '#lib/components/ui';
+  import { swisdLogo } from '#lib/assets';
 
   let {
     links,

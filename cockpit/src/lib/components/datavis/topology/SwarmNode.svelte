@@ -9,16 +9,16 @@
 <script lang="ts">
   import type { LaidOutPeer, DeviceType, ModalityCode } from '../types.js';
   import { modalityToColor, loadToStressColor, stressArcPath } from './layout.js';
-  import { peerOverrideStore } from '$lib/peerOverrides.svelte.js';
+  import { peerOverrideStore } from '#lib/peerOverrides.svelte.js';
 
-  import raspiIcon from '$lib/assets/icons/device-raspi.svg?raw';
-  import arduinoIcon from '$lib/assets/icons/device-arduino.svg?raw';
-  import androidIcon from '$lib/assets/icons/device-android.svg?raw';
-  import iosIcon from '$lib/assets/icons/device-ios.svg?raw';
-  import windowsIcon from '$lib/assets/icons/device-windows.svg?raw';
-  import linuxIcon from '$lib/assets/icons/device-linux.svg?raw';
-  import appleIcon from '$lib/assets/icons/device-apple.svg?raw';
-  import unknownIcon from '$lib/assets/icons/device-unknown.svg?raw';
+  import raspiIcon from '#lib/assets/icons/device-raspi.svg?raw';
+  import arduinoIcon from '#lib/assets/icons/device-arduino.svg?raw';
+  import androidIcon from '#lib/assets/icons/device-android.svg?raw';
+  import iosIcon from '#lib/assets/icons/device-ios.svg?raw';
+  import windowsIcon from '#lib/assets/icons/device-windows.svg?raw';
+  import linuxIcon from '#lib/assets/icons/device-linux.svg?raw';
+  import appleIcon from '#lib/assets/icons/device-apple.svg?raw';
+  import unknownIcon from '#lib/assets/icons/device-unknown.svg?raw';
 
   const ICON_BOX_RATIO = 1.2;
   const ICON_WELL_RATIO = 0.9;

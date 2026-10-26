@@ -5,7 +5,7 @@
 4. Provides: A loud, accessible warning when the control plane is frozen.
 -->
 <script lang="ts">
-  import { Icon } from '$lib/components/ui/index.js';
+  import { Icon } from '#lib/components/ui/index.js';
   
   interface Props {
     isBonded: boolean;

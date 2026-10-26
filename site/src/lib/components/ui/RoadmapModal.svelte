@@ -7,7 +7,7 @@
 <script lang="ts">
   import Modal from './Modal.svelte';
   import Arrow from './Arrow.svelte';
-  import { loadRandomArtwork, type RoadmapEntry } from '$lib/content/roadmap';
+  import { loadRandomArtwork, type RoadmapEntry } from '#lib/content/roadmap';
 
   let {
     entry,

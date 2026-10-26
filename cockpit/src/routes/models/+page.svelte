@@ -8,11 +8,11 @@
 -->
 
 <script lang="ts">
-  import ModelApprovalModal from '$lib/components/ModelApprovalModal.svelte';
-  import type { OptimisticDownload } from '$lib/components/ModelApprovalModal.svelte';
-  import ModelUploadModal from '$lib/components/ModelUploadModal.svelte';
-  import ModelLibrary from '$lib/components/ModelLibrary.svelte';
-  import { Button } from '$lib/components/ui';
+  import ModelApprovalModal from '#lib/components/ModelApprovalModal.svelte';
+  import type { OptimisticDownload } from '#lib/components/ModelApprovalModal.svelte';
+  import ModelUploadModal from '#lib/components/ModelUploadModal.svelte';
+  import ModelLibrary from '#lib/components/ModelLibrary.svelte';
+  import { Button } from '#lib/components/ui';
 
   let showApprovalModal = $state(false);
   let showUploadModal = $state(false);

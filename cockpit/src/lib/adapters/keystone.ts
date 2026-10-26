@@ -7,7 +7,7 @@
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
 
-import type { Status } from '$lib/components/ui/index.js';
+import type { Status } from '#lib/components/ui/index.js';
 
 export function keystoneToStatus(isKeystone: boolean, isBonded: boolean, isWhitelisted: boolean): Status {
   if (isKeystone) return 'accent'; // You are the crown

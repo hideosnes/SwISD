@@ -44,5 +44,18 @@
 		"@fontsource/vt323": "^5.3.0",
 		"bonjour-service": "^1.4.4",
 		"d3-scale": "^4.0.2"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*",
+		"#lib/components/ui": "./src/lib/components/ui/index.js",
+		"#lib/components/datavis": "./src/lib/components/datavis/index.js",
+		"#lib/assets/icons/*.svg": "./src/lib/assets/icons/*.svg"
+	},
+	"overrides": {
+		"postcss-selector-parser": "^6.1.5",
+		"svelte-eslint-parser": {
+			"postcss-selector-parser": "^7.1.6"
+		}
 	}
 }

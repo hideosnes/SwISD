@@ -5,9 +5,9 @@
 4. Provides: A masonry-style grid of PeerCards showing what each Pi is doing.
 -->
 <script lang="ts">
-  import type { SwarmTopologyDTO } from '$lib/server/index.js';
-  import { Card, Stat, StatusPill } from '$lib/components/ui/index.js';
-  import { trustToStatus } from '$lib/adapters/index.js';
+  import type { SwarmTopologyDTO } from '#lib/server/index.js';
+  import { Card, Stat, StatusPill } from '#lib/components/ui/index.js';
+  import { trustToStatus } from '#lib/adapters/index.js';
 
   let { topology }: { topology: SwarmTopologyDTO } = $props();
 </script>

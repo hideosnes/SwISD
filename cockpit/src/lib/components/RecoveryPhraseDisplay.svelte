@@ -7,7 +7,7 @@
 6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
-  import { Modal, Button } from '$lib/components/ui/index.js';
+  import { Modal, Button } from '#lib/components/ui/index.js';
   
   interface Props {
     open: boolean;

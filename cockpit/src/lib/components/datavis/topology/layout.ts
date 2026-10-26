@@ -5,7 +5,7 @@
 
 import { scaleLinear } from 'd3-scale';
 
-import type { SwarmTopologyDTO, TopologyPeerDTO } from '$lib/server/topology.js';
+import type { SwarmTopologyDTO, TopologyPeerDTO } from '#lib/server/topology.js';
 import type {
   LaidOutPeer,
   OrbitalLayoutConfig,

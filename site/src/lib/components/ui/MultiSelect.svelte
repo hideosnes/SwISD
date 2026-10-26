@@ -7,7 +7,7 @@
 6. Copyright (c) 2026 Homahuki GmbH
 -->
 <script lang="ts">
-  import { Arrow } from '$lib/components/ui';
+  import { Arrow } from '#lib/components/ui';
 
   let {
     options,

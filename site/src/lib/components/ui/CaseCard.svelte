@@ -5,8 +5,8 @@
 4. Provides: A single source of truth for case study rendering, variance through $props().
 -->
 <script lang="ts">
-  import { Arrow, Tag } from '$lib/components/ui';
-  import type { CaseEntry } from '$lib/content/cases';
+  import { Arrow, Tag } from '#lib/components/ui';
+  import type { CaseEntry } from '#lib/content/cases';
 
   export type CaseCardLayout = 'gallery' | 'plate' | 'stack' | 'ledger' | 'split' | 'marquee';
   type TextTheme = 'default' | 'overlay';

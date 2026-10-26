@@ -8,7 +8,7 @@
 -->
 
 <script lang="ts">
-  import { Modal, Button } from '$lib/components/ui';
+  import { Modal, Button } from '#lib/components/ui';
   import ModelDropZone from './ModelDropZone.svelte';
 
   interface Props {

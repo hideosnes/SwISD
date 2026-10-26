@@ -5,7 +5,7 @@
 4. Provides: A themed, accessible lock screen.
 -->
 <script lang="ts">
-  import { TextField, Button } from '$lib/components/ui/index.js';
+  import { TextField, Button } from '#lib/components/ui/index.js';
   
   interface Props {
     locked: boolean;

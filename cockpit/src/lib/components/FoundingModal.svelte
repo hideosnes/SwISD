@@ -5,7 +5,7 @@
 4. Provides: A themed, accessible modal for establishing the Keystone.
 -->
 <script lang="ts">
-  import { Modal, TextField, Button } from '$lib/components/ui/index.js';
+  import { Modal, TextField, Button } from '#lib/components/ui/index.js';
   
   interface Props {
     open: boolean;

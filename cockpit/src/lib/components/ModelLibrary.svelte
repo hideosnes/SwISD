@@ -10,7 +10,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { Button, StatusPill, ProgressBar, Modal } from '$lib/components/ui';
+	import { Button, StatusPill, ProgressBar, Modal } from '#lib/components/ui';
 	import type { OptimisticDownload } from './ModelApprovalModal.svelte';
 
 	interface DownloadProgress {

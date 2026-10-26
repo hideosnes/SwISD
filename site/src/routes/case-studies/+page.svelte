@@ -5,8 +5,8 @@
 4. Provides: A filterable, sortable, chronological grid of project deployments.
 -->
 <script lang="ts">
-  import { cases, type CaseIndustry, type CaseModality } from '$lib/content/cases';
-  import { Button, FilterChip, CaseCard, MultiSelect, SegmentedControl } from '$lib/components/ui';
+  import { cases, type CaseIndustry, type CaseModality } from '#lib/content/cases';
+  import { Button, FilterChip, CaseCard, MultiSelect, SegmentedControl } from '#lib/components/ui';
 
   type SortMode = 'alpha' | 'new' | 'old';
   const SORT_OPTIONS = [

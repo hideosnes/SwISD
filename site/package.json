@@ -31,6 +31,22 @@
 		"gray-matter": "^4.0.3",
 		"lenis": "^1.3.26",
 		"marked": "^18.0.13",
-		"zod": "^4.6.5"
+		"zod": "^4.6.6"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*",
+		"#lib/components/ui": "./src/lib/components/ui/index.js",
+		"#lib/components/datavis": "./src/lib/components/datavis/index.js",
+		"#lib/assets": "./src/lib/assets/index.js",
+		"#lib/assets/favicon.ico": "./src/lib/assets/favicon.ico",
+		"#lib/content": "./src/lib/content/index.js",
+		"#lib/content/cases": "./src/lib/content/cases.js",
+		"#lib/content/loader": "./src/lib/content/loader.js",
+		"#lib/content/roadmap": "./src/lib/content/roadmap.js",
+		"#lib/content/schema": "./src/lib/content/schema.js"
+	},
+	"overrides": {
+		"postcss-selector-parser": "^6.1.5"
 	}
 }

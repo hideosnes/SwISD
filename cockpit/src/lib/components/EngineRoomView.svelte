@@ -8,8 +8,8 @@
 -->
 <script lang="ts">
   import type { SwarmSnapshot } from '$core/observability/index.js';
-  import type { SwarmTopologyDTO, TopologyPeerDTO } from '$lib/server/index.js';
-  import { Card, Stat, StatusPill, Button, Panel } from '$lib/components/ui/index.js';
+  import type { SwarmTopologyDTO, TopologyPeerDTO } from '#lib/server/index.js';
+  import { Card, Stat, StatusPill, Button, Panel } from '#lib/components/ui/index.js';
   import UpdateApprovalModal from './UpdateApprovalModal.svelte';
 
   interface Props {

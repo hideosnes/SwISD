@@ -8,7 +8,7 @@
 -->
 
 <script lang="ts">
-  import { Modal, Button, TextField, StatusPill } from '$lib/components/ui';
+  import { Modal, Button, TextField, StatusPill } from '#lib/components/ui';
 
   interface HuggingFaceFileDto {
     readonly rfilename: string;

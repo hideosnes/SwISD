@@ -8,7 +8,7 @@
 -->
 
 <script lang="ts">
-  import { Button, TextField, Select, Toggle, Icon, ProgressRing } from '$lib/components/ui';
+  import { Button, TextField, Select, Toggle, Icon, ProgressRing } from '#lib/components/ui';
   import { page } from '$app/state';
 
   type PortalState = 'idle' | 'joining' | 'joined' | 'failed';

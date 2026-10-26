@@ -18,7 +18,7 @@ import {
   voxerlArt,
   webxrArt,
   lindabrunnRagArt
-} from '$lib/assets';
+} from '#lib/assets';
 
 export type CaseIndustry = 'Arts & Culture' | 'Retail' | 'Healthcare' | 'Technology' | 'R&D' | 'Event' | 'Finance';
 export type CaseModality = 'Image' | 'Audio' | 'Generative' | 'Text' | 'Classification' | 'Retrieval' | 'Recognition';
