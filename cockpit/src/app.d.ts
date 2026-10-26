@@ -7,37 +7,54 @@
  * 6. Copyright (c) 2026 Homahuki GmbH
  */
 
-import type { ObservabilitySource, ObservabilityEventBus, ScenarioEngine } from '$core/observability/index.js';
+import type {
+	ObservabilitySource,
+	ObservabilityEventBus,
+	ScenarioEngine
+} from '$core/observability/index.js';
 import type { TrustRegistry } from '$core/peer/index.js';
-import type { ModelRegistry, ApprovalGate, ModelDownloader, ModelManager } from '$core/models/index.js';
+import type {
+	ModelRegistry,
+	ApprovalGate,
+	ModelDownloader,
+	ModelManager,
+	IntentRegistry,
+	ModelSigner,
+	DownloadProgress
+} from '$core/models/index.js';
 import type { Keystone, BondAnchor } from '$core/ownership/index.js';
 import type { CredentialManager } from '$core/config/credentials.js';
 import type { ConductorIdentity } from '$lib/server/conductorIdentity.js';
 import type { SessionLock } from '$lib/server/sessionLock.js';
 
 declare global {
-  namespace App {
-    interface Locals {
-      coreSource: ObservabilitySource;
-      eventBus: ObservabilityEventBus;
-      trustRegistry: TrustRegistry;
-      modelRegistry: ModelRegistry;
-      approvalGate: ApprovalGate;
-      modelDownloader: ModelDownloader;
-      modelManager: ModelManager;
-      isReplay: boolean;
-      replayEngine: ScenarioEngine | null;
-      
-      // Sovereignty Layer
-      keystone: Keystone;
-      bondAnchor: BondAnchor;
-      conductorIdentity: ConductorIdentity;
-      sessionLock: SessionLock;
-      
-      // Credentials
-      credentialManager: CredentialManager;
-    }
-  }
+	namespace App {
+		interface Locals {
+			coreSource: ObservabilitySource;
+			eventBus: ObservabilityEventBus;
+			trustRegistry: TrustRegistry;
+			modelRegistry: ModelRegistry;
+			approvalGate: ApprovalGate;
+			modelDownloader: ModelDownloader;
+			modelManager: ModelManager;
+			intentRegistry: IntentRegistry;
+			modelSigner: ModelSigner;
+			downloadProgress: Record<string, DownloadProgress>;
+			isReplay: boolean;
+			replayEngine: ScenarioEngine | null;
+
+			// Sovereignty Layer
+			keystone: Keystone;
+			bondAnchor: BondAnchor;
+			conductorIdentity: ConductorIdentity;
+			sessionLock: SessionLock;
+
+			// Credentials & Env
+			credentialManager: CredentialManager;
+			peerId: string;
+			deliveryRoot: string;
+		}
+	}
 }
 
 export {};

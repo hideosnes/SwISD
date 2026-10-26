@@ -11,7 +11,7 @@ import { yamux } from '@chainsafe/libp2p-yamux';
 import { gossipsub, type GossipSub } from '@libp2p/gossipsub';
 import { ping } from '@libp2p/ping';
 import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
-import type { PrivateKey, Libp2p, PeerId } from '@libp2p/interface';
+import type { PrivateKey, Libp2p, PeerId, Stream } from '@libp2p/interface';
 import { createHash } from 'node:crypto';
 
 import type { GossipMessage, GossipPayload, TaskResultPayload, TaskHistoryEvent, ReputationEvent } from '../types.js';
@@ -22,6 +22,8 @@ import type { TrustRegistry } from '../peer/index.js';
 import type { ExecutorRegistry } from '../executor/index.js';
 import type { ReputationLog } from '../crdt/index.js';
 import { SwISDError, BackpressureError } from '../errors.js';
+import type { ModelRegistry } from '../models/registry.js';
+import { createModelSeederHandler } from '../models/seeder.js';
 
 export interface SwISDLibp2pConfig {
   readonly listenPort: number;
@@ -39,6 +41,8 @@ export interface SwISDNodeDependencies {
   readonly onTaskPreempted: (taskId: string, event: TaskHistoryEvent) => void;
   readonly getLoadScore: () => number;
   readonly tryConsumeGossipToken: () => boolean;
+  readonly modelRegistry: ModelRegistry;
+  readonly deliveryRoot: string;
 }
 
 // Define the PingService interface locally to avoid breaking changes in @libp2p/ping exports.
@@ -141,6 +145,11 @@ export async function createSwISDNode(
     } catch (error) {
       console.error('[Libp2p] Failed to parse incoming gossip message:', error);
     }
+  });
+
+  const seederHandler = createModelSeederHandler(deps.modelRegistry, deps.deliveryRoot);
+  node.handle('/swisd/model/1.0.0', async (stream: Stream) => {
+    await seederHandler(stream);
   });
 
   return node;

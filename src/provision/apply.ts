@@ -2,10 +2,12 @@
 // 2. Description: Idempotent USB provisioning agent for SwISD Raspberry Pi nodes.
 // 3. Expects: A mounted USB stick containing /swisd-provision.json, and appropriate filesystem permissions.
 // 4. Provides: Application of WiFi, role, and model source configurations via nmcli and local state persistence.
+// 5. SPDX-License-Identifier: MPL-2.0
+// 6. Copyright (c) 2026 Homahuki GmbH
 
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { isProvisionConfig, type ProvisionConfig } from '../config/index.js';
 import { IdentityManager } from '../delivery/index.js';
@@ -28,16 +30,18 @@ function calculateChecksum(data: string): string {
 function applyWifiConfig(ssid: string, psk: string): void {
   console.log(`[Provision] Configuring WiFi for SSID: ${ssid}`);
   try {
-    const existing = execSync('nmcli -t -f NAME c show --active', { encoding: 'utf-8' });
+    const existing = execFileSync('nmcli', ['-t', '-f', 'NAME', 'c', 'show', '--active'], { encoding: 'utf-8' });
     if (existing.includes(ssid)) {
       console.log('[Provision] WiFi connection already active. Skipping.');
       return;
     }
-    
-    execSync('nmcli dev wifi rescan');
-    execSync(`nmcli dev wifi connect "${ssid}" password "${psk}"`);
+
+    execFileSync('nmcli', ['dev', 'wifi', 'rescan']);
+    // Provisioning input is attacker-supplied text from a USB stick: it must reach
+    // nmcli as argument values, never as an interpolated shell string.
+    execFileSync('nmcli', ['dev', 'wifi', 'connect', ssid, 'password', psk], { stdio: 'inherit' });
     console.log('[Provision] WiFi configured successfully.');
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[Provision] Failed to configure WiFi (expected on non-Pi systems):', error);
   }
 }

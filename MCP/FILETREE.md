@@ -78,9 +78,11 @@ src/
 │   ├── downloader.ts            # ModelDownloader — HTTP/S3 model fetching with progress tracking and CredentialManager injection.
 │   ├── huggingface.ts           # HuggingFace API metadata pre-fetch and ingress (token-injected).
 │   ├── ingest.ts                # Polymorphic ingestion, chunking, and Merkle verification.
+│   ├── intent.ts                # IntentRegistry — persistent download intents for crash recovery and repair.
 │   ├── manager.ts               # ModelManager — RAII lifecycle, promise deduplication, active-task protection, and storage watermarks.
 │   ├── registry.ts              # ModelRegistry — model metadata catalog.
-│   └── schema.ts                # ModelManifest and chunk map schemas.
+│   ├── schema.ts                # ModelManifest and chunk map schemas.
+│   └── seeder.ts                # ModelSeeder — libp2p stream handler for serving model chunks to neighboring peers (micro-torrent layer).
 │
 ├── network/                     # Node-to-node communication layer.
 │   ├── router/                  # Gossip and egress routing.
@@ -215,6 +217,8 @@ cockpit/
 │   │   │   ├── KeystoneLossBanner.svelte # Sovereignty Layer: keystone-loss observability.
 │   │   │   ├── ModelApprovalModal.svelte # Tier 1 model download approval gate.
 │   │   │   ├── ModelDropZone.svelte     # Drag-and-drop .gguf ingestion.
+│   │   │   ├── ModelLibrary.svelte      # Unified model library with optimistic UI, SSE telemetry, and repair/delete actions.
+│   │   │   ├── ModelUploadModal.svelte  # Modal wrapper for local drag-and-drop .gguf ingestion.
 │   │   │   ├── NodeDetailModal.svelte   # Deep-dive peer telemetry modal.
 │   │   │   ├── PendingTrustPanel.svelte # Transitional trust UI (pending incineration).
 │   │   │   ├── RecoveryPhraseDisplay.svelte # 12-word phrase one-time display.
@@ -243,6 +247,10 @@ cockpit/
 │       │   ├── discovery/
 │       │   │   └── +server.ts   # GET /api/discovery — Discovered nodes from mDNS.
 │       │   ├── models/
+│       │   │   ├── [modelId]/
+│       │   │   │   ├── +server.ts       # DELETE /api/models/[modelId] — Delete model from registry and disk.
+│       │   │   │   └── repair/
+│       │   │   │       └── +server.ts   # POST /api/models/[modelId]/repair — Re-initiate failed download.
 │       │   │   ├── approve/
 │       │   │   │   └── +server.ts # POST /api/models/approve — Approve model download.
 │       │   │   ├── ingest/
@@ -445,8 +453,6 @@ resolve: {
   }
 }
 ```
-
----
 
 ## Enforcement
 

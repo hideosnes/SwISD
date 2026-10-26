@@ -103,7 +103,8 @@ P4 — Model Distribution & Heavy Payloads (The New Frontier)
 [x] `dispose()`: Clean teardown of loaded pipelines; explicitly throws if `activeTasks > 0` to prevent execution murder.
 [x] Local Model Manager (LRU): Eviction logic for `/opt/swisd/models/` that strictly targets idle models.
 [x] Storage Watermarks & Eviction: `enforceStorageWatermark()` checks disk usage and evicts the oldest idle model if >90% full.
-[ ] P2P Chunk Seeding: Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
+[x] P2P Chunk Seeding: Implement libp2p stream handler (`/swisd/model/1.0.0`) for serving requested model chunks to neighboring peers (micro-torrent layer).
+[x] Crypto hardening pass (criticals): `ModelSigner` (`src/models/signing.ts`) signs manifests with a persistent Ed25519 keypair (hex, Data Purity); `ModelRegistry` verifies signatures at `add()` and `load()`, rejecting forged or legacy (unkeyed sha256) manifests. Shell-injection sinks removed (`execSync rm -rf` → typed `fs.rm` failures surface as `ERR_DELETION_FAILED`; provisioning nmcli calls use arg-array `execFileSync`). Cockpit SSE telemetry record bounded (terminal entries evicted after 15s TTL, listener attached exactly once via the immortal split, ReadableStream `cancel()` teardown) and chunk-health checks are async single-`readdir` instead of thousands of sync `existsSync` calls per request.
 
 P5 — User Experience & The Conductor Cockpit
 Architecture & Bridge
@@ -112,7 +113,7 @@ Architecture & Bridge
 [x] Snapshot API: `GET /api/snapshot` returns a strictly typed `SwarmSnapshot` DTO from the core.
 [x] Rune dashboard shell: `src/routes/+layout.svelte` and `src/routes/+page.svelte` consume the snapshot using Svelte 5 `$state` and `$derived`.
 [x] BFF Topology DTO: `SwarmTopologyDTO` in BFF to aggregate remote peer load scores and `CapabilityManifests`. (Implemented `buildSwarmTopology()` in `cockpit/src/lib/server/topology.ts` with `GET /api/topology` route. Currently wires `null` for remote load/capabilities until gossiped Control Ledger is connected.)
-[ ] SSE promotion: Event streams (task lifecycle, trust changes, downloads) alongside snapshot polling; client-side interpolation for Pulse smoothness.
+[x] SSE promotion: Event streams (task lifecycle, trust changes, downloads) alongside snapshot polling; client-side interpolation for Pulse smoothness. (Implemented ruthless polling SSE bridge for model downloads in `/api/models/status` and `ModelLibrary.svelte`).
 
 Design System & Datavis
 [x] Design System (The Single-Source Doctrine): Centralized theme tokens in `layout.css` and composable primitives in `components/ui`. Strict enforcement: no raw styles in feature components.
@@ -154,7 +155,7 @@ Cockpit Views & Interaction
 [x] Command Queue Drawer: Right-edge notification drawer for pending operator actions. (Implemented `CommandQueue.svelte` composing `ui/Drawer`. Derives pending ghosts from `topology.peers` — no second polling loop. Presentational: decisions bubble to the route via `onTrust` / `onReject` callbacks posting to `/api/peers`. Trust approvals live; WiFi-setup and model-approval command types deferred to their respective features.)
 [ ] Consolidate trust UI: Incinerate transitional `PendingTrustPanel.svelte` once `CommandQueue` proves itself in the field. Single trust surface.
 [ ] Swarm Pulse & Masonry Grid: Global state indicator and expandable peer cards for deep telemetry visualization.
-[ ] Model Library UI: Compact download states with micro-progress rings and live SSE telemetry.
+[x] Model Library UI: Unified expandable cards with optimistic UI, live SSE telemetry, inline renaming, and strict deletion/repair actions. (Implemented in `ModelLibrary.svelte`).
 
 Discovery & Provisioning
 [x] mDNS Auto-Discovery: Implement `_swisd._tcp.local` broadcasting and listening for zero-config Conductor-to-Node pairing.

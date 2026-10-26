@@ -2,12 +2,15 @@
 // 2. Description: The Polymorphic Ingestion Engine for AI models. Streams raw bytes, chunks them, computes domain-separated Merkle roots, and persists to disk.
 // 3. Expects: An AsyncIterable<Uint8Array> source, selected file metadata, and a signing function.
 // 4. Provides: A strictly signed ModelManifest and writes chunked artifacts to <deliveryRoot>/models/<sanitizedModelId>/.
+// 5. SPDX-License-Identifier: MPL-2.0
+// 6. Copyright (c) 2026 Homahuki GmbH
 
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ModelManifest, ModelFile } from './schema.js';
 import { sanitizeModelId } from './huggingface.js';
+import { buildManifestSignaturePayload } from './signing.js';
 
 const CHUNK_SIZE = 256 * 1024; // 256KB
 const LEAF_PREFIX = new Uint8Array([0x00]);
@@ -32,12 +35,13 @@ export interface IngestModelOptions {
   readonly requiredCapability: string;
   readonly deliveryRoot: string;
   readonly signPayload: (payload: string) => Promise<Uint8Array>;
+  readonly sourcePeerId: string;
 }
 
 export async function ingestModelStream(
   options: IngestModelOptions
 ): Promise<ModelManifest> {
-  const { source, repoId, selectedFiles, requiredCapability, deliveryRoot, signPayload } = options;
+  const { source, repoId, selectedFiles, requiredCapability, deliveryRoot, signPayload, sourcePeerId } = options;
   
   const modelId = sanitizeModelId(repoId);
   const modelDir = join(deliveryRoot, 'models', modelId);
@@ -92,10 +96,11 @@ export async function ingestModelStream(
     totalSizeBytes,
     chunkSizeBytes: CHUNK_SIZE,
     requiredCapability,
+    sourcePeerId,
     createdAt: Date.now(),
   };
 
-  const signature = await signPayload(JSON.stringify(manifestPayload));
+  const signature = await signPayload(buildManifestSignaturePayload(manifestPayload));
 
   const manifest: ModelManifest = {
     ...manifestPayload,

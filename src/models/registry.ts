@@ -9,25 +9,18 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModelManifest } from './schema.js';
-
-function uint8ArrayToHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function hexToUint8Array(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-  }
-  return bytes;
-}
+import { bytesToHex, hexToBytes, isHexString } from '../crypto/index.js';
+import { SwISDError } from '../errors.js';
 
 export class ModelRegistry {
   private models = new Map<string, ModelManifest>();
   private readonly statePath: string;
   private readonly stateDir: string;
 
-  constructor(deliveryRoot: string) {
+  constructor(
+    deliveryRoot: string,
+    private readonly verifyManifest?: (manifest: ModelManifest) => boolean
+  ) {
     this.stateDir = join(deliveryRoot, 'state');
     this.statePath = join(this.stateDir, 'model-registry.json');
   }
@@ -40,25 +33,33 @@ export class ModelRegistry {
 
     try {
       const raw = await readFile(this.statePath, 'utf-8');
-      const parsed = JSON.parse(raw) as Record<string, Record<string, unknown>>;
-      
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+
       for (const [id, rawManifest] of Object.entries(parsed)) {
-        const signature = rawManifest.signature;
-        const revivedSignature = typeof signature === 'string' 
-          ? hexToUint8Array(signature) 
-          : new Uint8Array(0);
-          
-        this.models.set(id, {
-          ...(rawManifest as Omit<ModelManifest, 'signature'>),
-          signature: revivedSignature,
-        });
+        const revived = this.reviveManifest(id, rawManifest);
+        if (!revived) continue;
+
+        if (this.verifyManifest && !this.verifyManifest(revived)) {
+          console.warn(
+            `[ModelRegistry] Dropping persisted manifest '${id}': signature verification failed (legacy or tampered state).`
+          );
+          continue;
+        }
+
+        this.models.set(id, revived);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[ModelRegistry] Failed to load state, starting fresh:', err);
     }
   }
 
   public async add(manifest: ModelManifest): Promise<void> {
+    if (this.verifyManifest && !this.verifyManifest(manifest)) {
+      throw new SwISDError(
+        'ERR_CRYPTO_VERIFICATION_FAILED',
+        `Manifest signature verification failed for ${manifest.modelId}; refusing to register.`,
+      );
+    }
     this.models.set(manifest.modelId, manifest);
     await this.persist();
   }
@@ -77,12 +78,37 @@ export class ModelRegistry {
     return this.models.get(modelId);
   }
 
+  private reviveManifest(id: string, rawManifest: unknown): ModelManifest | null {
+    if (typeof rawManifest !== 'object' || rawManifest === null) {
+      console.warn(`[ModelRegistry] Skipping malformed persisted manifest entry '${id}'.`);
+      return null;
+    }
+
+    let revivedSignature: Uint8Array = new Uint8Array(0);
+    const signature = (rawManifest as Record<string, unknown>).signature;
+    if (typeof signature === 'string' && isHexString(signature)) {
+      try {
+        // Fresh copy into an ArrayBuffer-backed view (same juggling as ed25519.ts).
+        revivedSignature = new Uint8Array(hexToBytes(signature));
+      } catch (err: unknown) {
+        console.warn(`[ModelRegistry] Persisted manifest '${id}' has an undecodable signature; reviving empty.`, err);
+      }
+    }
+
+    return {
+      ...(rawManifest as Omit<ModelManifest, 'signature'>),
+      signature: revivedSignature,
+    };
+  }
+
   private async persist(): Promise<void> {
+    // load() normally creates state/; recreate defensively in case it vanished mid-run.
+    await mkdir(this.stateDir, { recursive: true });
     const serializable: Record<string, Record<string, unknown>> = {};
     for (const [id, m] of this.models) {
-      serializable[id] = { 
-        ...m, 
-        signature: uint8ArrayToHex(m.signature) 
+      serializable[id] = {
+        ...m,
+        signature: bytesToHex(m.signature)
       };
     }
     await writeFile(this.statePath, JSON.stringify(serializable, null, 2));

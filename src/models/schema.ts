@@ -14,15 +14,21 @@ export interface ModelFile {
 export interface ModelManifest {
   readonly modelId: string;
   readonly repoId: string;
-  readonly displayName?: string; // Optional operator-assigned alias
-  readonly pipelineTag?: string | null; // e.g., 'text-generation'
-  readonly tags?: ReadonlyArray<string>; // e.g., ['gguf', 'q4_k_m']
+  readonly displayName?: string;
+  readonly pipelineTag?: string | null;
+  readonly tags?: ReadonlyArray<string>;
   readonly files: ReadonlyArray<ModelFile>;
   readonly merkleRoot: string;
   readonly totalChunks: number;
   readonly totalSizeBytes: number;
   readonly chunkSizeBytes: number;
   readonly requiredCapability: string;
+  readonly sourcePeerId?: string;
   readonly createdAt: number;
-  readonly signature: Uint8Array; // Note: Ensure hex serialization at DTO boundary if exposed to JSON
+  readonly signature: Uint8Array;
+}
+
+export interface ChunkRequest {
+  readonly modelId: string;
+  readonly chunkIndex: number;
 }

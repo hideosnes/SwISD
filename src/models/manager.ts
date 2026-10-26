@@ -1,18 +1,20 @@
 // 1. Relative path: src/models/manager.ts
 // 2. Description: Generic, model-agnostic lifecycle manager for local AI pipelines. 
-//    Enforces RAII-style acquisition, promise deduplication, active-task eviction protection, 
-//    and ruthless storage watermark enforcement.
-// 3. Expects: A ModelRegistry, delivery root, and strictly typed executor instantiation logic.
-// 4. Provides: Lazy initialization, elegant local validation, and safe memory/disk disposal.
+// 3. Expects: A ModelRegistry, IntentRegistry, ModelDownloader, and delivery root.
+// 4. Provides: Lazy initialization, elegant local validation, safe disposal, and repair of failed downloads.
 // 5. SPDX-License-Identifier: MPL-2.0
 // 6. Copyright (c) 2026 Homahuki GmbH
 
 import { existsSync } from 'node:fs';
-import { statfs, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { statfs, rm, readdir } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import type { ModelRegistry } from './registry.js';
-import type { ModelManifest } from './schema.js';
+import type { IntentRegistry } from './intent.js';
+import type { ModelDownloader } from './downloader.js';
+import type { ModelManifest, ModelFile } from './schema.js';
+import { fetchHuggingFaceMetadata } from './huggingface.js';
 import { SwISDError } from '../errors.js';
+import type { CredentialManager } from '../config/credentials.js';
 
 export interface PipelineInstance {
   readonly modelId: string;
@@ -47,7 +49,10 @@ export class ModelManager {
 
   constructor(
     private readonly registry: ModelRegistry,
-    private readonly deliveryRoot: string
+    private readonly intentRegistry: IntentRegistry,
+    private readonly downloader: ModelDownloader,
+    private readonly deliveryRoot: string,
+    private readonly credentialManager: CredentialManager
   ) {}
 
   public async checkModelExistsLocally(modelId: string): Promise<boolean> {
@@ -55,18 +60,57 @@ export class ModelManager {
     if (!manifest) return false;
 
     const modelDir = join(this.deliveryRoot, 'models', modelId);
-    const manifestPath = join(modelDir, 'manifest.json');
 
-    if (!existsSync(manifestPath)) return false;
+    // One async directory listing instead of one synchronous existsSync per chunk:
+    // a multi-GB model is tens of thousands of chunks, and sync stat calls on the
+    // request path would stall the BFF event loop.
+    let entries: string[];
+    try {
+      entries = await readdir(modelDir);
+    } catch {
+      return false;
+    }
+
+    const presentFiles = new Set(entries);
+    if (!presentFiles.has('manifest.json')) return false;
 
     for (let i = 0; i < manifest.totalChunks; i++) {
       const chunkName = `chunk_${i.toString().padStart(4, '0')}.bin`;
-      if (!existsSync(join(modelDir, chunkName))) {
+      if (!presentFiles.has(chunkName)) {
         return false;
       }
     }
 
     return true;
+  }
+
+  public async repairModel(modelId: string): Promise<void> {
+    const intent = this.intentRegistry.get(modelId);
+    if (!intent) {
+      throw new SwISDError('ERR_MODEL_NOT_FOUND', `No download intent found for ${modelId}. Cannot repair.`);
+    }
+
+    // Fetch ground-truth metadata from HuggingFace to ensure accurate file sizes
+    const token = this.credentialManager.getHuggingFaceToken();
+    const metadata = await fetchHuggingFaceMetadata(intent.repoId, token);
+
+    // Map metadata to ModelFile array for the downloader
+    const selectedFiles: ReadonlyArray<ModelFile> = metadata.files.map(f => ({
+      path: f.rfilename,
+      sizeBytes: f.sizeBytes ?? 0,
+      isRequired: true,
+    }));
+
+    // Fire and forget the download. startDownload handles directory purging internally.
+    this.downloader.startDownload(
+      intent.repoId,
+      selectedFiles,
+      intent.requiredCapability,
+      intent.sourcePeerId
+    ).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[ModelManager] Repair download failed for ${modelId}:`, msg);
+    });
   }
 
   public async acquire(modelId: string): Promise<PipelineHandle> {
@@ -130,8 +174,10 @@ export class ModelManager {
 
   public async deleteModel(modelId: string): Promise<void> {
     const manifest = this.registry.getById(modelId);
-    if (!manifest) {
-      throw new SwISDError('ERR_MODEL_NOT_FOUND', `Model ${modelId} not found in registry`);
+    const intent = this.intentRegistry.get(modelId);
+
+    if (!manifest && !intent) {
+      throw new SwISDError('ERR_MODEL_NOT_FOUND', `Model ${modelId} not found in registry or intents`);
     }
 
     const state = this.pipelines.get(modelId);
@@ -147,15 +193,18 @@ export class ModelManager {
       this.pipelines.delete(modelId);
     }
 
-    const modelDir = join(this.deliveryRoot, 'models', modelId);
-    try {
-      await rm(modelDir, { recursive: true, force: true });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new SwISDError('ERR_DELETION_FAILED', `Failed to delete model directory ${modelId}: ${msg}`, err);
+    const modelDir = resolve(join(this.deliveryRoot, 'models', modelId));
+    if (existsSync(modelDir)) {
+      try {
+        await rm(modelDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new SwISDError('ERR_DELETION_FAILED', `Failed to purge model directory ${modelId}: ${msg}`, err);
+      }
     }
 
-    await this.registry.remove(modelId);
+    if (manifest) await this.registry.remove(modelId);
+    if (intent) await this.intentRegistry.remove(modelId);
   }
 
   public async enforceStorageWatermark(): Promise<void> {
