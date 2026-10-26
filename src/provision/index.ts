@@ -10,3 +10,4 @@ export * from './schema.js';
 export * from './wifi.js';
 export * from './captiveDns.js';
 export * from './setupAgent.js';
+export * from './wizardPage.js';

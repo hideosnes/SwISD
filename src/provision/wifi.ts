@@ -136,9 +136,10 @@ export class WifiAgent {
       .split('\n')
       .filter((line: string) => line.trim().length > 0)
       .map((line: string) => {
-        const [ssid, signal, , security, inUse] = line.split(':');
-        const cleanSsid = ssid.trim();
-        const signalValue = Number.parseInt(signal, 10);
+        const fields = line.split(':');
+        const cleanSsid = fields[0] ?? '';
+        const signalValue = Number.parseInt(fields[1] ?? '', 10);
+        const security = fields[3] ?? '';
         return {
           ssid: cleanSsid,
           signal: Number.isFinite(signalValue) ? signalValue : 0,
@@ -148,7 +149,7 @@ export class WifiAgent {
               ? ('wpa2-psk' as const)
               : ('open' as const),
           known: knownProfiles.includes(cleanSsid),
-          inUse: inUse === 'yes',
+          inUse: (fields[4] ?? '') === 'yes',
         };
       })
       .filter((entry: WifiScanEntry & { readonly inUse: boolean }) => entry.ssid.length > 0 && !entry.inUse);
@@ -160,7 +161,7 @@ export class WifiAgent {
       return raw
         .split('\n')
         .filter((line: string) => line.includes(':wifi'))
-        .map((line: string) => line.split(':')[0]);
+        .map((line: string) => line.split(':')[0] ?? '');
     } catch {
       return [];
     }
@@ -211,7 +212,10 @@ export class WifiAgent {
       return false;
     }
     for (const line of profiles.split('\n')) {
-      const [name, uuid, type] = line.split(':');
+      const fields = line.split(':');
+      const name = fields[0] ?? '';
+      const uuid = fields[1] ?? '';
+      const type = fields[2] ?? '';
       if (name === ssid && type === 'wifi') {
         try {
           await this.run(['c', 'delete', 'uuid', uuid]);
@@ -253,7 +257,7 @@ export class WifiAgent {
         `Hotspot raised but profile identification is ambiguous (${String(added.length)} candidates).`
       );
     }
-    return { uuid: added[0], ssid };
+    return { uuid: added[0] ?? '', ssid };
   }
 
   public async stopHotspot(handle: HotspotHandle): Promise<void> {
@@ -271,7 +275,7 @@ export class WifiAgent {
       return raw
         .split('\n')
         .filter((line: string) => line.includes(':wifi'))
-        .map((line: string) => line.split(':')[0]);
+        .map((line: string) => line.split(':')[0] ?? '');
     } catch {
       return [];
     }

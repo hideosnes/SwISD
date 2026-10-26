@@ -5,7 +5,8 @@
 // 5. SPDX-License-Identifier: MPL-2.0
 // 6. Copyright (c) 2026 Homahuki GmbH
 
-import { createSocket, Socket, RemoteInfo } from 'node:dgram';
+import { createSocket, type Socket } from 'node:dgram';
+import type { RemoteInfo } from 'node:dgram';
 import { SwISDError } from '../errors.js';
 
 const DNS_HEADER_BYTES = 12;
