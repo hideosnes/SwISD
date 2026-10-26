@@ -79,12 +79,29 @@ export function getSimSnapshot(): Readonly<SimState> {
 	return sim;
 }
 
-/** Dev gate for every sim-backed route: 404 outside dev, 404 off-loopback. */
+/** Dev gate for every sim-backed route: 404 outside dev, 404 off private networks. */
 export function isSimRequestAllowed(event: RequestEvent): boolean {
-	if (!dev) return false;
-	try {
-		return event.getClientAddress().startsWith('127.');
-	} catch {
+	if (!dev) {
+		console.warn('[WizardSim] rejected: not dev');
 		return false;
 	}
+	try {
+		const address = event.getClientAddress();
+		const ok =
+			address.startsWith('127.') ||
+			address === '::1' ||
+			address.startsWith('10.') ||
+			address.startsWith('192.168.') ||
+			(address.startsWith('172.') && in172Range(address));
+		if (!ok) console.warn('[WizardSim] rejected: client address not private:', address);
+		return ok;
+	} catch {
+		console.warn('[WizardSim] rejected: no client address');
+		return false;
+	}
+}
+
+function in172Range(address: string): boolean {
+	const secondOctet = Number.parseInt(address.split('.')[1] ?? '', 10);
+	return secondOctet >= 16 && secondOctet <= 31;
 }
