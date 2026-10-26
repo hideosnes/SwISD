@@ -90,6 +90,41 @@ export function renderWizardPage(state: PortalState, error?: string, joinedSsid?
   }
   .error-banner.visible { display: block; }
 
+  /* Toast (failure notices that don't eject the operator from the form) */
+  .toast-stack {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 60;
+    width: min(92vw, 380px);
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+    color: var(--text-1);
+    font-size: 13px;
+    line-height: 1.4;
+    box-shadow: 0 12px 32px color-mix(in srgb, #000 45%, transparent);
+    opacity: 0;
+    translate: 0 12px;
+    transition: opacity var(--duration-fast) var(--ease), translate var(--duration-fast) var(--ease);
+    cursor: pointer;
+  }
+  .toast.visible { opacity: 1; translate: 0 0; }
+  .toast.leave { opacity: 0; translate: 0 12px; }
+  .toast-icon { color: var(--warn); flex: none; font-size: 15px; }
+
   /* Form */
   .form { display: flex; flex-direction: column; gap: 20px; }
 
@@ -302,9 +337,11 @@ export function renderWizardPage(state: PortalState, error?: string, joinedSsid?
         <p>Connect this node to your WiFi network.</p>
       </header>
 
-      <div id="error-banner" class="error-banner">
+      <div id="error-banner" class="error-banner" style="display:none">
         <p id="error-msg"></p>
       </div>
+
+      <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
 
       <form id="join-form" class="form">
         <div class="field">
@@ -397,13 +434,52 @@ export function renderWizardPage(state: PortalState, error?: string, joinedSsid?
     function showState(name) {
       Object.values(states).forEach(el => el.classList.remove('active'));
       states[name].classList.add('active');
-      errorBanner.classList.remove('visible');
+      // Failures surface as toasts now; the banner stays retired.
+      errorBanner.style.display = 'none';
     }
 
     function showError(msg) {
-      errorMsg.textContent = msg;
-      errorBanner.classList.add('visible');
       showState('idle');
+      toast(humanizeFailure(msg));
+    }
+
+    /** Map portal failure vocabulary to operator prose; unknown messages pass through. */
+    function humanizeFailure(msg) {
+      switch (msg) {
+        case 'auth-failed': return 'Wrong passphrase or unsupported security setting. Check the credentials and try again.';
+        case 'ssid-not-found': return 'Network not found — is it in range? Move closer or re-check the name.';
+        case 'join-timeout': return 'The network did not respond in time. Try again.';
+        case 'invalid-request': return 'The submitted network details were incomplete.';
+        default: return msg;
+      }
+    }
+
+    const toastStack = document.getElementById('toast-stack');
+
+    function toast(msg) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.setAttribute('role', 'status');
+      const icon = document.createElement('span');
+      icon.className = 'toast-icon';
+      icon.textContent = '\u26A0';
+      const text = document.createElement('span');
+      text.textContent = msg;
+      el.append(icon, text);
+      toastStack.appendChild(el);
+
+      requestAnimationFrame(() => el.classList.add('visible'));
+
+      let timer = null;
+      const dismiss = () => {
+        if (timer === null) return; // already leaving
+        clearTimeout(timer);
+        timer = null;
+        el.classList.add('leave');
+        setTimeout(() => el.remove(), 200);
+      };
+      timer = setTimeout(dismiss, 6000);
+      el.addEventListener('click', dismiss);
     }
 
     // Custom Select Logic
