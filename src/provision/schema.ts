@@ -12,6 +12,8 @@ export interface PortalJoinRequest {
   readonly security: PortalSecurity;
   readonly passphrase: string | null;
   readonly hidden: boolean;
+  /** When true the saved NetworkManager profile is deleted after a verified join: credentials survive this session, not a reboot. */
+  readonly temporary: boolean;
   readonly country: string;
 }
 
@@ -37,6 +39,7 @@ export function isPortalJoinRequest(data: unknown): data is PortalJoinRequest {
     (obj.security === 'wpa2-psk' || obj.security === 'wpa3-sae' || obj.security === 'open') &&
     (obj.passphrase === null || typeof obj.passphrase === 'string') &&
     typeof obj.hidden === 'boolean' &&
+    typeof obj.temporary === 'boolean' &&
     typeof obj.country === 'string' && obj.country.length === 2
   );
 }

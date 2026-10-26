@@ -488,7 +488,8 @@ export function renderWizardPage(state: PortalState, error?: string, joinedSsid?
         country: document.getElementById('country').value.toUpperCase(),
         security: security,
         passphrase: security === 'open' ? null : passInput.value,
-        hidden: document.getElementById('hidden-value').value === 'true'
+        hidden: document.getElementById('hidden-value').value === 'true',
+        temporary: document.getElementById('temp-value').value === 'true'
       };
 
       try {

@@ -7,3 +7,6 @@
 
 export * from './portal.js';
 export * from './schema.js';
+export * from './wifi.js';
+export * from './captiveDns.js';
+export * from './setupAgent.js';

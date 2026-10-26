@@ -1,0 +1,31 @@
+# 1. Relative path: systemd/swisd-setup.service
+# 2. Description: Out-of-Box setup portal — fallback AP (SwISD-Setup-XXXX), captive DNS, and wizard HTTP server.
+# 3. Expects: NetworkManager with a WiFi device; root privileges for nmcli and ports 53/80.
+# 4. Provides: A one-shot setup episode that waits for a phone to complete the wizard, then hands off idempotently via a state marker.
+# 5. SPDX-License-Identifier: MPL-2.0
+# 6. Copyright (c) 2026 Homahuki GmbH
+
+[Unit]
+Description=SwISD Out-of-Box Setup Portal (captive wizard)
+After=network.target NetworkManager.service
+Wants=NetworkManager.service
+# USB provisioning claims the radio first when a stick is present.
+After=swisd-provision.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/swisd/current
+Environment=NODE_ENV=production
+Environment=SWISD_DELIVERY_ROOT=/opt/swisd
+# auto: run only when never completed and WiFi is down; 'on'/'off' force or disable.
+Environment=SWISD_SETUP_PORTAL=auto
+# Detached episodes (already provisioned) must not fail the unit.
+ExecStart=/usr/bin/node dist/provision/setupAgent.js
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

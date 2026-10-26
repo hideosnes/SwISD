@@ -7,7 +7,7 @@
 
 [Unit]
 Description=SwISD Decentralized AI Swarm Node
-After=network-online.target
+After=network-online.target swisd-setup.service swisd-provision.service
 Wants=network-online.target
 
 [Service]

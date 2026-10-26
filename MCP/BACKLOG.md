@@ -168,10 +168,10 @@ Discovery & Provisioning
 [x] Core `TrustRegistry` (`src/peer/trust.ts`) to manage `pending`, `trusted`, `rejected` states.
 [x] BFF injects `TrustRegistry` into `event.locals` and registers mDNS discoveries as `PENDING`.
 [x] API route `GET/POST /api/peers` to query and update trust states.
-[ ] Out-of-Box Setup Portal: Build fallback AP mode and captive portal wizard in `src/provision/` for monitor-less, USB-less initial WiFi provisioning.
-[ ] Temporary `SwISD-Setup-XXXX` access point fallback.
+[x] Out-of-Box Setup Portal: Build fallback AP mode and captive portal wizard in `src/provision/` for monitor-less, USB-less initial WiFi provisioning (`WifiAgent`, captive DNS responder, DI portal, `setupAgent.ts` orchestrator).
+[x] Temporary `SwISD-Setup-XXXX` access point fallback (`swisd-setup.service`, root: nmcli + ports 53/80; re-raised on failed join so phones can retry).
 [x] Smartphone-friendly captive portal for WiFi credential injection.
-[ ] Idempotent handoff from setup portal to normal swarm operation.
+[x] Idempotent handoff from setup portal to normal swarm operation (`state/provision/setup-portal-completed.json` marker; `SWISD_SETUP_PORTAL=auto|on|off`; `swisd-app.service` gated via `After=`; USB provisioning takes the radio first via `swisd-provision.service` ordering).
 [x] Drag-and-Drop Ingestion: Build Conductor-side CLI/UI wrapper to ingest local `.gguf` files, chunk them, and seed them to the swarm without browser memory limits.
 [x] Browser-safe `AsyncIterable<Uint8Array>` upload abstraction.
 [x] Streaming chunking into the Polymorphic Ingestion Engine.
@@ -244,6 +244,7 @@ P1 — USB Provisioning (zero-touch, re-provisionable)
 [x] Idempotent Application: Checksum-verified application of `/swisd-provision.json` via `nmcli`.
 [ ] Scan FAT32/exFAT sticks for `/swisd-provision.json`. (Pi-specific `udev` implementation).
 [ ] Re-provisioning on stick insertion.
+[ ] USB-stick WiFi credential rotation/forget: a stick carrying new (or empty-new-network) WiFi credentials must be able to **replace or remove a remembered WiFi profile** without keyboard or monitor — the only console-less channel for credential rotation. Extends `swisd-provision.service` (`apply.ts`, now riding the shared `WifiAgent`): delete/overwrite the existing NetworkManager profile (UUID-based `forgetSsid`), optionally clear the setup-portal completion marker so the wizard can re-run after a fallback reset.
 
 P2 — Release & Signing Pipeline (GitHub Actions)
 [x] CI/CD Workflow: `.github/workflows/release.yml` triggers on `v*` tags or manual dispatch.

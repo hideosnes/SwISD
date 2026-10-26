@@ -7,10 +7,10 @@
 
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { isProvisionConfig, type ProvisionConfig } from '../config/index.js';
 import { IdentityManager } from '../delivery/index.js';
+import { WifiAgent } from './wifi.js';
 
 // Configurable paths for local testing without sudo, defaulting to Pi production paths
 const PROVISION_SOURCE_PATH = process.env.SWISD_PROVISION_PATH ?? '/swisd-provision.json';
@@ -27,23 +27,30 @@ function calculateChecksum(data: string): string {
   return createHash('sha256').update(data).digest('hex');
 }
 
-function applyWifiConfig(ssid: string, psk: string): void {
+/**
+ * USB-stick WiFi application. The stick is the only console-less channel to
+ * rotate or replace a remembered credential: WifiAgent.connect forgets any
+ * stale profile of the same SSID before joining, and reports failures honestly
+ * (the old silent catch made provisioning lie about success).
+ */
+async function applyWifiConfig(ssid: string, psk: string): Promise<void> {
   console.log(`[Provision] Configuring WiFi for SSID: ${ssid}`);
-  try {
-    const existing = execFileSync('nmcli', ['-t', '-f', 'NAME', 'c', 'show', '--active'], { encoding: 'utf-8' });
-    if (existing.includes(ssid)) {
-      console.log('[Provision] WiFi connection already active. Skipping.');
-      return;
-    }
+  const agent = new WifiAgent();
 
-    execFileSync('nmcli', ['dev', 'wifi', 'rescan']);
-    // Provisioning input is attacker-supplied text from a USB stick: it must reach
-    // nmcli as argument values, never as an interpolated shell string.
-    execFileSync('nmcli', ['dev', 'wifi', 'connect', ssid, 'password', psk], { stdio: 'inherit' });
-    console.log('[Provision] WiFi configured successfully.');
-  } catch (error: unknown) {
-    console.error('[Provision] Failed to configure WiFi (expected on non-Pi systems):', error);
+  const active = await agent.getActiveSsid();
+  if (active === ssid) {
+    console.log('[Provision] WiFi connection already active. Skipping.');
+    return;
   }
+
+  const result = await agent.connect({ ssid, password: psk, hidden: false, temporary: false });
+  if (result.ok) {
+    console.log('[Provision] WiFi configured successfully.');
+    return;
+  }
+  throw new Error(
+    `WiFi join failed (${result.reason ?? 'unknown'}): ${result.message ?? 'no detail'}`
+  );
 }
 
 async function main() {
@@ -84,7 +91,7 @@ async function main() {
 
   console.log('[Provision] Applying new configuration...');
 
-  applyWifiConfig(config.wifi.ssid, config.wifi.psk);
+  await applyWifiConfig(config.wifi.ssid, config.wifi.psk);
 
   const identityManager = new IdentityManager(DELIVERY_ROOT);
   await identityManager.ensureStateDir();
