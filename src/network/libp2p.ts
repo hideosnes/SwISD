@@ -11,6 +11,7 @@ import { yamux } from '@chainsafe/libp2p-yamux';
 import { gossipsub, type GossipSub } from '@libp2p/gossipsub';
 import { ping } from '@libp2p/ping';
 import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
+import { peerIdFromString } from '@libp2p/peer-id';
 import type { PrivateKey, Libp2p, PeerId, Stream } from '@libp2p/interface';
 import { createHash } from 'node:crypto';
 
@@ -45,13 +46,10 @@ export interface SwISDNodeDependencies {
   readonly deliveryRoot: string;
 }
 
-// Define the PingService interface locally to avoid breaking changes in @libp2p/ping exports.
-// We only expose the exact surface area we consume.
 export interface PingService {
   ping(peerId: PeerId): Promise<number>;
 }
 
-// Satisfies the ServiceMap index signature constraint without using 'any'
 export interface SwISDServiceMap {
   pubsub: GossipSub;
   ping: PingService;
@@ -153,6 +151,11 @@ export async function createSwISDNode(
   });
 
   return node;
+}
+
+export async function dialChunkStream(node: SwISDNode, peerId: string | PeerId): Promise<Stream> {
+  const target = typeof peerId === 'string' ? peerIdFromString(peerId) : peerId;
+  return await node.dialProtocol(target, '/swisd/model/1.0.0');
 }
 
 function isValidGossipMessage(msg: unknown): msg is GossipMessage<GossipPayload> {

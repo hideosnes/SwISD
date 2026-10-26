@@ -7,6 +7,7 @@
 
 export * from './approval.js';
 export * from './downloader.js';
+export * from './fetcher.js';
 export * from './huggingface.js';
 export * from './ingest.js';
 export * from './intent.js';

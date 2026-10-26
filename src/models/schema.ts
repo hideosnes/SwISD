@@ -22,6 +22,7 @@ export interface ModelManifest {
   readonly totalChunks: number;
   readonly totalSizeBytes: number;
   readonly chunkSizeBytes: number;
+  readonly chunkHashes: ReadonlyArray<string>;
   readonly requiredCapability: string;
   readonly sourcePeerId?: string;
   readonly createdAt: number;
@@ -32,3 +33,7 @@ export interface ChunkRequest {
   readonly modelId: string;
   readonly chunkIndex: number;
 }
+
+export type ChunkResponse = 
+  | { readonly status: 'success'; readonly data: Uint8Array }
+  | { readonly status: 'error'; readonly message: string };

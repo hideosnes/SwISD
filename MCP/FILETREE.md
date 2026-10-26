@@ -75,8 +75,9 @@ src/
 ├── models/                      # Model distribution and approval pipeline.
 │   ├── index.ts                 # Barrel export for model modules.
 │   ├── approval.ts              # ApprovalGate — operator approval workflow for new models.
-│   ├── downloader.ts            # ModelDownloader — HTTP/S3 model fetching with progress tracking and CredentialManager injection.
-│   ├── huggingface.ts           # HuggingFace API metadata pre-fetch and ingress (token-injected).
+ │   ├── downloader.ts            # ModelDownloader — HTTP/S3 model fetching with progress tracking and CredentialManager injection.
+ │   ├── fetcher.ts               # ModelChunkFetcher — P2P client for pulling and verifying model chunks (micro-torrent leecher).
+ │   ├── huggingface.ts           # HuggingFace API metadata pre-fetch and ingress (token-injected).
 │   ├── ingest.ts                # Polymorphic ingestion, chunking, and Merkle verification.
 │   ├── intent.ts                # IntentRegistry — persistent download intents for crash recovery and repair.
 │   ├── manager.ts               # ModelManager — RAII lifecycle, promise deduplication, active-task protection, and storage watermarks.
