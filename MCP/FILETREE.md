@@ -75,15 +75,17 @@ src/
 ├── models/                      # Model distribution and approval pipeline.
 │   ├── index.ts                 # Barrel export for model modules.
 │   ├── approval.ts              # ApprovalGate — operator approval workflow for new models.
- │   ├── downloader.ts            # ModelDownloader — HTTP/S3 model fetching with progress tracking and CredentialManager injection.
- │   ├── fetcher.ts               # ModelChunkFetcher — P2P client for pulling and verifying model chunks (micro-torrent leecher).
- │   ├── huggingface.ts           # HuggingFace API metadata pre-fetch and ingress (token-injected).
+│   ├── downloader.ts            # ModelDownloader — HTTP model fetching with progress tracking and CredentialManager injection.
+│   ├── fetcher.ts               # ModelChunkFetcher — P2P client for pulling and verifying model chunks (micro-torrent leecher).
+│   ├── framing.ts               # Wire framing for the chunk protocol: [status][len][payload] frames, payload caps, chunk path convention.
+│   ├── huggingface.ts           # HuggingFace API metadata pre-fetch and ingress (token-injected).
 │   ├── ingest.ts                # Polymorphic ingestion, chunking, and Merkle verification.
 │   ├── intent.ts                # IntentRegistry — persistent download intents for crash recovery and repair.
 │   ├── manager.ts               # ModelManager — RAII lifecycle, promise deduplication, active-task protection, and storage watermarks.
 │   ├── registry.ts              # ModelRegistry — model metadata catalog.
 │   ├── schema.ts                # ModelManifest and chunk map schemas.
-│   └── seeder.ts                # ModelSeeder — libp2p stream handler for serving model chunks to neighboring peers (micro-torrent layer).
+│   ├── seeder.ts                # ModelSeeder — libp2p stream handler for serving model chunks to neighboring peers (micro-torrent layer).
+│   └── signing.ts               # ModelSigner — persistent Ed25519 keypair; manifest signing and strict verification.
 │
 ├── network/                     # Node-to-node communication layer.
 │   ├── router/                  # Gossip and egress routing.
@@ -125,9 +127,12 @@ src/
 │
 ├── provision/                   # Out-of-box provisioning and setup portal.
 │   ├── index.ts                 # Barrel export for provision modules.
-│   ├── apply.ts                 # Idempotent USB provisioning agent (nmcli).
-│   ├── portal.ts                # HTTP server for the captive portal setup wizard.
+│   ├── apply.ts                 # Idempotent USB provisioning agent (rides WifiAgent; replaces/forgets profiles).
+│   ├── captiveDns.ts            # Zero-dep UDP captive DNS responder — points every A query at the portal.
+│   ├── portal.ts                # DI HTTP server for the captive portal (onJoin executor, retry state machine).
 │   ├── schema.ts                # Strict wire DTOs for the portal join request/result.
+│   ├── setupAgent.ts            # Out-of-Box setup orchestrator: fallback AP, DNS, portal, completion marker handoff.
+│   ├── wifi.ts                  # WifiAgent — typed nmcli wrapper: connect/forget/scan/hotspot with injectable runner.
 │   └── wizardPage.ts            # Self-contained HTML/CSS/JS template for the captive portal.
 │
 ├── storage/                     # Storage capacity and watermarks.
@@ -147,7 +152,7 @@ src/
 ```text
 cockpit/
 ├── package.json                 # Cockpit package manifest. Depends on ../../src via $core alias.
-├── tsconfig.json                # TypeScript config. Extends root strictness. Adds $core and $lib aliases.
+├── tsconfig.json                # TypeScript config. Extends root strictness. Aliases live in vite config and package.json imports.
 ├── svelte.config.js             # SvelteKit config. Adapter-node for production builds.
 ├── vite.config.ts               # Vite config. $core alias resolution, dev server port.
 ├── vite.config.js               # Legacy Vite config (cleanup pending).
@@ -234,7 +239,8 @@ cockpit/
 │   │       ├── conductorIdentity.ts # Per-device Ed25519 identity & enrollment.
 │   │       ├── discovery.ts     # Server-side mDNS listener. Reactive map of discovered nodes.
 │   │       ├── sessionLock.ts   # Session lock state and Argon2id verification.
-│   │       └── topology.ts      # SwarmTopologyDTO builder. Pure function, no side effects.
+│   │       ├── topology.ts      # SwarmTopologyDTO builder. Pure function, no side effects.
+│   │       └── wizardSim.ts     # Dev-only emulated captive portal for the wizard preview bench.
 │   │
 │   └── routes/                  # SvelteKit file-based routing.
 │       ├── +layout.svelte       # Root layout component. Shell, nav, sidebar.
@@ -256,6 +262,8 @@ cockpit/
 │       │   │   │   └── +server.ts # POST /api/models/approve — Approve model download.
 │       │   │   ├── ingest/
 │       │   │   │   └── +server.ts # POST /api/models/ingest — Drag-and-drop ingestion.
+│       │   │   ├── rename/
+│       │   │   │   └── +server.ts  # POST /api/models/rename — Rename a registered model.
 │       │   │   ├── library/
 │       │   │   │   └── +server.ts # GET /api/models/library — Local model catalog.
 │       │   │   ├── request/
@@ -291,12 +299,22 @@ cockpit/
 │       │       └── +server.ts   # GET /api/topology — SwarmTopologyDTO.
 │       │
 │       ├── design/
-│       │   └── +page.svelte     # Design page. Theme gallery, regime controls, component preview.
+│       │   ├── +page.svelte     # Design page. Theme gallery, regime controls, component preview.
+│       │   ├── captive/
+│       │   │   └── +page.svelte # Custom captive-portal design bench (hand-built Svelte imitation).
+│       │   └── wizard/
+│       │       ├── +page.svelte # Wizard preview bench: real renderWizardPage() artifact in a phone frame.
+│       │       └── preview/
+│       │           └── +server.ts # Dev-only: serves the verbatim portal HTML; forced-state overrides.
 │       ├── dev/
 │       │   └── replay/
 │       │       └── +page.svelte # Scenario replay control deck.
+│       ├── join/
+│       │   └── +server.ts       # Dev-only: emulated portal POST /join (dead in production).
 │       ├── models/
 │       │   └── +page.svelte     # Models page. Catalog, approval, download status.
+│       ├── status/
+│       │   └── +server.ts       # Dev-only: emulated portal GET /status (dead in production).
 │       └── settings/
 │           └── +page.svelte     # Settings page. Per-device theme persistence, display options, and secure credential management.
 ```
@@ -353,11 +371,26 @@ tsconfig.json                    # Root TypeScript config. Locked to src/ only.
 package.json                     # Root package manifest. Workspaces, scripts, dev dependencies.
 .gitignore                       # Git ignore rules.
 README.md                        # Project overview and quickstart.
-GUIDE.md                         # Architecture guide. Canonical behavioral rules.
-CRDT.md                          # CRDT technical reference. Canonical CRDT definitions.
-SVELTE.md                        # Svelte 5, a11y, and CSS architecture canon.
-FILETREE.md                      # This document. Canonical file map.
-BACKLOG.md                       # Feature backlog. Current development state.
+LICENSE                          # MPL-2.0 license text.
+config.json                      # Device bootstrap flags (configVersion, predefinedRole, isSwISD marker).
+swisd-provision.json             # USB provisioning payload: Wi-Fi credentials, role, model source.
+.env.example                     # Template for runtime env (SWISD_ROLE, admin host/port/token, LAN policy).
+
+dist/                            # Build output of src/ (tsc). Published artifact root; reproducible.
+
+systemd/                         # Deployment unit files (installed to /etc/systemd/system).
+├── swisd-app.service            # Headless core as a hardened self-restarting service.
+├── swisd-provision.service      # One-shot USB provisioning agent (dist/provision/apply.js).
+├── swisd-setup.service          # Out-of-Box setup portal: fallback AP, captive DNS, wizard HTTP serve.
+└── swisd-supervisor.service     # OTA supervisor + watchdog (dist/delivery/localSupervisor.js).
+
+scripts/
+├── install.sh                   # Interactive installer: builds, signs, installs systemd units.
+└── sign-release.ts              # Release signing helper (Ed25519 detached signatures).
+
+.github/
+└── workflows/
+    └── release.yml              # CI/CD: build, sign, and publish releases.
 ```
 
 ---
@@ -372,7 +405,7 @@ BACKLOG.md                       # Feature backlog. Current development state.
 6. All files MUST carry the **six-point** header comment block (path, description, expects, provides, SPDX, Copyright).
 7. All `.svelte` files MUST use `<!-- -->` comments for the header block.
 8. All imports MUST use explicit `.js` extensions for ESM compatibility.
-9. All imports MUST use path aliases (`$core`, `$lib`) — never relative paths crossing build boundaries.
+9. Cross-boundary imports MUST use aliases (`$core` for `src/`, `#lib` for internal `lib/`) — never relative paths crossing build boundaries. Packages MUST import their own `lib/` barrel-first via `#lib`.
 10. No `any` types anywhere. Strict mode is non-negotiable.
 
 ---
@@ -409,51 +442,44 @@ Every file MUST begin with a six-point comment block:
 
 ## Path Alias Configuration
 
-**`cockpit/vite.config.ts`:**
+Aliases are **not** configured via `tsconfig.json` (`paths` is unset everywhere) —
+they ride the bundler and the package imports map:
+
+**`cockpit/vite.config.ts`** — `$core` via the `sveltekit()` plugin options
+(Kit 3 reads adapter, prerender, compiler options, and alias from the plugin;
+`svelte.config.js` is no longer supported):
 
 ```typescript
-resolve: {
-  alias: {
-    '$core': path.resolve(__dirname, '../src'),
-    '$lib': path.resolve(__dirname, 'src/lib'),
-  }
-}
+export default defineConfig({
+	plugins: [
+		tailwindcss(),
+		sveltekit({
+			compilerOptions: { runes: (...) => ... },
+			adapter: adapter(),
+			alias: {
+				$core: '../src/'
+			}
+		})
+	]
+});
 ```
 
-**`cockpit/tsconfig.json`:**
+**`cockpit/package.json`** — `#lib` via the `imports` field (Node-style
+package imports; deep aliasing is gone, barrel-first is the law):
 
 ```json
-{
-  "compilerOptions": {
-    "paths": {
-      "$core/*": ["../src/*"],
-      "$lib/*": ["./src/lib/*"]
-    }
-  }
+"imports": {
+  "#lib": "./src/lib/index.js",
+  "#lib/*": "./src/lib/*",
+  "#lib/components/ui": "./src/lib/components/ui/index.js",
+  "#lib/components/datavis": "./src/lib/components/datavis/index.js",
+  "#lib/assets/icons/*.svg": "./src/lib/assets/icons/*.svg"
 }
 ```
 
-**`site/vite.config.ts`:**
-
-```typescript
-resolve: {
-  alias: {
-    '$lib': path.resolve(__dirname, 'src/lib'),
-  }
-}
-```
-
-**`site/tsconfig.json`:**
-
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "$lib/*": ["./src/lib/*"]
-    }
-  }
-}
-```
+**`site/vite.config.ts`** — no aliases. The site is self-contained: Tailwind,
+adapter-static, prerender options, and runes enforcement, all inside the
+`sveltekit()` plugin options. Imports stay relative within `site/src/`.
 
 ## Enforcement
 

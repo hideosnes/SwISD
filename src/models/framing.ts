@@ -77,7 +77,7 @@ export async function readFrame(stream: Stream, maxPayload: number = MAX_FRAME_P
   };
 
   const header = await readExact(FRAME_HEADER_BYTES);
-  const status = header[0];
+  const status = header[0] ?? 0xff;
   if (status !== FRAME_STATUS_SUCCESS && status !== FRAME_STATUS_ERROR) {
     throw new SwISDError('ERR_INVALID_STATE', `Unknown frame status 0x${status.toString(16)}`);
   }

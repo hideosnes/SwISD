@@ -11,3 +11,4 @@ export * from './discovery.js';
 export * from './topology.js';
 export * from './conductorIdentity.js';
 export * from './sessionLock.js';
+export * from './wizardSim.js';
