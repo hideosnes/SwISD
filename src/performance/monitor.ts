@@ -59,7 +59,7 @@ export class LoadMonitor {
 
   private getCpuUsage(): number {
     const cpuCount = cpus().length || 1;
-    const avg = loadavg()[0]; // 1-minute load average
+    const avg = loadavg()[0] ?? 0; // 1-minute load average
     return Math.min(1, avg / cpuCount);
   }
 

@@ -92,6 +92,8 @@ export async function ingestModelStream(
     repoId,
     files: selectedFiles,
     merkleRoot,
+    // Chunk hashes double as the fetcher's per-chunk verification table.
+    chunkHashes,
     totalChunks: chunkIndex,
     totalSizeBytes,
     chunkSizeBytes: CHUNK_SIZE,

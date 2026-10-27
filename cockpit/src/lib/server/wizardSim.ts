@@ -79,24 +79,23 @@ export function getSimSnapshot(): Readonly<SimState> {
 	return sim;
 }
 
-/** Dev gate for every sim-backed route: 404 outside dev, 404 off private networks. */
+/**
+ * Dev gate for every sim-backed route: 404 outside dev, 404 off private networks.
+ * Client addresses arrive from the dev server as IPv4-in-IPv6 (`::ffff:127.0.0.1`) —
+ * normalized before prefix matching, or the bench locks out everyone including loopback.
+ */
 export function isSimRequestAllowed(event: RequestEvent): boolean {
-	if (!dev) {
-		console.warn('[WizardSim] rejected: not dev');
-		return false;
-	}
+	if (!dev) return false;
 	try {
-		const address = event.getClientAddress();
-		const ok =
+		const address = event.getClientAddress().replace(/^::ffff:/, '');
+		return (
 			address.startsWith('127.') ||
 			address === '::1' ||
 			address.startsWith('10.') ||
 			address.startsWith('192.168.') ||
-			(address.startsWith('172.') && in172Range(address));
-		if (!ok) console.warn('[WizardSim] rejected: client address not private:', address);
-		return ok;
+			(address.startsWith('172.') && in172Range(address))
+		);
 	} catch {
-		console.warn('[WizardSim] rejected: no client address');
 		return false;
 	}
 }
