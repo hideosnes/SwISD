@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs';
 import { statfs, rm, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { chunkFileName } from './framing.js';
 import type { ModelRegistry } from './registry.js';
 import type { IntentRegistry } from './intent.js';
 import type { ModelDownloader } from './downloader.js';
@@ -75,8 +76,7 @@ export class ModelManager {
     if (!presentFiles.has('manifest.json')) return false;
 
     for (let i = 0; i < manifest.totalChunks; i++) {
-      const chunkName = `chunk_${i.toString().padStart(4, '0')}.bin`;
-      if (!presentFiles.has(chunkName)) {
+      if (!presentFiles.has(chunkFileName(i))) {
         return false;
       }
     }

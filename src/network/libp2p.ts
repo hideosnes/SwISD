@@ -13,6 +13,7 @@ import { ping } from '@libp2p/ping';
 import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
 import { peerIdFromString } from '@libp2p/peer-id';
 import type { PrivateKey, Libp2p, PeerId, Stream } from '@libp2p/interface';
+import { CHUNK_PROTOCOL } from '../models/framing.js';
 import { createHash } from 'node:crypto';
 
 import type { GossipMessage, GossipPayload, TaskResultPayload, TaskHistoryEvent, ReputationEvent } from '../types.js';
@@ -146,7 +147,7 @@ export async function createSwISDNode(
   });
 
   const seederHandler = createModelSeederHandler(deps.modelRegistry, deps.deliveryRoot);
-  node.handle('/swisd/model/1.0.0', async (stream: Stream) => {
+  node.handle(CHUNK_PROTOCOL, async (stream: Stream) => {
     await seederHandler(stream);
   });
 
@@ -155,7 +156,7 @@ export async function createSwISDNode(
 
 export async function dialChunkStream(node: SwISDNode, peerId: string | PeerId): Promise<Stream> {
   const target = typeof peerId === 'string' ? peerIdFromString(peerId) : peerId;
-  return await node.dialProtocol(target, '/swisd/model/1.0.0');
+  return await node.dialProtocol(target, CHUNK_PROTOCOL);
 }
 
 function isValidGossipMessage(msg: unknown): msg is GossipMessage<GossipPayload> {

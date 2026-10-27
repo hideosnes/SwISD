@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { chunkPath } from './framing.js';
 import type { ModelManifest, ModelFile } from './schema.js';
 import { sanitizeModelId } from './huggingface.js';
 import { buildManifestSignaturePayload } from './signing.js';
@@ -56,8 +57,7 @@ export async function ingestModelStream(
   const flushChunk = async (data: Uint8Array): Promise<void> => {
     const hash = createHash('sha256').update(LEAF_PREFIX).update(data).digest('hex');
     chunkHashes.push(hash);
-    const chunkName = `chunk_${chunkIndex.toString().padStart(4, '0')}.bin`;
-    await writeFile(join(modelDir, chunkName), data);
+    await writeFile(chunkPath(deliveryRoot, modelId, chunkIndex), data);
     totalSizeBytes += data.length;
     chunkIndex++;
   };
