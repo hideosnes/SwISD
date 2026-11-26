@@ -38,10 +38,18 @@
     updateResults = [];
   }
 
-  async function confirmUpdate(): Promise<void> {
+  async function confirmUpdate(installTailscale: boolean): Promise<void> {
     if (!updateTarget || isUpdating) return;
     isUpdating = true;
     try {
+      if (installTailscale) {
+        const reqRes = await fetch('/api/system/requirements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ peerId: updateTarget.peerId, tailscale: true }),
+        });
+        if (!reqRes.ok) throw new Error(`Requirements request failed: ${reqRes.status}`);
+      }
       const res = await fetch('/api/system/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

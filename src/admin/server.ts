@@ -135,10 +135,39 @@ export function createAdminServer(config: AdminServerConfig): AdminServerHandle 
 
       const isStateMutation = 
         (url.pathname === '/v1/system/update' && req.method === 'POST') ||
-        (url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST'));
+        (url.pathname === '/v1/system/hostname' && (req.method === 'PUT' || req.method === 'POST')) ||
+        (url.pathname === '/v1/system/requirements' && req.method === 'POST');
 
       if (req.method !== 'GET' && !isStateMutation) {
         sendJson(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+
+      // --- PENDING REQUIREMENTS ENDPOINT (cockpit flags for next update) ---
+      if (url.pathname === '/v1/system/requirements' && req.method === 'GET') {
+        sendJson(res, 200, await config.updater.getPendingRequirements());
+        return;
+      }
+      if (url.pathname === '/v1/system/requirements' && req.method === 'POST') {
+        const body = await readBody(req);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(body);
+        } catch {
+          sendJson(res, 400, { error: 'Invalid JSON body' });
+          return;
+        }
+        if (typeof parsed !== 'object' || parsed === null) {
+          sendJson(res, 400, { error: 'Body must be an object with boolean requirement flags' });
+          return;
+        }
+        const flags = parsed as Record<string, unknown>;
+        if (typeof flags.tailscale !== 'boolean') {
+          sendJson(res, 400, { error: 'Missing or invalid "tailscale" boolean flag' });
+          return;
+        }
+        const merged = await config.updater.setPendingRequirements({ tailscale: flags.tailscale });
+        sendJson(res, 200, { status: 'ok', requirements: merged });
         return;
       }
 

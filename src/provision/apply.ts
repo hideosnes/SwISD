@@ -6,6 +6,7 @@
 // 6. Copyright (c) 2026 Homahuki GmbH
 
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { isProvisionConfig, type ProvisionConfig } from '../config/index.js';
@@ -53,6 +54,26 @@ async function applyWifiConfig(ssid: string, psk: string): Promise<void> {
   );
 }
 
+/**
+ * USB-stick Tailscale application. Joins the node to the tailnet with a
+ * pre-auth key so a headless Pi autoconnects with no console. Key lives only
+ * in argument arrays — never in a shell string, never in logs.
+ */
+function applyTailscaleConfig(authKey: string, hostname?: string): Promise<void> {
+  const args = ['up', `--authkey=${authKey}`];
+  if (hostname) args.push(`--hostname=${hostname}`);
+  return new Promise((resolve, reject) => {
+    execFile('tailscale', args, { encoding: 'utf-8', timeout: 60_000 }, (err, _stdout, stderr) => {
+      if (err) {
+        reject(new Error(`Tailscale join failed: ${String(stderr).trim() || err.message}`));
+        return;
+      }
+      console.log('[Provision] Tailscale joined successfully.');
+      resolve();
+    });
+  });
+}
+
 async function main() {
   console.log('[Provision] Starting USB provisioning scan...');
   console.log(`[Provision] Source: ${PROVISION_SOURCE_PATH} | Target Root: ${DELIVERY_ROOT}`);
@@ -92,6 +113,10 @@ async function main() {
   console.log('[Provision] Applying new configuration...');
 
   await applyWifiConfig(config.wifi.ssid, config.wifi.psk);
+
+  if (config.tailscale) {
+    await applyTailscaleConfig(config.tailscale.authKey, config.tailscale.hostname);
+  }
 
   const identityManager = new IdentityManager(DELIVERY_ROOT);
   await identityManager.ensureStateDir();

@@ -57,6 +57,15 @@ export class TrustRegistry {
     return true;
   }
 
+  /** Demotes a trusted peer back to pending (ledger revocation projection). */
+  public revokePeer(peerId: string): boolean {
+    const record = this.peers.get(peerId);
+    if (!record || record.state !== 'trusted') return false;
+
+    this.peers.set(peerId, { ...record, state: 'pending', trustedAt: null });
+    return true;
+  }
+
   public registerPublicKey(peerId: string, publicKey: Uint8Array): void {
     this.publicKeys.set(peerId, publicKey);
   }

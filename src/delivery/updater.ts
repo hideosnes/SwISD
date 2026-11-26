@@ -27,6 +27,10 @@ export interface UpdateResult {
   readonly message: string;
 }
 
+export interface PendingRequirements {
+  readonly tailscale: boolean;
+}
+
 export class Updater {
   private readonly installDir: string;
   private readonly releasesDir: string;
@@ -42,6 +46,28 @@ export class Updater {
 
   public async ensureDirs(): Promise<void> {
     await mkdir(this.releasesDir, { recursive: true });
+  }
+
+  private get requirementsPath(): string {
+    return join(this.installDir, 'state', 'requirements.json');
+  }
+
+  public async getPendingRequirements(): Promise<PendingRequirements> {
+    try {
+      const raw = await readFile(this.requirementsPath, 'utf-8');
+      const parsed = JSON.parse(raw) as Partial<PendingRequirements>;
+      return { tailscale: parsed.tailscale === true };
+    } catch {
+      return { tailscale: false };
+    }
+  }
+
+  public async setPendingRequirements(next: Partial<PendingRequirements>): Promise<PendingRequirements> {
+    const current = await this.getPendingRequirements();
+    const merged = { ...current, ...next };
+    await mkdir(dirname(this.requirementsPath), { recursive: true });
+    await writeFile(this.requirementsPath, JSON.stringify(merged), 'utf-8');
+    return merged;
   }
 
   public async checkForUpdate(): Promise<{ hasUpdate: boolean; latestVersion: string; currentVersion: string | null }> {

@@ -13,11 +13,13 @@
     open: boolean;
     targetDescription: string;
     isUpdating: boolean;
-    onconfirm: () => void;
+    onconfirm: (installTailscale: boolean) => void;
     oncancel: () => void;
   }
 
   let { open, targetDescription, isUpdating, onconfirm, oncancel }: Props = $props();
+
+  let installTailscale = $state(false);
 </script>
 
 <Modal {open} onclose={oncancel} title="Confirm Swarm Update">
@@ -31,13 +33,17 @@
     <p class="text-xs text-text-3">
       Nodes will download the latest release, verify SHA-256 and Ed25519 signatures, and atomically swap to the new version. The node will restart automatically upon success.
     </p>
+    <label class="flex items-center gap-2 text-sm text-text-1">
+      <input type="checkbox" bind:checked={installTailscale} class="accent-current" />
+      Also fetch Tailscale with this update (tailnet autoconnect)
+    </label>
   </div>
 
   {#snippet footer()}
     <Button variant="ghost" onclick={oncancel} disabled={isUpdating}>
       Cancel
     </Button>
-    <Button variant="danger" onclick={onconfirm} disabled={isUpdating}>
+    <Button variant="danger" onclick={() => onconfirm(installTailscale)} disabled={isUpdating}>
       {isUpdating ? 'Updating...' : 'Confirm Update'}
     </Button>
   {/snippet}

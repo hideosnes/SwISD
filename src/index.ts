@@ -13,7 +13,9 @@ import { ObservabilityEventBus, createDevObservabilitySource } from './observabi
 import type { DevObservabilitySource } from './observability/index.js';
 import { HeartbeatWriter, IdentityManager } from './delivery/index.js';
 import { Updater } from './delivery/updater.js';
-import { TrustRegistry } from './peer/index.js';
+import { TrustRegistry, TrustLedger } from './peer/index.js';
+import { bytesToHex } from './crypto/index.js';
+import { join } from 'node:path';
 import { startAdminDiscovery, type DiscoveryHandle } from './network/index.js';
 import {
   createAdminToken,
@@ -29,6 +31,7 @@ class SwISDApp {
   private heartbeatWriter: HeartbeatWriter | undefined;
   private identityManager: IdentityManager | undefined;
   private trustRegistry: TrustRegistry | undefined;
+  private trustLedger: TrustLedger | undefined;
   private discoveryHandle: DiscoveryHandle | undefined;
   private updater: Updater | undefined;
 
@@ -59,8 +62,13 @@ class SwISDApp {
       await this.identityManager.setHostname(envHostname);
     }
 
-    // 2. Initialize Trust Registry
+    // 2. Initialize Trust Registry with persistent ledger memory
+    this.trustLedger = await TrustLedger.load(
+      join(deliveryRoot, 'state', 'trust-ledger.jsonl'),
+      bytesToHex(identity.publicKeyDer),
+    );
     this.trustRegistry = new TrustRegistry();
+    this.trustLedger.replay(this.trustRegistry);
 
     // 3. Initialize Observability Source
     const source = createDevObservabilitySource(
@@ -104,6 +112,9 @@ class SwISDApp {
     const enableCors = parseBoolean(process.env.SWISD_ADMIN_CORS, true);
     const port = parsePort(process.env.SWISD_ADMIN_PORT, 4101);
 
+    // Swarm self-recognition: nodes announce their ledger-derived swarm ID via mDNS.
+    const swarmId = process.env.SWISD_SWARM_ID || undefined;
+
     // Helper to restart mDNS discovery with a new hostname
     const startDiscovery = (hostName: string) => {
       if (this.discoveryHandle) {
@@ -116,6 +127,7 @@ class SwISDApp {
         hostname: hostName,
         host,
         port,
+        swarmId,
       });
     };
 

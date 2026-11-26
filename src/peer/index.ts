@@ -4,3 +4,4 @@
 // 4. Provides: Centralized export of the TrustRegistry and peer identity management.
 
 export * from './trust.js';
+export * from './trustLedger.js';

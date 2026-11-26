@@ -14,6 +14,8 @@ export interface DiscoveryConfig {
   readonly hostname: string;
   readonly host: string;
   readonly port: number;
+  /** Ledger-derived swarm identity; empty when the node has not enrolled in a swarm yet. */
+  readonly swarmId?: string;
 }
 
 export interface DiscoveryHandle {
@@ -37,6 +39,7 @@ export function startAdminDiscovery(config: DiscoveryConfig): DiscoveryHandle {
       role: config.role,
       version: config.version,
       hostname: config.hostname,
+      ...(config.swarmId ? { swarmId: config.swarmId } : {}),
     },
   });
 
